@@ -23,6 +23,7 @@ const M = require('./maintenance');
 const { ActivityLog } = require('./activity');
 const { Desk } = require('./engine/desk');
 const { isCrypto } = require('./market/crypto');
+const { marketHours } = require('./market/hours');
 const { sendWebPage, webAssets, ASSETS } = require('./webpage');
 const { ShariaService } = require('./sharia/screener');
 const { TerminalService } = require('./services/terminalService');
@@ -268,6 +269,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
     if (!isValidTf(tf)) throw new Error('Invalid timeframe');
     return desk.bars(symQ(req), tf);
   }));
+  app.get('/api/market/hours', wrap(() => { const a = desk.stockAgent(); return marketHours(a && a.calendar, Date.now()); }));
   app.get('/api/watchlist', wrap(() => ({ items: desk.watchlist(), max: desk.maxSymbols(), reference: desk.reference.summary() })));
   app.post('/api/watchlist/add', wrap(async (req) => ({ items: await desk.addSymbol(req.body && req.body.symbol) })));
   app.post('/api/watchlist/remove', wrap(async (req) => {

@@ -5,6 +5,7 @@ const { state, stale, lastAt, now } = useTerminal()
 // invented prices under a real symbol must never pass for the market
 const demo = computed(() => !!state.value?.tradingSession && state.value.tradingSession.dataMode !== 'LIVE')
 const L = (ar: string, en: string) => (lang.value === 'ar' ? ar : en)
+const { view: market, count, PHASE } = useMarketHours()
 const route = useRoute()
 const open = ref(false)
 const me = ref<any>(null)
@@ -37,8 +38,8 @@ const ABOUT: Record<string, [string, string]> = { nav_orders: ['اكتب أمر�
       <header class="sticky top-0 z-20 flex min-h-[4.5rem] items-center gap-2.5 border-b bg-card px-4 py-2 sm:gap-3 sm:px-6">
         <NuxtLink to="/app" data-slot="brand" class="flex items-center lg:hidden" :aria-label="t('brand')"><BrandMark /></NuxtLink>
         <UiBadge tone="warn" class="!px-3.5 !py-0.5 text-sm whitespace-nowrap">{{ t('paper') }}</UiBadge>
-        <span class="small min-w-0 truncate" :class="stale ? 'down' : 'muted'" role="status"><i class="me-1.5 inline-block size-2 rounded-full" :class="stale ? 'bg-down' : 'bg-up live-dot'" />{{ stale ? t('offline') : t('live') }}<span v-if="lastAt" class="max-sm:hidden"> · {{ t('updated') }} <bdi dir="ltr">{{ Math.max(0, Math.round((now - lastAt) / 1000)) }}</bdi> {{ t('ago') }}</span></span>
-        <span class="grow" /><ThemeLang class="max-lg:!hidden" />
+        <span class="small min-w-0 truncate max-sm:hidden" :class="stale ? 'down' : 'muted'" role="status"><i class="me-1.5 inline-block size-2 rounded-full" :class="stale ? 'bg-down' : 'bg-up live-dot'" />{{ stale ? t('offline') : t('live') }}<span v-if="lastAt" class="max-sm:hidden"> · {{ t('updated') }} <bdi dir="ltr">{{ Math.max(0, Math.round((now - lastAt) / 1000)) }}</bdi> {{ t('ago') }}</span></span>
+        <span class="grow" /><NuxtLink v-if="market" to="/app#hours" data-slot="nav" class="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full bg-secondary px-3.5 text-sm text-secondary-foreground"><i class="size-2 shrink-0 rounded-full" :class="market.open ? 'bg-up' : market.phase === 'CLOSED' ? 'bg-down' : 'bg-sky'" aria-hidden="true" /><span class="max-md:hidden">{{ PHASE[market.phase] }}</span><span>{{ market.open ? L('يغلق بعد', 'closes in') : L('يفتح بعد', 'opens in') }}</span><b class="num">{{ count(market.left) }}</b></NuxtLink><ThemeLang class="max-lg:!hidden" />
       </header>
       <p v-if="demo" role="note" class="!m-0 flex flex-wrap items-center justify-center gap-x-2 bg-sun px-4 py-2 text-center text-sm font-semibold text-sun-foreground">{{ L('أسعار تجريبية غير حقيقية. لا تطابق السوق ولا تعتمد عليها.', 'Demo prices, not real. They do not match the market; do not rely on them.') }}<NuxtLink v-if="canLive" to="/app/settings" data-slot="nav" class="inline-flex min-h-8 items-center rounded-full bg-[#0a0b1a] px-4 text-white">{{ L('انتقل إلى الأسعار الحقيقية', 'Switch to real prices') }}</NuxtLink></p>
       <main class="mx-auto max-w-[110rem] p-4 pb-28 sm:p-6 sm:pb-28 lg:pb-8">
