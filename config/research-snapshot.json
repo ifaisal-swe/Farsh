@@ -1,0 +1,2107 @@
+{
+ "asOf": "2026-11-23",
+ "macro": [
+  {
+   "label": {
+    "en": "S&P 500 close",
+    "ar": "إغلاق S&P 500"
+   },
+   "value": "6,910.39",
+   "asOf": "2026-11-20",
+   "ev": "M",
+   "url": "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html",
+   "note": {
+    "en": "-3.70% day, -8.6% week",
+    "ar": "-3.70% في اليوم، -8.6% في الأسبوع"
+   }
+  },
+  {
+   "label": {
+    "en": "Nasdaq Composite close",
+    "ar": "إغلاق ناسداك"
+   },
+   "value": "22,617.73",
+   "asOf": "2026-11-20",
+   "ev": "M",
+   "url": "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html",
+   "note": {
+    "en": "-5.28% day, about -10% week",
+    "ar": "-5.28% في اليوم، نحو -10% في الأسبوع"
+   }
+  },
+  {
+   "label": {
+    "en": "Dow close",
+    "ar": "إغلاق داو جونز"
+   },
+   "value": "48,147.33",
+   "asOf": "2026-11-20",
+   "ev": "M",
+   "url": "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html",
+   "note": {
+    "en": "-1.93% day",
+    "ar": "-1.93% في اليوم"
+   }
+  },
+  {
+   "label": {
+    "en": "S&P 500, intraday",
+    "ar": "S&P 500 أثناء الجلسة"
+   },
+   "value": "+5.35%",
+   "asOf": "2026-11-23 10:43 ET",
+   "ev": "S",
+   "url": "https://www.foxbusiness.com/markets/stocks-november-23-2026",
+   "note": {
+    "en": "Not a close; other snapshots show +4.3% to +4.7%",
+    "ar": "ليس إغلاقًا؛ لقطات أخرى +4.3% إلى +4.7%"
+   }
+  },
+  {
+   "label": {
+    "en": "Fed funds range",
+    "ar": "فائدة الفيدرالي"
+   },
+   "value": "3.75-4.00%",
+   "asOf": "2026-10-28",
+   "ev": "V",
+   "url": "https://federalreserve.gov/monetarypolicy/fomcminutes20261028.htm",
+   "note": {
+    "en": "Held 10-2; dissenters wanted a hike",
+    "ar": "تثبيت 10-2؛ المعترضان أرادا الرفع"
+   }
+  },
+  {
+   "label": {
+    "en": "Odds of +25 bp in Dec",
+    "ar": "احتمال الرفع في ديسمبر"
+   },
+   "value": "~96%",
+   "asOf": "2026-11-23",
+   "ev": "S",
+   "url": "https://www.foxbusiness.com/markets/stocks-november-23-2026",
+   "note": {
+    "en": "CME FedWatch via Fox Business",
+    "ar": "CME FedWatch نقلًا عن Fox Business"
+   }
+  },
+  {
+   "label": {
+    "en": "Core PCE, 12 months",
+    "ar": "PCE الأساسي"
+   },
+   "value": "3.1%",
+   "asOf": "2026-09",
+   "ev": "V",
+   "url": "https://federalreserve.gov/monetarypolicy/fomcminutes20261028.htm",
+   "note": {
+    "en": "Headline 3.6%",
+    "ar": "العام 3.6%"
+   }
+  },
+  {
+   "label": {
+    "en": "Payrolls",
+    "ar": "الوظائف"
+   },
+   "value": "+165,000",
+   "asOf": "2026-10",
+   "ev": "V",
+   "url": "https://www.bls.gov/news.release/empsit.nr0.htm?tc=ix",
+   "note": {
+    "en": "Unemployment 4.1%; preliminary",
+    "ar": "البطالة 4.1%؛ أولية"
+   }
+  },
+  {
+   "label": {
+    "en": "10-year Treasury",
+    "ar": "عائد 10 سنوات"
+   },
+   "value": "4.989%",
+   "asOf": "2026-11-20 05:31 ET",
+   "ev": "S",
+   "url": "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html",
+   "note": {
+    "en": "Early morning, not a close",
+    "ar": "قراءة صباحية وليست إغلاقًا"
+   }
+  },
+  {
+   "label": {
+    "en": "S&P 500 Q3 EPS growth",
+    "ar": "نمو أرباح الربع الثالث"
+   },
+   "value": "32.9%",
+   "asOf": "2026-11-20",
+   "ev": "P",
+   "url": "https://advantage.factset.com/hubfs/Website/Resources%20Section/Research%20Desk/Earnings%20Insight/EarningsInsight_112026.pdf",
+   "note": {
+    "en": "93% reported; 84% beat",
+    "ar": "أعلنت 93%؛ وتجاوزت 84%"
+   }
+  },
+  {
+   "label": {
+    "en": "Forward 12-month P/E",
+    "ar": "مكرر الربحية المستقبلي"
+   },
+   "value": "17.1",
+   "asOf": "2026-11-20",
+   "ev": "P",
+   "url": "https://advantage.factset.com/hubfs/Website/Resources%20Section/Research%20Desk/Earnings%20Insight/EarningsInsight_112026.pdf",
+   "note": {
+    "en": "5-year average 19.8",
+    "ar": "متوسط 5 سنوات 19.8"
+   }
+  }
+ ],
+ "news": [
+  {
+   "date": "2026-11-23",
+   "tickers": [
+    "NVDA"
+   ],
+   "title": {
+    "en": "NVIDIA reinstated Jensen Huang as CEO and director",
+    "ar": "أعادت NVIDIA جنسن هوانغ رئيسًا تنفيذيًا وعضوًا في المجلس"
+   },
+   "why": {
+    "en": "Up about 31-35% intraday. A board investigation continues.",
+    "ar": "ارتفع نحو 31-35% أثناء الجلسة. تحقيق المجلس مستمر."
+   },
+   "ev": "P",
+   "urls": [
+    "https://nvidianews.nvidia.com/news/nvidia-board-reinstates-jensen-huang-as-president-ceo-and-board-director",
+    "https://www.foxbusiness.com/markets/stocks-november-23-2026"
+   ]
+  },
+  {
+   "date": "2026-11-23",
+   "tickers": [
+    "ZS"
+   ],
+   "title": {
+    "en": "Zscaler to be acquired in an all-stock deal of about $43.9B",
+    "ar": "الاستحواذ على Zscaler بصفقة أسهم بنحو 43.9 مليار"
+   },
+   "why": {
+    "en": "Up about 13%. The page read did not name the buyer.",
+    "ar": "نحو +13%. لم تذكر الصفحة اسم المشتري."
+   },
+   "ev": "S",
+   "urls": [
+    "https://247wallst.com/investing/2026/11/23/stock-market-today-dow-sp-500-and-nasdaq-surge-as-nvidia-leads-a-major-ai-rebound/"
+   ]
+  },
+  {
+   "date": "2026-11-23",
+   "tickers": [
+    "ORCL"
+   ],
+   "title": {
+    "en": "Oracle reaffirmed a target above $30B fiscal 2029 free cash flow",
+    "ar": "أكدت Oracle هدف تدفق نقدي فوق 30 مليار في 2029"
+   },
+   "why": {
+    "en": "Sources disagree on the move: +5% or +12.8%.",
+    "ar": "المصادر مختلفة: +5% أو +12.8%."
+   },
+   "ev": "S",
+   "urls": [
+    "https://247wallst.com/investing/2026/11/23/stock-market-today-dow-sp-500-and-nasdaq-surge-as-nvidia-leads-a-major-ai-rebound/"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "tickers": [
+    "NVDA",
+    "AMD",
+    "MU"
+   ],
+   "title": {
+    "en": "Reuters, via CNBC: SEC exploring possible accounting issues at NVIDIA",
+    "ar": "رويترز عبر CNBC: هيئة SEC تبحث مسائل محاسبية محتملة لدى NVIDIA"
+   },
+   "why": {
+    "en": "NVDA fell about 14%. No SEC document or company reply on accounting was found; unresolved.",
+    "ar": "هبط NVDA نحو 14%. لم يُعثر على وثيقة من SEC ولا رد من الشركة؛ الأمر غير محسوم."
+   },
+   "ev": "S",
+   "urls": [
+    "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html",
+    "https://cnbc.com/2026/11/20/sp-500-correction-market-sell-off.html"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "tickers": [
+    "SPY",
+    "QQQ"
+   ],
+   "title": {
+    "en": "S&P 500 and Dow closed in correction",
+    "ar": "أغلق S&P 500 وداو في نطاق التصحيح"
+   },
+   "why": {
+    "en": "Walmart, Costco, J&J and P&G rose about 1%.",
+    "ar": "ارتفعت Walmart وCostco وJ&J وP&G نحو 1%."
+   },
+   "ev": "M",
+   "urls": [
+    "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html",
+    "https://cnbc.com/2026/11/20/sp-500-correction-market-sell-off.html"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "tickers": [
+    "INTU"
+   ],
+   "title": {
+    "en": "Intuit cut its fiscal 2027 revenue outlook",
+    "ar": "خفضت Intuit توقعات إيرادات 2027"
+   },
+   "why": {
+    "en": "About -8% premarket.",
+    "ar": "نحو -8% قبل الافتتاح."
+   },
+   "ev": "S",
+   "urls": [
+    "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "tickers": [
+    "ROST"
+   ],
+   "title": {
+    "en": "Ross Stores gave a disappointing forecast",
+    "ar": "توقعات مخيبة من Ross Stores"
+   },
+   "why": {
+    "en": "About -5% premarket.",
+    "ar": "نحو -5% قبل الافتتاح."
+   },
+   "ev": "S",
+   "urls": [
+    "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html"
+   ]
+  },
+  {
+   "date": "2026-11-20",
+   "tickers": [
+    "HUM"
+   ],
+   "title": {
+    "en": "TD Cowen upgraded Humana to buy",
+    "ar": "رفعت TD Cowen توصية Humana إلى شراء"
+   },
+   "why": {
+    "en": "About +3% intraday.",
+    "ar": "نحو +3% أثناء الجلسة."
+   },
+   "ev": "S",
+   "urls": [
+    "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html"
+   ]
+  },
+  {
+   "date": "2026-11-19",
+   "tickers": [
+    "ANT"
+   ],
+   "title": {
+    "en": "Anthropic began trading after an $83 IPO",
+    "ar": "بدأ تداول Anthropic بعد طرح بسعر 83"
+   },
+   "why": {
+    "en": "+17% first day, then -8.5% to $88.91 on Nov 20.",
+    "ar": "+17% في اليوم الأول ثم -8.5% إلى 88.91."
+   },
+   "ev": "M",
+   "urls": [
+    "https://www.cnbc.com/2026/11/19/stock-market-today-live-updates.html",
+    "https://cnbc.com/2026/11/20/sp-500-correction-market-sell-off.html"
+   ]
+  },
+  {
+   "date": "2026-11-17",
+   "tickers": [
+    "NVDA"
+   ],
+   "title": {
+    "en": "NVIDIA Q3 revenue $115.8B (+103%); Q4 guide $130B +/-3%",
+    "ar": "إيرادات NVIDIA للربع الثالث 115.8 مليار (+103%)؛ التوجيه 130 مليار ±3%"
+   },
+   "why": {
+    "en": "Gross margin guided to 71-72% from about 74.8%.",
+    "ar": "توجيه هامش 71-72% من نحو 74.8%."
+   },
+   "ev": "V",
+   "urls": [
+    "https://investor.nvidia.com/news/press-release-details/2026/NVIDIA-Announces-Financial-Results-for-Third-Quarter-Fiscal-2027/"
+   ]
+  },
+  {
+   "date": "2026-11-12",
+   "tickers": [
+    "NVDA"
+   ],
+   "title": {
+    "en": "Jensen Huang resigned as CEO (reversed on Nov 23)",
+    "ar": "استقال جنسن هوانغ (أُلغيت في 23 نوفمبر)"
+   },
+   "why": {
+    "en": "Superseded.",
+    "ar": "حلّ محله خبر أحدث."
+   },
+   "ev": "P",
+   "urls": [
+    "https://nvidianews.nvidia.com/news/nvidia-announces-ceo-transition"
+   ]
+  },
+  {
+   "date": "2026-11-10",
+   "tickers": [
+    "SPY"
+   ],
+   "title": {
+    "en": "October CPI +0.4%, core +0.3%, above forecasts",
+    "ar": "CPI أكتوبر +0.4% والأساسي +0.3%، فوق التوقعات"
+   },
+   "why": {
+    "en": "Supports a December hike (opinion).",
+    "ar": "يدعم الرفع في ديسمبر (رأي)."
+   },
+   "ev": "S",
+   "urls": [
+    "https://stockanalysis.com/news/us-cpi-rises-october-2026/"
+   ]
+  },
+  {
+   "date": "2026-10-28",
+   "tickers": [
+    "SPY"
+   ],
+   "title": {
+    "en": "Fed held at 3.75-4.00%",
+    "ar": "ثبّت الفيدرالي الفائدة"
+   },
+   "why": {
+    "en": "Minutes flag falling bank equities and AI-buildout debt.",
+    "ar": "يشير المحضر إلى هبوط أسهم البنوك وديون الذكاء الاصطناعي."
+   },
+   "ev": "V",
+   "urls": [
+    "https://federalreserve.gov/monetarypolicy/fomcminutes20261028.htm"
+   ]
+  }
+ ],
+ "catalysts": [
+  {
+   "date": "2026-11-25",
+   "label": {
+    "en": "October PCE inflation, 8:30 ET",
+    "ar": "تضخم PCE لأكتوبر"
+   },
+   "url": "https://www.foxbusiness.com/markets/stocks-november-23-2026"
+  },
+  {
+   "date": "2026-11-26",
+   "label": {
+    "en": "Thanksgiving, market closed",
+    "ar": "عيد الشكر، السوق مغلق"
+   },
+   "url": "https://247wallst.com/investing/2026/11/23/stock-market-today-dow-sp-500-and-nasdaq-surge-as-nvidia-leads-a-major-ai-rebound/"
+  },
+  {
+   "date": "2026-11-27",
+   "label": {
+    "en": "Early close, 13:00 ET",
+    "ar": "إغلاق مبكر"
+   },
+   "url": "https://247wallst.com/investing/2026/11/23/stock-market-today-dow-sp-500-and-nasdaq-surge-as-nvidia-leads-a-major-ai-rebound/"
+  },
+  {
+   "date": "2026-12-04",
+   "label": {
+    "en": "November jobs report",
+    "ar": "تقرير وظائف نوفمبر"
+   },
+   "url": "https://www.bls.gov/news.release/empsit.nr0.htm?tc=ix"
+  },
+  {
+   "date": "2026-12-09",
+   "label": {
+    "en": "FOMC decision (Dec 8-9)",
+    "ar": "قرار الفيدرالي"
+   },
+   "url": "https://federalreserve.gov/monetarypolicy/fomcminutes20261028.htm"
+  },
+  {
+   "date": "2026-12-10",
+   "label": {
+    "en": "November CPI",
+    "ar": "CPI لنوفمبر"
+   },
+   "url": "https://stockanalysis.com/news/us-cpi-rises-october-2026/"
+  },
+  {
+   "date": "2026-12-15",
+   "label": {
+    "en": "October TIC flows",
+    "ar": "تدفقات TIC لأكتوبر"
+   },
+   "url": "https://home.treasury.gov/news/press-releases/sb0693"
+  }
+ ],
+ "trades": [
+  {
+   "group": "fund",
+   "who": "Berkshire",
+   "ticker": "BSP",
+   "dir": "new",
+   "size": "20.69M sh, $689M",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://www.exent.ai/resources/berkshire-hathaway-13f-q3-2026",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Berkshire",
+   "ticker": "LEN",
+   "dir": "add",
+   "size": "+98.6%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://www.exent.ai/resources/berkshire-hathaway-13f-q3-2026",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Berkshire",
+   "ticker": "DAL",
+   "dir": "add",
+   "size": "+12.4%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://www.exent.ai/resources/berkshire-hathaway-13f-q3-2026",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Berkshire",
+   "ticker": "M",
+   "dir": "add",
+   "size": "+2.6%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://www.exent.ai/resources/berkshire-hathaway-13f-q3-2026",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Berkshire",
+   "ticker": "COF",
+   "dir": "trim",
+   "size": "-61.7%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://www.exent.ai/resources/berkshire-hathaway-13f-q3-2026",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Berkshire",
+   "ticker": "VRSN",
+   "dir": "trim",
+   "size": "-34.1%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://www.exent.ai/resources/berkshire-hathaway-13f-q3-2026",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Berkshire",
+   "ticker": "NUE",
+   "dir": "trim",
+   "size": "-14.9%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://www.exent.ai/resources/berkshire-hathaway-13f-q3-2026",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Berkshire",
+   "ticker": "KR",
+   "dir": "trim",
+   "size": "-10.3%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://www.exent.ai/resources/berkshire-hathaway-13f-q3-2026",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Berkshire",
+   "ticker": "BAC",
+   "dir": "trim",
+   "size": "-5.7%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://www.exent.ai/resources/berkshire-hathaway-13f-q3-2026",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "ICE",
+   "dir": "new",
+   "size": "$1.01B",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "ALC",
+   "dir": "new",
+   "size": "$954M",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "NFLX",
+   "dir": "add",
+   "size": "+17.8%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "HTZ",
+   "dir": "exit",
+   "size": "15.0M sh",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "MSFT",
+   "dir": "trim",
+   "size": "-34.5%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "M",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3",
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": {
+    "en": "Reportedly also holds OTC MSFT options that a 13F does not show (search summary)",
+    "ar": "يُذكر أنه يملك خيارات على MSFT لا تظهر في 13F (ملخص بحث)"
+   },
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "META",
+   "dir": "trim",
+   "size": "-11.4%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "S",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "V",
+   "dir": "trim",
+   "size": "-12.2%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "S",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "MA",
+   "dir": "trim",
+   "size": "-11.1%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "S",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "QSR",
+   "dir": "trim",
+   "size": "-14.8%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "S",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Pershing Square",
+   "ticker": "BN",
+   "dir": "trim",
+   "size": "-10.7%",
+   "date": "2026-09-30",
+   "filed": "2026-11-16",
+   "ev": "S",
+   "urls": [
+    "https://stockhub.kr/en/insights/pershing-13f-2026-q3"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Bridgewater",
+   "ticker": "MU",
+   "dir": "add",
+   "size": "+$118M",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Bridgewater",
+   "ticker": "SNDK",
+   "dir": "add",
+   "size": "+$115M",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Bridgewater",
+   "ticker": "NVDA",
+   "dir": "trim",
+   "size": "-30%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Bridgewater",
+   "ticker": "MSFT",
+   "dir": "trim",
+   "size": "-69%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Bridgewater",
+   "ticker": "GOOGL",
+   "dir": "trim",
+   "size": "-65% or more",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Bridgewater",
+   "ticker": "SPY",
+   "dir": "trim",
+   "size": "-36%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Bridgewater",
+   "ticker": "IVV",
+   "dir": "trim",
+   "size": "-50%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Duquesne",
+   "ticker": "TSM",
+   "dir": "trim",
+   "size": "-94%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Duquesne",
+   "ticker": "GOOGL",
+   "dir": "exit",
+   "size": "full exit",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Duquesne",
+   "ticker": "STX",
+   "dir": "add",
+   "size": "about 3x",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Duquesne",
+   "ticker": "AMD",
+   "dir": "exit",
+   "size": "sold",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Duquesne",
+   "ticker": "SNDK",
+   "dir": "exit",
+   "size": "sold",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Duquesne",
+   "ticker": "WDC",
+   "dir": "new",
+   "size": "opened",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Duquesne",
+   "ticker": "PLTR",
+   "dir": "add",
+   "size": "added",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "MU",
+   "dir": "add",
+   "size": "+28%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "NVDA",
+   "dir": "add",
+   "size": "+31%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "ASML",
+   "dir": "add",
+   "size": "+30%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "AMD",
+   "dir": "exit",
+   "size": "full exit",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "AVGO",
+   "dir": "exit",
+   "size": "full exit",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "GOOGL",
+   "dir": "trim",
+   "size": "-46%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://intellectia.ai/blog/13f-filings-q3-2026-what-berkshire-hedge-funds-bought-sold"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "META",
+   "dir": "trim",
+   "size": "-22%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://intellectia.ai/blog/13f-filings-q3-2026-what-berkshire-hedge-funds-bought-sold"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "ORCL",
+   "dir": "new",
+   "size": "$172M",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://intellectia.ai/blog/13f-filings-q3-2026-what-berkshire-hedge-funds-bought-sold"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "AMAT",
+   "dir": "new",
+   "size": "$115M",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://intellectia.ai/blog/13f-filings-q3-2026-what-berkshire-hedge-funds-bought-sold"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "LRCX",
+   "dir": "add",
+   "size": "+63%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "QCOM",
+   "dir": "exit",
+   "size": "full exit",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "AMZN",
+   "dir": "trim",
+   "size": "-10%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Appaloosa",
+   "ticker": "AAPL",
+   "dir": "exit",
+   "size": "$242M",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Third Point",
+   "ticker": "META",
+   "dir": "new",
+   "size": "$475M",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Third Point",
+   "ticker": "MSFT",
+   "dir": "new",
+   "size": "$231M",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Third Point",
+   "ticker": "NVDA",
+   "dir": "add",
+   "size": "added",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Third Point",
+   "ticker": "GOOGL",
+   "dir": "trim",
+   "size": "-83%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai",
+    "https://intellectia.ai/blog/13f-filings-q3-2026-what-berkshire-hedge-funds-bought-sold"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Third Point",
+   "ticker": "AMZN",
+   "dir": "exit",
+   "size": "full exit",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai",
+    "https://intellectia.ai/blog/13f-filings-q3-2026-what-berkshire-hedge-funds-bought-sold"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Third Point",
+   "ticker": "ASML",
+   "dir": "exit",
+   "size": "full exit",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai",
+    "https://intellectia.ai/blog/13f-filings-q3-2026-what-berkshire-hedge-funds-bought-sold"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Tiger Global",
+   "ticker": "NVDA",
+   "dir": "add",
+   "size": "+7.2%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Tiger Global",
+   "ticker": "GOOGL",
+   "dir": "trim",
+   "size": "-42%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Tiger Global",
+   "ticker": "TSM",
+   "dir": "trim",
+   "size": "-36%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Tiger Global",
+   "ticker": "META",
+   "dir": "trim",
+   "size": "cut",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://intellectia.ai/blog/13f-filings-q3-2026-what-berkshire-hedge-funds-bought-sold"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Coatue",
+   "ticker": "CRM",
+   "dir": "new",
+   "size": "$1.8B",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Coatue",
+   "ticker": "MSFT",
+   "dir": "add",
+   "size": "+120%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Coatue",
+   "ticker": "TSM",
+   "dir": "add",
+   "size": "+6%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Coatue",
+   "ticker": "INTC",
+   "dir": "add",
+   "size": "+30%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "M",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what",
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Soros",
+   "ticker": "META",
+   "dir": "add",
+   "size": "+596%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Soros",
+   "ticker": "INTC",
+   "dir": "add",
+   "size": "to $340M",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Soros",
+   "ticker": "NVDA",
+   "dir": "trim",
+   "size": "-19%",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://brickaccretive.substack.com/p/q3-13fs-the-rotation-within-ai"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "Baupost",
+   "ticker": "GOOGL",
+   "dir": "trim",
+   "size": "1.37M to 0.95M sh",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://thesisrationale.substack.com/p/berkshires-one-new-stock-and-what"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "1,082 hedge funds (aggregate)",
+   "ticker": "META",
+   "dir": "add",
+   "size": "net +$9.1B",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://equibles.com/research/q3-2026-13f-roundup-spacexs-early-holders-cut-as-1-110-filers-bought-in"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "1,082 hedge funds (aggregate)",
+   "ticker": "INTC",
+   "dir": "add",
+   "size": "net +$8.2B",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://equibles.com/research/q3-2026-13f-roundup-spacexs-early-holders-cut-as-1-110-filers-bought-in"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "1,082 hedge funds (aggregate)",
+   "ticker": "NVDA",
+   "dir": "add",
+   "size": "net +$5.9B",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://equibles.com/research/q3-2026-13f-roundup-spacexs-early-holders-cut-as-1-110-filers-bought-in"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "1,082 hedge funds (aggregate)",
+   "ticker": "SNDK",
+   "dir": "trim",
+   "size": "net -$6.2B",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://equibles.com/research/q3-2026-13f-roundup-spacexs-early-holders-cut-as-1-110-filers-bought-in"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "1,082 hedge funds (aggregate)",
+   "ticker": "AAPL",
+   "dir": "trim",
+   "size": "net -$5.4B",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://equibles.com/research/q3-2026-13f-roundup-spacexs-early-holders-cut-as-1-110-filers-bought-in"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "fund",
+   "who": "1,082 hedge funds (aggregate)",
+   "ticker": "BE",
+   "dir": "trim",
+   "size": "net -$4.5B",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://equibles.com/research/q3-2026-13f-roundup-spacexs-early-holders-cut-as-1-110-filers-bought-in"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "insider",
+   "who": "Robbins (Cisco CEO)",
+   "ticker": "CSCO",
+   "dir": "sell",
+   "size": "$27.3M",
+   "date": "2026-11-18",
+   "filed": "2026-11-18",
+   "ev": "P",
+   "urls": [
+    "https://www.stocktitan.net/sec-filings/CSCO/form-4-cisco-systems-inc-insider-trading-activity-e6930cbca58c.html"
+   ],
+   "note": {
+    "en": "10b5-1 plan adopted 2026-02-18: pre-scheduled",
+    "ar": "خطة 10b5-1 بتاريخ 2026-02-18: بيع مجدول"
+   },
+   "signal": true
+  },
+  {
+   "group": "insider",
+   "who": "Bechtolsheim (Arista director)",
+   "ticker": "ANET",
+   "dir": "sell",
+   "size": "$56.1M",
+   "date": "2026-11-18",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://ca.investing.com/news/stock-market-news/top-insider-buys-and-sells-disclosed-on-friday-93CH-4976086"
+   ],
+   "note": {
+    "en": "10b5-1 plan adopted 2026-02-20: pre-scheduled",
+    "ar": "خطة 10b5-1 بتاريخ 2026-02-20: بيع مجدول"
+   },
+   "signal": true
+  },
+  {
+   "group": "insider",
+   "who": "Slootman (Snowflake director)",
+   "ticker": "SNOW",
+   "dir": "sell",
+   "size": "$84.4M",
+   "date": "2026-11-19",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://ca.investing.com/news/stock-market-news/top-insider-buys-and-sells-disclosed-on-friday-93CH-4976086"
+   ],
+   "note": {
+    "en": "10b5-1 plan adopted 2025-09-19: pre-scheduled",
+    "ar": "خطة 10b5-1 بتاريخ 2025-09-19: بيع مجدول"
+   },
+   "signal": true
+  },
+  {
+   "group": "insider",
+   "who": "Zatlyn (Cloudflare president)",
+   "ticker": "NET",
+   "dir": "sell",
+   "size": "$27.8M",
+   "date": "2026-11-20",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://ca.investing.com/news/stock-market-news/top-insider-buys-and-sells-disclosed-on-friday-93CH-4976086"
+   ],
+   "note": {
+    "en": "10b5-1 plan adopted 2026-02-27: pre-scheduled",
+    "ar": "خطة 10b5-1 بتاريخ 2026-02-27: بيع مجدول"
+   },
+   "signal": true
+  },
+  {
+   "group": "insider",
+   "who": "Iger (Disney director)",
+   "ticker": "DIS",
+   "dir": "sell",
+   "size": "$39.5M",
+   "date": "2026-11-18",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://ca.investing.com/news/stock-market-news/top-insider-buys-and-sells-disclosed-on-friday-93CH-4976086"
+   ],
+   "note": {
+    "en": "10b5-1 status not stated",
+    "ar": "حالة 10b5-1 غير مذكورة"
+   },
+   "signal": true
+  },
+  {
+   "group": "insider",
+   "who": "Wilhelmsen (Royal Caribbean director)",
+   "ticker": "RCL",
+   "dir": "sell",
+   "size": "$28.4M",
+   "date": "2026-11-13",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://www.investing.com/news/stock-market-news/top-insider-buys-and-sells-disclosed-for-monday-93CH-5033126"
+   ],
+   "note": {
+    "en": "10b5-1 status not stated",
+    "ar": "حالة 10b5-1 غير مذكورة"
+   },
+   "signal": true
+  },
+  {
+   "group": "insider",
+   "who": "Halligan (HubSpot director)",
+   "ticker": "HUBS",
+   "dir": "buy",
+   "size": "$4.99M",
+   "date": "2026-11-13",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://www.investing.com/news/stock-market-news/top-insider-buys-and-sells-disclosed-for-monday-93CH-5033126"
+   ],
+   "note": {
+    "en": "10b5-1 status not stated",
+    "ar": "حالة 10b5-1 غير مذكورة"
+   },
+   "signal": true
+  },
+  {
+   "group": "insider",
+   "who": "Tan (Intel CEO)",
+   "ticker": "INTC",
+   "dir": "buy",
+   "size": "about $9.7M",
+   "date": "2026-11-02",
+   "filed": null,
+   "ev": "U",
+   "urls": [
+    "https://fintel.io/insiders/ceo"
+   ],
+   "note": {
+    "en": "Source page blocked; search summary only",
+    "ar": "الصفحة محجوبة؛ ملخص بحث فقط"
+   },
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Cruz (R), spouse",
+   "ticker": "GS",
+   "dir": "sell",
+   "size": "$250K-$500K",
+   "date": "2026-11-11",
+   "filed": "2026-11-20",
+   "ev": "S",
+   "urls": [
+    "https://us.trendlyne.com/us/politicians/recent-trades/"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Pelosi (D), spouse",
+   "ticker": "WBD",
+   "dir": "sell",
+   "size": "$50K-$100K",
+   "date": "2026-10-07",
+   "filed": "2026-11-09",
+   "ev": "M",
+   "urls": [
+    "https://congresstradingtracker.com/nancy-pelosi-stock-trades/",
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Kean (R)",
+   "ticker": "MSFT",
+   "dir": "sell",
+   "size": "$15K-$50K",
+   "date": "2026-10-27",
+   "filed": "2026-11-19",
+   "ev": "M",
+   "urls": [
+    "https://us.trendlyne.com/us/politicians/recent-trades/",
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Kean (R)",
+   "ticker": "WBD",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-10-07",
+   "filed": "2026-11-19",
+   "ev": "S",
+   "urls": [
+    "https://us.trendlyne.com/us/politicians/recent-trades/"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Kean (R)",
+   "ticker": "JNJ",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-10-27",
+   "filed": "2026-11-19",
+   "ev": "M",
+   "urls": [
+    "https://us.trendlyne.com/us/politicians/recent-trades/",
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Armstrong (R), joint",
+   "ticker": "WBD",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-10-06",
+   "filed": "2026-11-20",
+   "ev": "S",
+   "urls": [
+    "https://us.trendlyne.com/us/politicians/recent-trades/"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Khanna (D)",
+   "ticker": "MSFT",
+   "dir": "buy",
+   "size": "$15K-$50K",
+   "date": "2026-10-28",
+   "filed": "2026-11-05",
+   "ev": "S",
+   "urls": [
+    "https://www.congressstock.com/trades"
+   ],
+   "note": {
+    "en": "Same filing also has a smaller sale",
+    "ar": "في الإفصاح نفسه بيع أصغر"
+   },
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Khanna (D)",
+   "ticker": "DELL",
+   "dir": "buy",
+   "size": "$15K-$50K",
+   "date": "2026-10-28",
+   "filed": "2026-11-05",
+   "ev": "S",
+   "urls": [
+    "https://www.congressstock.com/trades"
+   ],
+   "note": {
+    "en": "Same filing also has a smaller sale",
+    "ar": "في الإفصاح نفسه بيع أصغر"
+   },
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Rulli (R)",
+   "ticker": "GOOGL",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-11-04",
+   "filed": "2026-11-18",
+   "ev": "M",
+   "urls": [
+    "https://us.trendlyne.com/us/politicians/recent-trades/",
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Rulli (R)",
+   "ticker": "LLY",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-11-04",
+   "filed": "2026-11-18",
+   "ev": "M",
+   "urls": [
+    "https://us.trendlyne.com/us/politicians/recent-trades/",
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Rulli (R)",
+   "ticker": "LITE",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-11-04",
+   "filed": "2026-11-18",
+   "ev": "M",
+   "urls": [
+    "https://us.trendlyne.com/us/politicians/recent-trades/",
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Rulli (R)",
+   "ticker": "COST",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-11-12",
+   "filed": "2026-11-18",
+   "ev": "M",
+   "urls": [
+    "https://us.trendlyne.com/us/politicians/recent-trades/",
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Rulli (R)",
+   "ticker": "MSFT",
+   "dir": "buy",
+   "size": "$1K-$15K",
+   "date": "2026-11-04",
+   "filed": "2026-11-18",
+   "ev": "S",
+   "urls": [
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Rulli (R)",
+   "ticker": "NVDA",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-10-28",
+   "filed": "2026-11-18",
+   "ev": "S",
+   "urls": [
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Taylor (R)",
+   "ticker": "AVGO",
+   "dir": "buy",
+   "size": "$1K-$15K",
+   "date": "2026-11-05",
+   "filed": "2026-11-12",
+   "ev": "S",
+   "urls": [
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Taylor (R)",
+   "ticker": "LRCX",
+   "dir": "buy",
+   "size": "$1K-$15K",
+   "date": "2026-11-05",
+   "filed": "2026-11-12",
+   "ev": "S",
+   "urls": [
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Taylor (R)",
+   "ticker": "GOOGL",
+   "dir": "buy",
+   "size": "2 x $1K-$15K",
+   "date": "2026-11-03",
+   "filed": "2026-11-12",
+   "ev": "S",
+   "urls": [
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Taylor (R)",
+   "ticker": "PG",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-11-05",
+   "filed": "2026-11-12",
+   "ev": "S",
+   "urls": [
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "congress",
+   "who": "Taylor (R)",
+   "ticker": "HD",
+   "dir": "sell",
+   "size": "$1K-$15K",
+   "date": "2026-11-05",
+   "filed": "2026-11-12",
+   "ev": "S",
+   "urls": [
+    "https://www.congressstock.com/trades"
+   ],
+   "note": null,
+   "signal": true
+  },
+  {
+   "group": "sovereign",
+   "who": "Foreign private investors",
+   "ticker": "US equities",
+   "dir": "buy",
+   "size": "+$58.8B",
+   "date": "2026-09",
+   "filed": "2026-11-18",
+   "ev": "V",
+   "urls": [
+    "https://home.treasury.gov/news/press-releases/sb0693"
+   ],
+   "note": null,
+   "signal": false
+  },
+  {
+   "group": "sovereign",
+   "who": "Foreign official institutions",
+   "ticker": "US equities",
+   "dir": "buy",
+   "size": "+$8.0B",
+   "date": "2026-09",
+   "filed": "2026-11-18",
+   "ev": "V",
+   "urls": [
+    "https://home.treasury.gov/news/press-releases/sb0693"
+   ],
+   "note": null,
+   "signal": false
+  },
+  {
+   "group": "sovereign",
+   "who": "Foreign official institutions",
+   "ticker": "UST notes/bonds",
+   "dir": "buy",
+   "size": "+$27.6B",
+   "date": "2026-09",
+   "filed": "2026-11-18",
+   "ev": "V",
+   "urls": [
+    "https://home.treasury.gov/news/press-releases/sb0693"
+   ],
+   "note": null,
+   "signal": false
+  },
+  {
+   "group": "sovereign",
+   "who": "Foreign official institutions",
+   "ticker": "UST bills",
+   "dir": "sell",
+   "size": "-$23.7B",
+   "date": "2026-09",
+   "filed": "2026-11-18",
+   "ev": "V",
+   "urls": [
+    "https://home.treasury.gov/news/press-releases/sb0693"
+   ],
+   "note": null,
+   "signal": false
+  },
+  {
+   "group": "sovereign",
+   "who": "Central banks",
+   "ticker": "Gold",
+   "dir": "buy",
+   "size": "321 t net",
+   "date": "2026-09-30",
+   "filed": "2026-11-03",
+   "ev": "V",
+   "urls": [
+    "https://www.gold.org/goldhub/research/gold-demand-trends/gold-demand-trends-q3-2026/central-banks"
+   ],
+   "note": {
+    "en": "About 63% is estimated unreported buying",
+    "ar": "نحو 63% تقدير لمشتريات غير معلنة"
+   },
+   "signal": false
+  },
+  {
+   "group": "sovereign",
+   "who": "PIF",
+   "ticker": "EA",
+   "dir": "exit",
+   "size": "$5.09B",
+   "date": "2026-09-30",
+   "filed": null,
+   "ev": "S",
+   "urls": [
+    "https://enterpriseam.com/ksa/2026/11/19/pifs-us-stock-filing-thins-as-the-fund-moves-its-tech-holdings-off-the-public-market/"
+   ],
+   "note": {
+    "en": "Take-private deal, not a market sale",
+    "ar": "صفقة تخصيص وليست بيعًا في السوق"
+   },
+   "signal": false
+  }
+ ],
+ "gaps": [
+  {
+   "en": "13F holdings are as of Sept 30, before the November selloff; they omit shorts and may have changed.",
+   "ar": "حيازات 13F في 30 سبتمبر قبل هبوط نوفمبر، ولا تشمل البيع على المكشوف وقد تغيرت."
+  },
+  {
+   "en": "Most official filings were not opened; trades come from secondary trackers.",
+   "ar": "لم تُفتح معظم الإفصاحات الرسمية؛ الصفقات من مواقع ثانوية."
+  },
+  {
+   "en": "Insider and Congress rows are a sample. Congress amounts are ranges and can be 45 days late.",
+   "ar": "صفوف المطلعين والكونغرس عينة. مبالغ الكونغرس نطاقات وقد تتأخر 45 يومًا."
+  },
+  {
+   "en": "Not found: Nov 23 closes and yields, full sector performance, Norges Bank 13F, any Scion Q3 13F.",
+   "ar": "غير متوفر: إغلاقات وعوائد 23 نوفمبر، أداء القطاعات، 13F لبنك النرويج، وأي 13F لـScion."
+  }
+ ]
+}

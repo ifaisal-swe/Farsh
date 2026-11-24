@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const ROOT = path.join(__dirname, '..', 'app');
+const ROOT = path.join(__dirname, '..', 'web', 'app');
 const files = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((x) => (x.isDirectory() ? files(path.join(d, x.name)) : /\.(vue|ts)$/.test(x.name) ? [path.join(d, x.name)] : []));
 const TECH = /\b(alpaca|deepseek|gemini|tiingo|openai|sec|api|apis|json|csv|http|https|websocket|server|backend|database|postgres\w*|sqlite|docker|engine|user-agent|token|chat id|encrypted|encryption|session id|config|iex|ema|sma|vwap|bollinger)\b|خادم|قاعدة بيانات|قاعدة البيانات|المحرك|محرك|مشفر|تشفير|مفاتيح|واجهة برمجية|معرّف المحادثة|البوت/i;
 

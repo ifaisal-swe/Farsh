@@ -1,0 +1,83 @@
+# Forsah on one VPS: app + PostgreSQL (private) + Caddy (HTTPS). Paper trading only.
+# See DEPLOYMENT-VPS.md. Run from this folder.
+name: forsah
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [front]
+    depends_on: [app]
+    logging: &log { driver: json-file, options: { max-size: "10m", max-file: "5" } }
+  app:
+    build: { context: .. }
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 40s
+    environment:
+      SAAS_MODE: "1"
+      PORT: "8080"
+      APP_BASE_URL: https://${DOMAIN}
+      DATABASE_PATH: /data/trading.db
+      SAAS_DATA_DIR: /data/saas
+      SAAS_ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
+      SAAS_MAX_TENANTS: ${MAX_TENANTS:-10}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-deepseek/deepseek-v4.1-flash-1017}
+      LAB_MODEL_URL: ${LAB_MODEL_URL:-}
+      LAB_MODEL_NAME: ${LAB_MODEL_NAME:-}
+      SAAS_PUBLIC_DATA: ${PUBLIC_DATA:-off}
+      SAAS_TENANT_MEMORY_MB: ${TENANT_MEMORY_MB:-256}
+      SAAS_ADMIN_PASSWORD_FILE: /run/secrets/admin_password
+      SAAS_DATABASE_URL_FILE: /run/secrets/database_url
+    secrets: [admin_password, database_url]
+    volumes: ["app_data:/data"]
+    networks: [front, back]
+    depends_on: { postgres: { condition: service_healthy } }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 60s
+    mem_limit: ${APP_MEMORY:-4g}
+    pids_limit: 1024
+    security_opt: ["no-new-privileges:true"]
+    logging: *log
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C --data-checksums
+    secrets: [postgres_password, app_db_password]
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./postgres-init.sh:/docker-entrypoint-initdb.d/10-app.sh:ro
+    networks: [back]
+    command: ["postgres", "-c", "max_connections=120", "-c", "password_encryption=scram-sha-256"]
+    healthcheck:
+      test: ["CMD-SHELL", "psql -U postgres -d forsah -Atc 'SELECT 1'"] # unlike pg_isready, fails when the database is missing
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: ${PG_MEMORY:-1g}
+    shm_size: 128m
+    security_opt: ["no-new-privileges:true"]
+    logging: *log
+networks:
+  front: {}
+  back: { internal: true }
+volumes: { app_data: {}, pg_data: {}, caddy_data: {}, caddy_config: {} }
+secrets:
+  admin_password: { file: ./secrets/admin_password }
+  postgres_password: { file: ./secrets/postgres_password }
+  app_db_password: { file: ./secrets/app_db_password }
+  database_url: { file: ./secrets/database_url }

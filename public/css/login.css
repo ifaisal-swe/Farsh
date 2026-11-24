@@ -1,0 +1,23 @@
+:root {
+  --bg: #080b10; --panel: #0e1218; --panel-2: #131922; --border: #1f2733; --border-2: #2a3444;
+  --text: #d8dee9; --muted: #8b95a7; --green: #22c55e; --red: #ef4444; --cyan: #22d3ee;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font: 15px/1.6 "Segoe UI", "Noto Sans Arabic", Tahoma, system-ui, sans-serif; }
+.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.card { width: 100%; max-width: 380px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 22px 20px; }
+.lang { display: flex; justify-content: flex-end; gap: 4px; margin-block-end: 10px; }
+.lang button { background: transparent; border: 1px solid var(--border-2); color: var(--muted); border-radius: 4px; padding: 2px 9px; font: inherit; font-size: 12px; cursor: pointer; }
+.lang button.active { color: #fff; background: #23314a; }
+.brand { font-weight: 700; font-size: 17px; }
+.logo { color: var(--green); }
+.paper { color: var(--muted); font-size: 12.5px; margin: 4px 0 16px; }
+form { display: flex; flex-direction: column; gap: 8px; }
+label { font-size: 13px; color: var(--muted); }
+input { background: var(--panel-2); border: 1px solid var(--border-2); border-radius: 5px; color: var(--text); padding: 9px 10px; font: inherit; direction: ltr; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+button[type="submit"] { margin-top: 4px; background: #15803d; border: 1px solid #16a34a; color: #fff; border-radius: 5px; padding: 9px; font: inherit; font-weight: 700; cursor: pointer; }
+button[type="submit"]:disabled { opacity: .6; cursor: progress; }
+.msg { min-height: 1.4em; color: var(--red); font-size: 13px; }
+.note { color: var(--muted); font-size: 12px; margin: 14px 0 0; }

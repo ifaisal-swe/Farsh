@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>منصة التداول الذكية — تداول ورقي</title>
+  <link rel="stylesheet" href="/css/terminal.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2311151c'/%3E%3Cpath d='M3 11l3-4 3 2 4-5' stroke='%2322c55e' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+</head>
+<body>
+<div id="app">
+  <!-- ================= TOP BAR: stock, market & AI status, trading controls ================= -->
+  <header class="topbar">
+    <div class="brand" title=""><span class="logo">◆</span> <span data-i18n="brand">منصة التداول الذكية</span> <span class="tag paper" data-i18n="paper" data-i18n-title="paper_title">تداول ورقي</span></div>
+
+    <div class="sym-box">
+      <div class="sym-input">
+        <input id="in-symbol" dir="ltr" class="mono" maxlength="10" value="ANT" data-i18n-ph="ticker_ph" autocomplete="off" spellcheck="false" aria-label="ticker">
+        <button id="btn-verify" class="btn small" data-i18n="verify" data-i18n-title="verify_title">تحقق</button>
+      </div>
+      <div class="sym-info">
+        <span id="h-symbol" class="sym" dir="ltr">—</span>
+        <span id="h-name" class="muted small"></span>
+      </div>
+    </div>
+
+    <div class="hdr-px">
+      <span id="h-price" class="px mono num">—</span>
+      <span id="h-change" class="chg mono num">—</span>
+      <span id="h-pxtime" class="muted small"></span>
+      <span id="h-ref" class="ref-pill hidden"></span>
+    </div>
+
+    <div class="hdr-status">
+      <div class="stat"><label data-i18n="market">السوق</label><span id="h-market" class="pill">—</span></div>
+      <div class="stat"><label data-i18n="data_feed">البيانات</label><span id="h-feed" class="pill">—</span></div>
+      <div class="stat"><label data-i18n="ai">الذكاء الاصطناعي</label><span id="h-ai" class="pill">—</span></div>
+      <div class="stat ops"><label data-i18n="ops_states">الحالة التشغيلية</label><span class="ops-pills"><span id="h-server" class="pill small" data-i18n-title="ops_server">—</span><span id="h-mon" class="pill small" data-i18n-title="ops_monitoring">—</span><span id="h-aitr" class="pill small" data-i18n-title="ops_ai_trading">—</span><span id="h-mmode" class="pill small hidden" data-i18n-title="mm_title">—</span></span></div>
+      <div class="stat hide-sm sess-stat"><label data-i18n="session">الجلسة</label><span id="h-session" class="pill">—</span></div>
+      <div class="stat hide-sm"><label data-i18n="et_clock">نيويورك</label><span id="h-clock" class="mono num">—</span></div>
+    </div>
+
+    <div class="hdr-actions">
+      <button id="btn-start" class="btn primary" data-i18n="start_short">بدء</button>
+      <button id="btn-pause" class="btn" data-i18n="pause" data-i18n-title="pause_title">إيقاف مؤقت</button>
+      <button id="btn-resume" class="btn" data-i18n="resume">استئناف</button>
+      <button id="btn-stop" class="btn warn" data-i18n="stop" data-i18n-title="stop_title">إيقاف</button>
+      <button id="btn-analyze" class="btn" data-i18n="analyze" data-i18n-title="analyze_title">تحليل الآن</button>
+      <button id="btn-close" class="btn danger" data-i18n="close_pos" data-i18n-title="close_title">إغلاق المركز</button>
+      <div class="menu-wrap">
+        <button id="btn-more" class="btn ghost" data-i18n-title="more" aria-haspopup="true">⋯</button>
+        <div id="more-menu" class="menu hidden" role="menu">
+          <button id="btn-change-stock" role="menuitem" data-i18n="change_stock">تغيير السهم</button>
+          <button id="btn-change-capital" role="menuitem" data-i18n="change_capital">تغيير رأس المال</button>
+          <button id="btn-ai-settings" role="menuitem" data-i18n="ai_settings">إعدادات الذكاء الاصطناعي</button>
+          <button id="btn-risk-settings" role="menuitem" data-i18n="risk_settings">إعدادات المخاطر</button>
+          <button id="btn-monitoring" role="menuitem" data-i18n="mon_pause">إيقاف مراقبة السوق</button>
+          <button id="btn-reset" role="menuitem" class="danger-text" data-i18n="reset_sim">إعادة ضبط المحاكاة</button>
+          <button id="btn-logout" role="menuitem" class="hidden" data-i18n="logout">تسجيل الخروج</button>
+        </div>
+      </div>
+      <div class="lang-switch" role="group" data-i18n-title="lang_title">
+        <button data-lang="ar" lang="ar">العربية</button><button data-lang="en" lang="en">English</button>
+      </div>
+      <a class="icon-btn" href="/app/" style="text-decoration:none" data-i18n="new_ui">الواجهة الجديدة</a>
+      <button id="btn-settings" class="icon-btn" data-i18n-title="settings_title">⚙ <span data-i18n="settings" class="hide-sm">الإعدادات</span></button>
+    </div>
+  </header>
+
+  <main class="workspace" id="workspace">
+    <!-- ================= CENTER: CHART ================= -->
+    <section class="chart-area" id="chart-area">
+      <div class="chart-toolbar">
+        <div class="seg" id="tf-seg" role="group" data-i18n-title="timeframe">
+          <button data-tf="1m" class="active" data-i18n="tf_1m">1د</button><button data-tf="3m" data-i18n="tf_3m">3د</button><button data-tf="5m" data-i18n="tf_5m">5د</button><button data-tf="15m" data-i18n="tf_15m">15د</button><button data-tf="30m" data-i18n="tf_30m">30د</button><button data-tf="1h" data-i18n="tf_1h">1س</button><button data-tf="1d" data-i18n="tf_1d">يومي</button>
+        </div>
+        <div class="menu-wrap">
+          <button id="btn-layers" class="tool-btn" data-i18n-title="layers" aria-haspopup="true">☰ <span data-i18n="layers">طبقات الشارت</span></button>
+          <div id="layers-menu" class="menu layers hidden"></div>
+        </div>
+        <div class="tool-group">
+          <button id="btn-zoom-in" class="tool-btn" data-i18n-title="zoom_in">＋</button>
+          <button id="btn-zoom-out" class="tool-btn" data-i18n-title="zoom_out">－</button>
+          <button id="btn-fit" class="tool-btn" data-i18n-title="fit">⤢</button>
+          <button id="btn-live" class="tool-btn" data-i18n-title="go_live">⇥</button>
+        </div>
+        <div id="chart-legend" class="legend mono small" dir="ltr"></div>
+        <div class="tool-group">
+          <button id="btn-expand" class="tool-btn" data-i18n-title="expand">⇱</button>
+          <button id="btn-fullscreen" class="tool-btn" data-i18n-title="fullscreen">⛶</button>
+        </div>
+      </div>
+      <div class="chart-wrap" id="chart-wrap" dir="ltr">
+        <div id="chart"></div>
+        <div id="chart-banner" class="chart-banner hidden"></div>
+        <div id="chart-watermark" class="chart-watermark hidden"></div>
+        <div id="ai-overlay" class="ai-overlay hidden"></div>
+        <div id="candle-tip" class="candle-tip hidden"></div>
+        <div id="inspector" class="inspector hidden"></div>
+      </div>
+      <div class="data-strip small">
+        <button id="d-status" class="pill status-btn" data-i18n-title="data_health_title">—</button>
+        <span id="d-kind" class="pill kind-pill">—</span>
+        <span><label data-i18n="bid">الطلب</label><b id="d-bid" class="mono num">—</b><i id="d-bidsz" class="muted num"></i></span>
+        <span><label data-i18n="ask">العرض</label><b id="d-ask" class="mono num">—</b><i id="d-asksz" class="muted num"></i></span>
+        <span><label data-i18n="spread">الفارق</label><b id="d-spread" class="mono num">—</b></span>
+        <span data-i18n-title="last_trade_title"><label data-i18n="last_trade">آخر صفقة</label><b id="d-last" class="mono num">—</b><i id="d-time" class="muted"></i></span>
+        <span data-i18n-title="last_quote_title"><label data-i18n="last_quote">آخر عرض سعر</label><b id="d-qtime" class="mono num">—</b><i id="d-age" class="muted"></i></span>
+        <span data-i18n-title="last_bar_title"><label data-i18n="last_bar">آخر شمعة</label><b id="d-btime" class="mono num">—</b></span>
+        <span class="hide-sm"><label data-i18n="session">الجلسة</label><b id="d-sess">—</b></span>
+        <span data-i18n-title="link_title" class="hide-sm"><label data-i18n="link">الاتصال</label><b id="d-link">—</b></span>
+        <span class="hide-sm"><label data-i18n="source">المصدر</label><b id="d-src" dir="ltr">—</b></span>
+      </div>
+    </section>
+
+    <div class="splitter vertical" id="split-side" role="separator" aria-orientation="vertical" tabindex="0"></div>
+
+    <!-- ================= SIDE: risk level, AI decision & explanation, portfolio ================= -->
+    <aside class="side" id="side">
+      <div class="side-scroll">
+        <section class="sec" data-sec="watchlist">
+          <header class="sec-h"><span data-i18n="sec_watchlist">الأسهم المراقبة</span><span id="wl-count" class="muted small"></span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div class="wl-add"><input id="wl-input" dir="ltr" class="mono" maxlength="10" data-i18n-ph="wl_add_ph" autocomplete="off" spellcheck="false"><button id="wl-add-btn" class="btn small" data-i18n="wl_add">إضافة</button></div>
+            <div id="watchlist" class="watchlist"></div>
+            <div class="small muted" data-i18n="wl_pause_note"></div>
+          </div>
+        </section>
+
+        <section class="sec" data-sec="risk">
+          <header class="sec-h"><span data-i18n="sec_risk">مستوى المخاطرة</span><span id="risk-profile-badge" class="pill small"></span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div id="risk-cards" class="risk-cards" role="radiogroup"></div>
+            <div id="risk-explain" class="risk-explain"></div>
+            <button id="btn-risk-adv" class="link-btn" data-i18n="advanced_show">عرض الإعدادات المتقدمة</button>
+            <div id="risk-adv" class="risk-adv hidden"></div>
+            <div id="risk-review" class="risk-review hidden"></div>
+          </div>
+        </section>
+
+        <section class="sec" data-sec="decision">
+          <header class="sec-h"><span data-i18n="sec_decision">قرار الذكاء الاصطناعي</span><span id="ai-model" class="muted small" dir="ltr"></span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div class="row between"><span id="ai-status" class="pill">—</span><span id="ai-when" class="muted small"></span></div>
+            <div id="ai-status-detail" class="muted small"></div>
+            <div id="ai-progress" class="progress-line hidden"><span class="spinner"></span><span id="ai-progress-text"></span></div>
+            <div class="decision-hero">
+              <span id="ai-action" class="badge big">—</span>
+              <div class="conf"><span id="ai-conf" class="mono num">—</span><div class="meter"><i id="ai-conf-bar"></i></div><label data-i18n="confidence">الثقة</label></div>
+            </div>
+            <div class="kv-grid">
+              <div><label data-i18n="trend">الاتجاه</label><span id="ai-trend">—</span></div>
+              <div><label data-i18n="bias_sentiment">التحيز / المعنويات</label><span id="ai-bias">—</span></div>
+              <div class="span2"><label data-i18n="strategy">الاستراتيجية</label><span id="ai-strategy">—</span></div>
+            </div>
+            <div id="ai-change" class="decision-change hidden"></div>
+            <div class="lbl" data-i18n="reason">السبب</div>
+            <p id="ai-rationale" class="txt">—</p>
+            <div id="ai-plan" class="plan hidden"></div>
+            <div class="lbl" data-i18n="next_action">الإجراء التالي المخطط</div>
+            <p id="ai-next" class="txt small">—</p>
+            <div id="approvals" class="approvals"></div>
+          </div>
+        </section>
+
+        <section class="sec" data-sec="explain">
+          <header class="sec-h"><span data-i18n="sec_explain">شرح الشارت بالذكاء الاصطناعي</span><i class="chev">▾</i></header>
+          <div class="sec-b"><div id="explain" class="explain"></div></div>
+        </section>
+
+        <section class="sec" data-sec="portfolio">
+          <header class="sec-h"><span data-i18n="sec_portfolio">المحفظة</span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div class="metrics">
+              <div><label data-i18n="portfolio_value">قيمة المحفظة</label><b id="p-equity" class="num">—</b></div>
+              <div><label data-i18n="available_cash">السيولة المتاحة</label><b id="p-cash" class="num">—</b></div>
+              <div><label data-i18n="unrealized_pnl">الأرباح والخسائر غير المحققة</label><b id="p-unreal" class="num">—</b></div>
+              <div><label data-i18n="realized_pnl">الأرباح والخسائر المحققة</label><b id="p-real" class="num">—</b></div>
+              <div><label data-i18n="total_return">العائد الإجمالي</label><b id="p-ret" class="num">—</b></div>
+              <div data-i18n-title="capital_at_risk_title"><label data-i18n="capital_at_risk">رأس المال المعرّض للخطر</label><b id="p-atrisk" class="num">—</b></div>
+              <div><label data-i18n="position_value">قيمة المركز</label><b id="p-posval" class="num">—</b></div>
+              <div><label data-i18n="exposure">نسبة التعرض</label><b id="p-expo" class="num">—</b></div>
+              <div><label data-i18n="initial_capital">رأس المال المبدئي</label><b id="p-initial" class="num">—</b></div>
+            </div>
+            <div class="lbl" data-i18n="sec_positions">المراكز المفتوحة</div>
+            <div id="positions" class="positions small"></div>
+            <div class="row between small" style="margin-top:8px"><span class="lbl" data-i18n="target_progress">التقدم نحو هدف رأس المال</span><span id="tgt-pct" class="small"></span></div>
+            <div class="meter big"><i id="tgt-bar"></i></div>
+            <div class="row between small muted"><span id="tgt-start" class="num">—</span><span id="tgt-end">—</span></div>
+          </div>
+        </section>
+
+        <section class="sec" data-sec="position">
+          <header class="sec-h"><span data-i18n="sec_position">المركز</span><span id="pos-status" class="pill small">—</span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div class="metrics">
+              <div><label data-i18n="shares_held">الأسهم المملوكة</label><b id="pos-qty" class="num">0</b></div>
+              <div><label data-i18n="avg_entry">متوسط سعر الدخول</label><b id="pos-avg" class="num">—</b></div>
+              <div><label data-i18n="stop_loss">وقف الخسارة</label><b id="pos-stop" class="down num">—</b></div>
+              <div><label data-i18n="take_profit">جني الأرباح</label><b id="pos-tp" class="up num">—</b></div>
+              <div><label data-i18n="trailing">الوقف المتحرك</label><b id="pos-trail" class="num">—</b></div>
+              <div><label data-i18n="risk_to_stop">المخاطرة حتى الوقف</label><b id="pos-risk" class="num">—</b></div>
+            </div>
+            <div id="pending-orders" class="small"></div>
+          </div>
+        </section>
+
+        <section class="sec" data-sec="session">
+          <header class="sec-h"><span data-i18n="sec_session">إعداد الجلسة</span><i class="chev">▾</i></header>
+          <div class="sec-b controls">
+            <label class="check"><input type="checkbox" id="in-demo"> <span data-i18n="demo_data">بيانات تجريبية</span></label>
+            <div id="verify-result" class="small muted"></div>
+            <div class="field-row two">
+              <div><label for="in-capital" data-i18n="initial_capital_usd">رأس المال المبدئي $</label><input id="in-capital" type="number" min="10" step="1" value="500" class="mono" dir="ltr"></div>
+              <div><label for="in-target" data-i18n="target_capital_usd">رأس المال المستهدف $</label><input id="in-target" type="number" min="10" step="1" value="1000" class="mono" dir="ltr"></div>
+            </div>
+            <div class="small muted" id="target-note"></div>
+            <button id="btn-start-big" class="btn primary block" data-i18n="start">▶ بدء التداول الآلي</button>
+          </div>
+        </section>
+
+        <section class="sec" data-sec="riskstate">
+          <header class="sec-h"><span data-i18n="sec_riskstate">حالة محرك المخاطر</span><span id="risk-status" class="pill small">—</span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div class="metrics">
+              <div><label data-i18n="day_pnl">أرباح/خسائر اليوم</label><b id="r-day" class="num">—</b></div>
+              <div><label data-i18n="drawdown">التراجع</label><b id="r-dd" class="num">—</b></div>
+              <div><label data-i18n="consec_losses">خسائر متتالية</label><b id="r-cl" class="num">—</b></div>
+              <div><label data-i18n="entries_today">صفقات الدخول اليوم</label><b id="r-tt" class="num">—</b></div>
+            </div>
+            <div id="risk-limits" class="small muted"></div>
+            <div id="risk-blocks" class="small"></div>
+          </div>
+        </section>
+
+        <section class="sec collapsed" data-sec="case">
+          <header class="sec-h"><span data-i18n="sec_case">السيناريوهات والأدلة</span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div class="lbl" data-i18n="market_interpretation">قراءة السوق</div>
+            <p id="ai-condition" class="txt small">—</p>
+            <div class="lbl" data-i18n="evidence">الأدلة الداعمة</div>
+            <ul id="ai-evidence" class="list small"></ul>
+            <div class="cases">
+              <div><span class="lbl up" data-i18n="bull_case">سيناريو الصعود</span><p id="ai-bull" class="txt small">—</p></div>
+              <div><span class="lbl down" data-i18n="bear_case">سيناريو الهبوط</span><p id="ai-bear" class="txt small">—</p></div>
+              <div><span class="lbl" data-i18n="base_case">السيناريو الأساسي</span><p id="ai-base" class="txt small">—</p></div>
+            </div>
+            <div class="lbl" data-i18n="invalidation">شروط إلغاء الخطة</div>
+            <p id="ai-invalid" class="txt small">—</p>
+            <div class="lbl" data-i18n="uncertainty">عدم اليقين</div>
+            <p id="ai-uncert" class="txt small muted">—</p>
+          </div>
+        </section>
+
+        <section class="sec collapsed" data-sec="performance">
+          <header class="sec-h"><span data-i18n="sec_performance">الأداء</span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div class="metrics">
+              <div><label data-i18n="trades_closed">الصفقات المغلقة</label><b id="m-trades" class="num">—</b></div>
+              <div><label data-i18n="executions">عمليات التنفيذ</label><b id="m-exec" class="num">—</b></div>
+              <div><label data-i18n="win_loss">رابحة / خاسرة</label><b id="m-wl" class="num">—</b></div>
+              <div><label data-i18n="win_rate">نسبة الربح</label><b id="m-winrate" class="num">—</b></div>
+              <div><label data-i18n="avg_win">متوسط الربح</label><b id="m-avgwin" class="num">—</b></div>
+              <div><label data-i18n="avg_loss">متوسط الخسارة</label><b id="m-avgloss" class="num">—</b></div>
+              <div><label data-i18n="profit_factor">معامل الربح</label><b id="m-pf" class="num">—</b></div>
+              <div><label data-i18n="max_drawdown">أقصى تراجع</label><b id="m-dd" class="num">—</b></div>
+              <div><label data-i18n="fees">رسوم التداول</label><b id="m-fees" class="num">—</b></div>
+              <div><label data-i18n="buy_hold">الشراء والاحتفاظ</label><b id="m-bh" class="num">—</b></div>
+            </div>
+            <div id="m-warning" class="small muted"></div>
+          </div>
+        </section>
+
+        <section class="sec collapsed" data-sec="news">
+          <header class="sec-h"><span data-i18n="sec_news">الأخبار ذات الصلة</span><span id="news-count" class="muted small"></span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div id="news-sources" class="news-sources small" dir="ltr"></div>
+            <div id="news-list" class="news-list"></div>
+            <div id="web-research" class="web-research hidden"></div>
+          </div>
+        </section>
+
+        <section class="sec collapsed" data-sec="usage">
+          <header class="sec-h"><span data-i18n="sec_usage">استهلاك DeepSeek</span><i class="chev">▾</i></header>
+          <div class="sec-b">
+            <div class="metrics">
+              <div><label data-i18n="requests">الطلبات</label><b id="u-req" class="num">—</b></div>
+              <div><label data-i18n="input_tokens">رموز الإدخال</label><b id="u-in" class="num">—</b></div>
+              <div><label data-i18n="output_tokens">رموز الإخراج</label><b id="u-out" class="num">—</b></div>
+              <div><label data-i18n="est_spend">التكلفة التقديرية</label><b id="u-cost" class="num">—</b></div>
+              <div><label data-i18n="budget_left">المتبقي من الميزانية</label><b id="u-left" class="num">—</b></div>
+              <div><label data-i18n="last_latency">زمن آخر استجابة</label><b id="u-lat" class="num">—</b></div>
+            </div>
+            <div id="u-note" class="small muted"></div>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </main>
+
+  <div class="splitter horizontal" id="split-dock" role="separator" aria-orientation="horizontal" tabindex="0"></div>
+
+  <!-- ================= BOTTOM DOCK: activity log, decisions, trades ================= -->
+  <section class="dock" id="dock">
+    <div class="dock-head">
+      <div class="tabs" id="dock-tabs" role="tablist">
+        <button data-tab="activity" class="active" role="tab"><span data-i18n="tab_activity">سجل النشاط</span> <span class="live-dot"></span></button>
+        <button data-tab="decisions" role="tab" data-i18n="tab_decisions">قرارات الذكاء الاصطناعي</button>
+        <button data-tab="trades" role="tab" data-i18n="tab_trades">سجل الصفقات</button>
+        <button data-tab="analyses" role="tab" data-i18n="tab_analyses">التحليلات السابقة</button>
+        <button data-tab="monitoring" role="tab" data-i18n="tab_monitoring">المراقبة التكيفية</button>
+        <button data-tab="usage" role="tab" data-i18n="tab_usage">استهلاك الذكاء الاصطناعي</button>
+        <button data-tab="resources" role="tab" data-i18n="tab_resources">الموارد والخدمات</button>
+        <button data-tab="equity" role="tab" data-i18n="tab_equity">منحنى رأس المال</button>
+        <button data-tab="indicators" role="tab" data-i18n="tab_indicators">المؤشرات</button>
+      </div>
+      <div class="filters" id="act-filters">
+        <button data-f="ALL" class="active" data-i18n="f_all">الكل</button><button data-f="MARKET" data-i18n="f_market">السوق</button><button data-f="ANALYSIS" data-i18n="f_analysis">التحليل</button><button data-f="AI" data-i18n="f_ai">الذكاء الاصطناعي</button><button data-f="NEWS" data-i18n="f_news">الأخبار</button><button data-f="TRADE" data-i18n="f_trades">الصفقات</button><button data-f="RISK" data-i18n="f_risk">المخاطر</button><button data-f="ALERT" data-i18n="f_alert">تحذيرات</button>
+        <label class="check small"><input type="checkbox" id="act-autoscroll" checked> <span data-i18n="autoscroll">تمرير تلقائي</span></label>
+        <a class="btn tiny ghost" href="/api/export/activity.json" download data-i18n="export_json">تصدير JSON</a>
+      </div>
+      <button id="btn-dock" class="tool-btn" data-i18n-title="collapse">▾</button>
+    </div>
+    <div class="dock-body">
+      <div id="tab-activity" class="tab active"><div id="activity" class="terminal"></div></div>
+      <div id="tab-decisions" class="tab"><div id="decisions" class="decisions"></div></div>
+      <div id="tab-trades" class="tab">
+        <div class="hist-filters small">
+          <div class="seg" id="hist-view"><button data-v="trades" class="active" data-i18n="view_trades">التنفيذات</button><button data-v="orders" data-i18n="view_orders">الأوامر</button></div>
+          <label><span data-i18n="f_symbol">السهم</span> <select id="hf-symbol"></select></label>
+          <label><span data-i18n="f_period">الفترة</span> <select id="hf-period"></select></label>
+          <label><span data-i18n="f_side">الاتجاه</span> <select id="hf-side"></select></label>
+          <label class="hf-trades"><span data-i18n="f_result">النتيجة</span> <select id="hf-result"></select></label>
+          <label class="hf-trades"><span data-i18n="f_strategy">الاستراتيجية</span> <select id="hf-strategy"></select></label>
+          <label class="hf-orders hidden"><span data-i18n="f_status">الحالة</span> <select id="hf-status"></select></label>
+          <a id="hf-csv" class="btn tiny ghost" href="/api/export/trades.csv" download data-i18n="export_csv">تصدير CSV</a>
+        </div>
+        <div id="hf-note" class="small muted"></div>
+        <table class="tbl small" id="trades-table"><thead id="trades-head"></thead><tbody id="trades-body"></tbody></table>
+      </div>
+      <div id="tab-usage" class="tab"><div id="usage" class="usage"></div></div>
+      <div id="tab-resources" class="tab"><div id="resources" class="usage"></div></div>
+      <div id="tab-monitoring" class="tab"><div id="adaptive" class="usage"></div></div>
+      <div id="tab-analyses" class="tab"><div id="analyses" class="analyses"></div></div>
+      <div id="tab-equity" class="tab"><div id="equity-chart" dir="ltr"></div><div id="equity-legend" class="small muted"></div></div>
+      <div id="tab-indicators" class="tab"><table class="tbl small"><tbody id="ind-body"></tbody></table></div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= MODALS ================= -->
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-head"><span id="modal-title"></span><button id="modal-close" class="icon-btn" data-i18n-title="close">✕</button></div>
+    <div id="modal-body" class="modal-body"></div>
+  </div>
+</div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="/vendor/lightweight-charts.js"></script>
+<script src="/shared/indicators.js"></script>
+<script src="/shared/technicals.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/i18n-messages.js"></script>
+<script src="/js/util.js"></script>
+<script src="/js/explain.js"></script>
+<script src="/js/chart.js"></script>
+<script src="/js/settings.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

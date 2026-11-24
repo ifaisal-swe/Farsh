@@ -1,0 +1,222 @@
+{
+  "_comment": "Non-secret defaults. Secrets (API keys) are NEVER stored here: use the Settings UI (encrypted local store) or environment variables / .env.",
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8787
+  },
+  "market": {
+    "provider": "alpaca",
+    "feed": "iex",
+    "adjustment": "split",
+    "dataBaseUrl": "https://data.alpaca.markets",
+    "tradingInfoBaseUrl": "https://paper-api.alpaca.markets",
+    "streamBaseUrl": "wss://stream.data.alpaca.markets",
+    "maxQuoteAgeMs": 15000,
+    "maxExchangeLagMs": 60000,
+    "staleCheckIntervalMs": 2000,
+    "pingIntervalMs": 20000,
+    "quoteSizeUnit": "shares",
+    "broadMarketSymbols": ["SPY", "QQQ"],
+    "broadMarketPollSec": 60,
+    "historyBars": 500,
+    "ipoReferences": {
+      "ANT": { "date": "2026-11-19", "offerPrice": 83, "exchange": "NASDAQ", "source": "user-provided reference (not market data)" }
+    },
+    "reconnectBaseMs": 1000,
+    "reconnectMaxMs": 30000,
+    "reconnectClosedMaxMs": 300000,
+    "feedCoverage": {
+      "iex": {
+        "name": "IEX",
+        "preOpen": "08:00",
+        "postMinutesAfterClose": 60,
+        "note": "The IEX exchange trades 08:00–09:30 (pre-market), 09:30–16:00 (regular) and 16:00–17:00 ET (post-market). The free Alpaca IEX feed carries no prints or quote changes outside those hours; on early-close days post-market is assumed to end 60 minutes after the close."
+      }
+    },
+    "subscribeGraceSec": 60,
+    "diagnoseIntervalSec": 60,
+    "feedCheckSymbol": "SPY",
+    "clockRefreshSec": 300,
+    "statusReminderMin": 5,
+    "rateReportSec": 300,
+    "maxSymbols": 10,
+    "overnight": {
+      "_comment": "Overnight session 20:00-04:00 ET (Sunday-Thursday nights, NYSE holiday calendar). provider: auto (Alpaca overnight, else Tiingo) | alpaca | tiingo | none. alpacaFeed: overnight (free: real-time INDICATIVE quotes, 15-min DELAYED trades) | boats (Blue Ocean ATS, Algo Trader Plus). Overnight prices are monitoring data; simulated execution needs execution.overnight AND execution-grade quotes.",
+      "enabled": true,
+      "provider": "auto",
+      "alpacaFeed": "overnight",
+      "pollSec": 60
+    }
+  },
+  "tiingo": {
+    "_comment": "Tiingo 24x5 consolidated reference price (derived data, not trades/quotes). Free Starter plan: 50 requests/hour — one request covers all symbols.",
+    "enabled": true,
+    "baseUrl": "https://api.tiingo.com",
+    "pollSec": 90
+  },
+  "ai": {
+    "baseUrl": "https://api.deepseek.com",
+    "model": "deepseek-flash",
+    "reasoningEffort": "low",
+    "analysisTimeframe": "5m",
+    "regularIntervalSec": 300,
+    "minIntervalSec": 45,
+    "maxRequestsPerMinute": 4,
+    "dailyBudgetUsd": 2.0,
+    "maxOutputTokens": 12000,
+    "requestTimeoutSec": 180,
+    "autonomy": "FULL",
+    "_comment": "usageMode = ECONOMY | BALANCED | DETAILED (how often the AI may be asked; risk protections are identical). mode = DEEPSEEK | GEMINI | AUTO | DUAL (which provider analyses; see server/ai/providerManager.js). provider is the pre-mode setting, kept only to migrate older configurations.",
+    "usageMode": "BALANCED",
+    "mode": "AUTO",
+    "fallback": true,
+    "dualScope": "IMPORTANT",
+    "deepseekDailyBudgetUsd": 0,
+    "geminiDailyBudgetUsd": 0,
+    "circuitBreaker": { "failures": 3, "cooldownMin": 5, "maxCooldownMin": 60 },
+    "provider": "deepseek",
+    "maxRequestsPerDay": 0,
+    "maxRequestsPerSymbolPerHour": 0,
+    "monthlyBudgetUsd": 0,
+    "gemini": {
+      "baseUrl": "https://generativelanguage.googleapis.com",
+      "model": "gemini-3.5-flash-lite"
+    },
+    "proposalMaxAgeSec": 120,
+    "maxPriceDriftPct": 0.5,
+    "nearLevelPct": 25,
+    "webResearch": {
+      "enabled": true,
+      "model": "deepseek-flash",
+      "intervalMin": 30,
+      "maxOutputTokens": 4000
+    }
+  },
+  "pricing": {
+    "_comment": "USD per 1M tokens from https://api-docs.deepseek.com/quick_start/pricing (checked 2026-11-19). Peak = 01:00-04:00 and 06:00-10:00 UTC Mon-Fri; all other hours off-peak. Verify before relying on cost estimates.",
+    "peakWindowsUtc": [[1, 4], [6, 10]],
+    "models": {
+      "deepseek-flash": {
+        "peak": { "cacheHit": 0.006, "cacheMiss": 0.3, "output": 1.2 },
+        "offPeak": { "cacheHit": 0.003, "cacheMiss": 0.15, "output": 0.6 }
+      },
+      "deepseek-v4-pro": {
+        "peak": { "cacheHit": 0.044, "cacheMiss": 1.32, "output": 3.96 },
+        "offPeak": { "cacheHit": 0.022, "cacheMiss": 0.66, "output": 1.98 }
+      },
+      "_geminiComment": "Gemini Standard paid prices (USD / 1M tokens) from aistudio.google.com/docs/pricing, read 2026-11-20. Output includes thinking tokens. The cached-input price was not confirmed, so cached tokens are costed at the full input price (an upper bound). Free-tier usage may cost nothing; verify before relying on estimates.",
+      "gemini-3.5-flash-lite": { "peak": { "cacheHit": 0.30, "cacheMiss": 0.30, "output": 2.50 }, "offPeak": { "cacheHit": 0.30, "cacheMiss": 0.30, "output": 2.50 } },
+      "gemini-3.1-flash-lite": { "peak": { "cacheHit": 0.25, "cacheMiss": 0.25, "output": 1.50 }, "offPeak": { "cacheHit": 0.25, "cacheMiss": 0.25, "output": 1.50 } },
+      "gemini-3.8-flash": { "peak": { "cacheHit": 0.75, "cacheMiss": 0.75, "output": 3.75 }, "offPeak": { "cacheHit": 0.75, "cacheMiss": 0.75, "output": 3.75 } },
+      "gemini-4-hydrogen": { "peak": { "cacheHit": 1.50, "cacheMiss": 1.50, "output": 7.50 }, "offPeak": { "cacheHit": 1.50, "cacheMiss": 1.50, "output": 7.50 } },
+      "gemini-2.5-flash": { "peak": { "cacheHit": 0.30, "cacheMiss": 0.30, "output": 2.50 }, "offPeak": { "cacheHit": 0.30, "cacheMiss": 0.30, "output": 2.50 } }
+    },
+    "fallback": {
+      "peak": { "cacheHit": 0.044, "cacheMiss": 1.32, "output": 3.96 },
+      "offPeak": { "cacheHit": 0.044, "cacheMiss": 1.32, "output": 3.96 }
+    }
+  },
+  "risk": {
+    "_comment": "profile = CONSERVATIVE | BALANCED | AGGRESSIVE | VERY_AGGRESSIVE | CUSTOM (see server/trading/riskProfiles.js). The values below are the BALANCED preset. Simulation presets only, not investment advice.",
+    "profile": "BALANCED",
+    "maxRiskPerTradePct": 0.5,
+    "maxDailyLossPct": 2,
+    "maxDrawdownPct": 8,
+    "maxPositionPct": 20,
+    "maxConsecutiveLosses": 3,
+    "lossCooldownMin": 30,
+    "maxOpenPositions": 2,
+    "maxSpreadPct": 0.5,
+    "maxSlippagePct": 0.3,
+    "minRewardRisk": 1.8,
+    "maxTradesPerDay": 8,
+    "maxStopDistancePct": 5,
+    "minStopDistancePct": 0.15,
+    "minStopDistanceSpreads": 2,
+    "ipoMode": {
+      "enabled": "auto",
+      "newListingSessions": 5,
+      "minMinutesAfterFirstTrade": 15,
+      "maxSpreadPct": 0.8,
+      "allocationFactor": 0.5,
+      "maxAtrPct": 4
+    }
+  },
+  "adaptiveMonitoring": {
+    "_comment": "Monitoring intensity by US session (America/New_York exchange calendar) and volatility. Higher intensity = more LOCAL monitoring; AI requests stay under every existing limit plus the ai.* caps here. It never changes risk limits and never starts AI trading. noNewEntriesLastMin: no NEW paper entries in the last minutes before the close (0 = off); positions are never liquidated by this feature. followerCandleClose: ask the AI on every analysis candle of watchlist symbols too (more requests).",
+    "enabled": true,
+    "preMarketMin": 30,
+    "openingMin": 30,
+    "postOpenMin": 60,
+    "closingMin": 30,
+    "noNewEntriesLastMin": 10,
+    "closingPositionReview": true,
+    "followerCandleClose": false,
+    "volatility": { "enterRatio": 2.5, "exitRatio": 1.4, "confirmBars": 2, "exitBars": 5, "minActiveMin": 5, "cooldownMin": 10, "openingFactor": 1.5, "marketMovePct": 0.5 },
+    "events": { "confirmBars": 2, "requireVolumeConfirmation": true, "volumeConfirm": 1.5, "volumeSpike": 3, "moveZ": 3, "breakoutBufferAtr": 0.1, "gapAtr": 0.5, "ttlSec": 300 },
+    "ai": { "minScore": 60, "highPriorityScore": 75, "symbolCooldownSec": 240, "maxPerSymbolPerDay": 12, "maxPerDay": 60, "maxQueued": 2, "reserveSymbolRequests": 2, "budgetReservePct": 10, "enforceBudget": true }
+  },
+  "execution": {
+    "slippageBps": 2,
+    "nearTargetPct": 0.05,
+    "impactPerTierBps": 5,
+    "defaultTierSize": 100,
+    "requireQuoteSize": false,
+    "fractionalShares": false,
+    "extendedHours": false,
+    "commissionPerShare": 0,
+    "commissionPerOrder": 0,
+    "secFeeRate": 0.0000278,
+    "finraTafPerShare": 0.000166,
+    "finraTafMax": 8.3,
+    "pendingLimitExpiryMin": 30,
+    "overnight": false
+  },
+  "news": {
+    "pollSec": { "alpaca": 120, "sec": 300, "fed": 600, "halts": 60, "rss": 300 },
+    "customFeeds": [],
+    "cikOverrides": {},
+    "breakingCooldownSec": 300,
+    "maxItems": 60
+  },
+  "session": {
+    "autoResumeAi": true,
+    "equitySampleSec": 60
+  },
+  "ui": {
+    "_comment": "language = ar (default, right-to-left) | en. Also sets the language of AI explanations.",
+    "language": "ar"
+  },
+  "telegram": {
+    "_comment": "Bot token is a credential (encrypted store). Sensitive commands need the sender's Telegram user id in authorizedUserIds (a private chat id equals the user id).",
+    "enabled": false,
+    "authorizedChatIds": [],
+    "authorizedUserIds": [],
+    "notifications": { "enabled": true, "trades": true, "ai": true, "risk": true, "news": true, "data": true, "market": false, "watchlist": false, "breakouts": false, "monitoring": false },
+    "reports": { "daily": false, "weekly": false, "monthly": false, "time": "16:30", "timezone": "America/New_York", "weeklyDay": 5 }
+  },
+  "sharia": {
+    "_comment": "AAOIFI-style screen for NEW entries on live data (30% debt, 30% deposits, 5% impermissible income). Missing or expired data blocks buying; exits are never blocked. An automated pre-screen, not a fatwa.",
+    "enabled": true,
+    "mode": "FULL",
+    "maxDebtPct": 30,
+    "maxDepositsPct": 30,
+    "maxIncomePct": 5,
+    "resultValidDays": 7,
+    "rulingValidDays": 120,
+    "maxBalanceAgeDays": 200,
+    "maxIncomeAgeDays": 460
+  },
+  "backups": {
+    "_comment": "Consistent SQLite copies (VACUUM INTO) written to <data dir>/backups. Railway volume backups are separate and recommended in addition.",
+    "enabled": true,
+    "intervalHours": 24,
+    "keep": 7
+  },
+  "retention": {
+    "_comment": "High-volume tables only. Fills, orders, decisions, sessions and AI usage are never pruned.",
+    "activityDays": 90,
+    "eventsDays": 30,
+    "snapshotsDays": 30
+  }
+}

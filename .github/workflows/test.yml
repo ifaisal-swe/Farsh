@@ -1,0 +1,30 @@
+# Runs the test suite on every push and pull request. In Railway, enable "Wait for CI" on the service so a
+# deployment of the production branch only starts after this workflow has passed.
+name: tests
+on:
+  push:
+    branches: [main, production]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: { POSTGRES_PASSWORD: ci-only, POSTGRES_DB: dt }
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 20
+    env:
+      PG_TEST_URL: postgres://postgres:ci-only@127.0.0.1:5432/dt
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run web:build
+      - run: npm test
+      - run: npm test
+        env: { STORE_TEST_PG: "postgres://postgres:ci-only@127.0.0.1:5432/dt" }
+      - run: docker build -t forsah .

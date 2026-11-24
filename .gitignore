@@ -1,9 +1,24 @@
 node_modules/
-.nuxt/
-.output/
-dist
+# local data: trading history, encrypted credentials and the master key — never commit
+data/
+backups/
+import/
+railway-import/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+# secrets
 .env
 .env.*
 !.env.example
 *.log
 .claude/
+
+web/node_modules/
+web/.nuxt/
+web/.output/
+web/dist
+
+deploy/secrets/
+deploy/.env

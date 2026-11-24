@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تسجيل الدخول — فرصة</title>
+  <link rel="stylesheet" href="/css/login.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2311151c'/%3E%3Cpath d='M3 11l3-4 3 2 4-5' stroke='%2322c55e' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+</head>
+<body>
+  <main class="login">
+    <div class="card">
+      <div class="lang"><button type="button" id="lang-ar" class="active">العربية</button><button type="button" id="lang-en">English</button></div>
+      <div class="brand"><span class="logo">◆</span> <span data-t="brand">فرصة — منصة التداول الذكية</span></div>
+      <p class="paper" data-t="paper">تداول ورقي فقط — لا توجد أموال أو أوامر حقيقية</p>
+      <form id="login-form" autocomplete="on">
+        <label for="password" data-t="password">كلمة المرور</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="1024" autofocus>
+        <button id="submit" type="submit" data-t="submit">دخول</button>
+        <div id="msg" class="msg" role="alert" aria-live="polite"></div>
+      </form>
+      <p class="note" data-t="note">إغلاق هذه الصفحة لا يوقف المراقبة أو التداول الورقي على الخادم.</p>
+    </div>
+  </main>
+  <script src="/js/login.js"></script>
+</body>
+</html>
