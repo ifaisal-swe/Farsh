@@ -39,7 +39,8 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   const maxTenants = Math.max(1, Number(env.SAAS_MAX_TENANTS) || 25);
   const databaseUrl = env.SAAS_DATABASE_URL || env.DATABASE_URL;
   if (!databaseUrl) throw Object.assign(new Error('DATABASE_URL must be set (PostgreSQL)'), { code: 'CONFIG' });
-  const accounts = new Accounts({ url: databaseUrl, schema: env.SAAS_DATABASE_SCHEMA || 'control', keyDir: root, now });
+  const sessionMs = Math.min(90, Math.max(1, Number(env.SAAS_SESSION_DAYS) || 30)) * 86400000; // people stay signed in on their device
+  const accounts = new Accounts({ url: databaseUrl, schema: env.SAAS_DATABASE_SCHEMA || 'control', keyDir: root, now, idleMs: sessionMs, maxMs: sessionMs });
 
   // ------------------------------------------------------------------ tenants
   const prefix = env.SAAS_TENANT_PREFIX || 't';
@@ -47,8 +48,8 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   const demoSpace = new Provisioner({ url: databaseUrl, keyDir: root, prefix: `${prefix}demo` });
   // prices read from public pages without keys are for personal use: off unless the operator turns them on
   const PUBLIC = ['operator', 'everyone'].includes(env.SAAS_PUBLIC_DATA) ? env.SAAS_PUBLIC_DATA : 'off';
-  const services = new PlatformServices({ dir: root });
-  const botToken = services.load().values.TELEGRAM_BOT_TOKEN || null;
+  const services = new PlatformServices({ dir: root, env });
+  const botToken = services.values().TELEGRAM_BOT_TOKEN || null;
   const options = async (id) => {
     const u = await accounts.byId(id);
     return { labModel: { url: env.LAB_MODEL_URL || null, modelId: env.LAB_MODEL_NAME || null, openrouter: env.OPENROUTER_MODEL || null }, publicData: PUBLIC === 'everyone' || (PUBLIC === 'operator' && !!u && u.role === 'ADMIN'), services: services.forAccount(u && u.role, u && u.email), telegram: botToken ? { chatId: await accounts.telegramChat(id) } : null };
@@ -102,7 +103,8 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   const wrap = (fn) => async (req, res) => {
     try { res.json((await fn(req, res)) || { ok: true }); } catch (e) { res.status(e.status || 500).json({ error: e.status ? e.message : 'Unexpected error' }); if (!e.status) console.error(`[gateway] ${e.message}`); }
   };
-  const signIn = (req, res, s) => res.cookie(COOKIE, s.token, { httpOnly: true, sameSite: 'strict', secure: rt.secureCookies || req.secure, path: '/', maxAge: accounts.maxMs });
+  // lax: a link from another site finds the person signed in; every change still needs our header and origin
+  const signIn = (req, res, s) => res.cookie(COOKIE, s.token, { httpOnly: true, sameSite: 'lax', secure: rt.secureCookies || req.secure, path: '/', maxAge: accounts.maxMs });
   app.post('/account/login', json, wrap(async (req, res) => { signIn(req, res, await accounts.login({ email: (req.body || {}).email, password: (req.body || {}).password, code: (req.body || {}).code, ip: req.ip })); }));
   app.post('/account/register', json, wrap(async (req, res) => {
     const b = req.body || {};

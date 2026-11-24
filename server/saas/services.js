@@ -1,7 +1,8 @@
 'use strict';
 /**
- * Service keys held by the operator, so customers never see or enter any. Set from the command line only
- * (scripts/services.js), encrypted at rest with a key kept in a separate file, and never sent to a browser.
+ * Service keys held by the operator, so customers never see or enter any. Set from the command line (scripts/services.js,
+ * encrypted at rest with a key kept in a separate file) or as environment variables of the same names; a saved key wins.
+ * Never sent to a browser.
  *
  * scope 'operator' (default): market data and AI keys serve the operator's own account only. 'everyone' also serves
  * customers; most data plans forbid redistribution, so the operator must hold a plan that allows it.
@@ -16,7 +17,7 @@ const NAMES = [...SHARED, 'SEC_USER_AGENT', 'TELEGRAM_BOT_TOKEN'];
 const SCOPES = ['operator', 'everyone'];
 
 class PlatformServices {
-  constructor({ dir }) { this.file = path.join(dir, 'services.json'); this.keyFile = path.join(dir, 'services.key'); }
+  constructor({ dir, env = {} }) { this.env = env; this.file = path.join(dir, 'services.json'); this.keyFile = path.join(dir, 'services.key'); }
 
   key(create) {
     if (!fs.existsSync(this.keyFile)) {
@@ -62,12 +63,20 @@ class PlatformServices {
   allow(email, on = true) { const e = String(email || '').trim().toLowerCase(); if (!/^\S+@\S+$/.test(e)) throw new Error('Give the e-mail of the account'); const s = this.load(); s.allow = [...new Set([...(s.allow || []).filter((x) => x !== e), ...(on ? [e] : [])])]; this.save(s); }
   describe() { const s = this.load(); return { scope: s.scope, allow: s.allow || [], set: NAMES.filter((n) => s.values[n]) }; }
 
+  /** Saved keys, then environment variables. */
+  values(s = this.load()) {
+    const out = { ...s.values };
+    for (const n of NAMES) { const v = String(this.env[n] || '').trim(); if (!out[n] && v) out[n] = v; }
+    return out;
+  }
+
   /** What one account's process receives. */
   forAccount(role, email = null) {
     const s = this.load();
+    const values = this.values(s);
     const named = !!email && (s.allow || []).includes(String(email).toLowerCase());
     const out = {};
-    for (const n of NAMES) if (s.values[n] && (!SHARED.includes(n) || role === 'ADMIN' || named || s.scope === 'everyone')) out[n] = s.values[n];
+    for (const n of NAMES) if (values[n] && (!SHARED.includes(n) || role === 'ADMIN' || named || s.scope === 'everyone')) out[n] = values[n];
     return out;
   }
 }

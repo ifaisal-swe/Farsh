@@ -49,7 +49,9 @@ test('saas: registration is closed; an invitation works once, for its own e-mail
   const u = await join('one@example.com');
   assert.equal(u.status, 200);
   assert.match(u.set, /HttpOnly/);
-  assert.match(u.set, /SameSite=Strict/);
+  assert.match(u.set, /SameSite=Lax/);
+  assert.match(u.set, /Max-Age=2592000/, 'stays signed in for 30 days');
+  assert.equal((await call('/account/logout', { method: 'POST', cookie: u.cookie })).status, 403, 'a cookie alone changes nothing');
   assert.equal((await call('/account/register', { body: { token: u.invite, email: 'one@example.com', password: pw() } })).status, 403);
   const inv = await call('/admin/invite', { body: { email: 'two@example.com' }, cookie: u.admin });
   assert.equal((await call('/account/register', { body: { token: inv.data.token, email: 'evil@example.com', password: pw() } })).status, 403);
