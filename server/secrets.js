@@ -2,7 +2,7 @@
 /**
  * Credential handling. Secrets live ONLY on the backend:
  *  - environment variables / .env take precedence (never written anywhere by the app)
- *  - keys entered in the Settings UI are encrypted with AES-256-GCM before being stored in SQLite.
+ *  - keys entered in the Settings UI are encrypted with AES-256-GCM before being stored in PostgreSQL.
  *    The master key comes from TERMINAL_MASTER_KEY or data/master.key (created with owner-only
  *    permissions where the OS supports it). This protects against casual disclosure (DB copies,
  *    screenshots, logs) — not against someone with full access to your user account.

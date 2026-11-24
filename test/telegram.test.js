@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
@@ -82,7 +83,7 @@ const NEWS = [
 ];
 
 const COMPONENTS = () => ({
-  database: { state: 'ok', detail: 'SQLite schema v9' }, engine: { state: 'ok', detail: '3 symbol(s) monitored' },
+  database: { state: 'ok', detail: 'PostgreSQL schema v9' }, engine: { state: 'ok', detail: '3 symbol(s) monitored' },
   alpaca: { state: 'error', detail: 'UNAVAILABLE' }, tiingo: { state: 'not_configured', detail: 'optional Tiingo token not set' },
   deepseek: { state: 'ok', detail: 'deepseek-chat' }, gemini: { state: 'error', detail: 'RATE_LIMIT: paused' },
   telegram: { state: 'ok', detail: '3 message(s) sent today' }, news: { state: 'idle', detail: 'no symbol' },
@@ -202,7 +203,7 @@ function setup({ config = makeConfig(), service = makeService(), handler, token 
   const logs = [];
   const timers = [];
   const fetchImpl = makeFetch(handler);
-  const db = store || new Store(':memory:');
+  const db = store || tempStore();
   const tg = createTelegram({
     store: db, service, getConfig: () => config, getToken: () => token,
     log: (level, message) => logs.push(`${level} ${message}`),
@@ -628,7 +629,7 @@ test('/status shows server state, operating states with reasons, AI mode and the
     'وضع الذكاء الاصطناعي: تلقائي', 'مكونات النظام', '• قاعدة البيانات: ✅ سليم', '• محرك التداول: ✅ سليم', '• Alpaca: ❌ خطأ — UNAVAILABLE',
     '• Tiingo: ⚪ غير مضبوط', '• DeepSeek: ✅ سليم', '• Gemini: ❌ خطأ', '• تيليجرام: ✅ سليم', '• الأخبار: 💤 خامل',
   ]) assert.ok(t.includes(s), `missing: ${s}`);
-  assert.ok(!t.includes('SQLite schema'), 'healthy component details are not dumped');
+  assert.ok(!t.includes('PostgreSQL schema'), 'healthy component details are not dumped');
   assert.ok(t.indexOf('قاعدة البيانات') < t.indexOf('محرك التداول') && t.indexOf('تيليجرام') < t.indexOf('• الأخبار'), 'fixed order');
   assert.equal(findButton(out, 'إيقاف مراقبة السوق').callback_data, 'mon:pause');
   // server / components may be null (no HTTP layer)
@@ -901,7 +902,7 @@ test('notifications: HTTP 429 honours retry_after; 400 fails permanently; networ
 
 test('notifications: queued rows survive a restart', async () => {
   const config = makeConfig({ authorizedChatIds: ['111'] });
-  const db = new Store(':memory:');
+  const db = tempStore();
   const first = setup({ config, store: db });
   first.tg.notify(fillEvent('s1'));
   assert.equal(first.tg.status().queued, 1);
@@ -1060,7 +1061,7 @@ test('start() registers Arabic commands, long-polls with persisted offset, subsc
 // ------------------------------------------------------------------ report scheduler
 test('report scheduler queues the daily report once per local day (and survives restart)', async () => {
   const config = makeConfig({ authorizedChatIds: ['111'] });
-  const db = new Store(':memory:');
+  const db = tempStore();
   const a = setup({ config, store: db });
   a.clock.t = Date.UTC(2026, 10, 20, 16, 59); // 19:59 Riyadh
   assert.deepEqual(await a.tg._schedulerTick(), []);

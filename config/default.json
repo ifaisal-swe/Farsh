@@ -207,12 +207,6 @@
     "maxBalanceAgeDays": 200,
     "maxIncomeAgeDays": 460
   },
-  "backups": {
-    "_comment": "Consistent SQLite copies (VACUUM INTO) written to <data dir>/backups. Railway volume backups are separate and recommended in addition.",
-    "enabled": true,
-    "intervalHours": 24,
-    "keep": 7
-  },
   "retention": {
     "_comment": "High-volume tables only. Fills, orders, decisions, sessions and AI usage are never pruned.",
     "activityDays": 90,

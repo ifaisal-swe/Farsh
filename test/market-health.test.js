@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 /**
  * Market-data health: sessions (regular / pre / after-hours / closed / weekend / holiday / early close),
  * IEX coverage hours, separated freshness states, once-per-change logging, disconnection and recovery,
@@ -71,7 +72,7 @@ class FakeAlpaca extends FakeProvider {
 }
 
 function harness({ startMs, symbol = 'TEST', minutes, snapshot = null, clockResp = null }) {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const clock = { t: startMs, now() { return this.t; } };
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { DEEPSEEK_API_KEY: 'sk-test-not-real-0000', TERMINAL_MASTER_KEY: 'c'.repeat(64) }, redactor });

@@ -33,10 +33,7 @@ function resolveRuntime(env = process.env, cfgServer = { host: '127.0.0.1', port
   const host = env.HOST || (production ? '0.0.0.0' : cfgServer.host || '127.0.0.1');
   const port = Number(env.PORT) || cfgServer.port || 8787;
   const volume = env.RAILWAY_VOLUME_MOUNT_PATH || null;
-  const dbFile = env.DATABASE_PATH ? path.resolve(env.DATABASE_PATH)
-    : volume ? path.join(volume, 'trading.db')
-      : path.join(ROOT, 'data', 'terminal.db');
-  const dataDir = env.DATA_DIR ? path.resolve(env.DATA_DIR) : path.dirname(dbFile);
+  const dataDir = path.resolve(env.DATA_DIR || volume || path.join(ROOT, 'data'));
   const remote = !LOOPBACK.has(host);
   const password = env.DASHBOARD_PASSWORD || '';
   const passwordHash = env.DASHBOARD_PASSWORD_HASH || '';
@@ -44,7 +41,7 @@ function resolveRuntime(env = process.env, cfgServer = { host: '127.0.0.1', port
   const publicHosts = [...new Set([hostOf(env.APP_BASE_URL), hostOf(env.RAILWAY_PUBLIC_DOMAIN), ...list(env.ALLOWED_HOSTS).map(hostOf)].filter(Boolean))];
   const authRequired = remote || !!(password || passwordHash) || truthy(env.REQUIRE_LOGIN);
   return {
-    production, onRailway, host, port, remote, dbFile, persistentPath: !!(volume || env.DATABASE_PATH), dataDir, backupDir: path.join(dataDir, 'backups'), importDir: path.join(dataDir, 'import'),
+    production, onRailway, host, port, remote, databaseUrl: env.DATABASE_URL || null, databaseSchema: env.DATABASE_SCHEMA || 'terminal', persistentPath: !!(volume || env.DATA_DIR), dataDir,
     baseUrl, publicHosts, healthcheckHost: RAILWAY_HEALTHCHECK_HOST,
     authRequired, password, passwordHash,
     // behind Railway's proxy the client IP / scheme come from X-Forwarded-* (one hop)
@@ -53,7 +50,6 @@ function resolveRuntime(env = process.env, cfgServer = { host: '127.0.0.1', port
     sessionIdleHours: Number(env.SESSION_IDLE_HOURS) || 12,
     sessionMaxDays: Number(env.SESSION_MAX_DAYS) || 7,
     shutdownTimeoutMs: (Number(env.SHUTDOWN_TIMEOUT_SEC) || 25) * 1000,
-    dbImportConfirm: env.DB_IMPORT_CONFIRM || '',
   };
 }
 
@@ -68,7 +64,7 @@ function validateRuntime(rt) {
   if (rt.password && rt.password.length < 12) errors.push('DASHBOARD_PASSWORD must be at least 12 characters long');
   if (rt.passwordHash && !/^scrypt\$\d+\$\d+\$\d+\$[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+$/.test(rt.passwordHash)) errors.push('DASHBOARD_PASSWORD_HASH has an invalid format (create it with: npm run hash-password)');
   if (rt.remote && !rt.publicHosts.length) warnings.push('APP_BASE_URL / RAILWAY_PUBLIC_DOMAIN not set: only localhost Host headers will be accepted until a public domain is configured');
-  if (rt.onRailway && !rt.persistentPath) warnings.push('No Railway volume detected (RAILWAY_VOLUME_MOUNT_PATH) and no DATABASE_PATH: data would be lost on every redeploy');
+  if (rt.onRailway && !rt.persistentPath) warnings.push('No Railway volume detected (RAILWAY_VOLUME_MOUNT_PATH) and no DATA_DIR: the encryption keys would be lost on every redeploy');
   return { errors, warnings };
 }
 

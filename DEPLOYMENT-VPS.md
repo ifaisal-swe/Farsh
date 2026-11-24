@@ -18,8 +18,15 @@ Changing `secrets/admin_password` later does not change the existing operator ac
 4. Keys (`keys-*.age`) open the encrypted data: keep them in a different place from the database dumps.
 5. Every month run `restore-drill.sh backup-key.txt <timestamp>` on a machine that has the private key.
 
-## Moving existing hosted data from SQLite
-`docker compose stop app`, back up the app volume, then `docker compose run --rm app sh -c 'SAAS_DATABASE_URL=$(cat /run/secrets/database_url) SAAS_DATA_DIR=/data/saas node scripts/pg-import.js'`, then start again.
+## Moving a PostgreSQL 17 installation to PostgreSQL 19
+Major versions cannot share a data folder; version 19 uses a new volume (`pg19_data`) and the old one (`pg_data`) is left as it is. Before pulling the new files:
+
+1. `docker compose stop app`
+2. `docker compose exec -T postgres pg_dump -U postgres -Fc forsah > forsah.dump` and `docker compose exec -T postgres pg_dumpall -U postgres --roles-only > roles.sql`
+3. `docker compose down` (never `-v`), update the files, `docker compose up -d postgres`
+4. `grep -v -E '^(CREATE|ALTER) ROLE (postgres|dt_app)' roles.sql | docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U postgres`
+5. `docker compose exec -T postgres pg_restore -U postgres -d forsah --exit-on-error < forsah.dump`
+6. `docker compose up -d --build`, check the accounts, and only then delete the dump and the old volume.
 
 ## Update and rollback
 - Update: back up, `git pull`, `docker compose up -d --build`.

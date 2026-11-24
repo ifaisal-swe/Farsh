@@ -1,4 +1,5 @@
 'use strict';
+const { temp, tempStore, openStore } = require('./helpers/db');
 /**
  * Adaptive market monitoring. Everything is deterministic: mocked clock, mocked exchange calendar, mocked
  * market data, no network. No test depends on whether the US market is open while it runs.
@@ -82,8 +83,8 @@ class LabProvider extends FakeProvider {
   q(symbol, bid, ask) { const t = this.clock.now(); this.emit('quote', { symbol, bid, ask, bidSize: 500, askSize: 500, ts: t, receivedAt: t }); }
   t(symbol, price) { const t = this.clock.now(); this.emit('trade', { symbol, price, size: 100, ts: t, receivedAt: t }); }
 }
-async function lab({ at = et(DAY, 9, 30), symbols = ['TEST'], file = ':memory:', decider = new ScriptedDecider(), config: over = {}, start = true, keys = true, days = ['2026-11-16', '2026-11-17'], autoTimers = false, runtime = {} } = {}) {
-  const store = new Store(file);
+async function lab({ at = et(DAY, 9, 30), symbols = ['TEST'], file = null, decider = new ScriptedDecider(), config: over = {}, start = true, keys = true, days = ['2026-11-16', '2026-11-17'], autoTimers = false, runtime = {} } = {}) {
+  const store = file ? openStore(file) : tempStore();
   const clock = { t: at, now() { return this.t; } };
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { ...(keys ? { DEEPSEEK_API_KEY: 'sk-test-not-real-0000' } : {}), TERMINAL_MASTER_KEY: 'a'.repeat(64) }, redactor });
@@ -523,7 +524,7 @@ test('19: restart: same-day events are not repeated, counters survive, overrides
   assert.equal(R.status().mode, MODE.OPENING, 'mode recomputed from the clock, no stored mode needed');
   await R.desk.shutdown();
   // a new day starts clean
-  const D = await lab({ file: ':memory:', start: false });
+  const D = await lab({ start: false });
   D.store.setSetting('monitor.state', { day: '2026-11-17', fired: { x: 1 }, counters: { dispatched: 9 } });
   D.mon.load();
   assert.deepEqual(D.mon.fired, {});
@@ -738,7 +739,7 @@ test('settings: validated bounds, defaults for old configurations, live toggle',
 });
 
 test('API: /api/monitoring needs the login; the live state carries a compact summary', async () => {
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: { DASHBOARD_PASSWORD: 'correct-horse-battery-staple' }, fetchImpl: silentFetch });
+  const t = createTerminal({ postgres: temp(), port: 0, env: { DASHBOARD_PASSWORD: 'correct-horse-battery-staple' }, fetchImpl: silentFetch });
   const port = await t.start();
   try {
     const url = `http://localhost:${port}`;

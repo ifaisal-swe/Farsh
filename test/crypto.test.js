@@ -1,4 +1,5 @@
 'use strict';
+const { temp } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
@@ -67,7 +68,7 @@ test('crypto: joins a live watchlist on its own stream, with crypto costs and a 
     async fetchCalendar() { return []; } async fetchNews() { return []; }
   }
   for (const k of ['feedInfo', 'fetchBars', 'fetchMinuteWindow', 'fetchSnapshot', 'fetchSnapshots', 'fetchAsset', 'bars', 'get', 'headers']) Coin.prototype[k] = CryptoProvider.prototype[k];
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: {}, fetchImpl: async () => new Response('{}', { status: 404 }), providerFactory: (mode) => { const p = mode === 'CRYPTO' ? new Coin() : new Stock(); made.push([mode, p]); return p; } });
+  const t = createTerminal({ postgres: temp(), port: 0, env: {}, fetchImpl: async () => new Response('{}', { status: 404 }), providerFactory: (mode) => { const p = mode === 'CRYPTO' ? new Coin() : new Stock(); made.push([mode, p]); return p; } });
   // the fake coin provider answers from fixed data, not from the network
   Coin.prototype.get = provider().get;
   await t.start();
@@ -96,7 +97,7 @@ test('crypto: can be the main symbol, also together with a stock that keeps its 
     async fetchCalendar() { return []; } async fetchNews() { return []; }
   }
   for (const k of ['feedInfo', 'fetchBars', 'fetchMinuteWindow', 'fetchSnapshot', 'fetchSnapshots', 'fetchAsset', 'bars', 'get', 'headers']) Coin.prototype[k] = CryptoProvider.prototype[k];
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: {}, fetchImpl: async () => new Response('{}', { status: 404 }), providerFactory: (mode) => { const p = mode === 'CRYPTO' ? new Coin() : new Stock(); made.push([mode, p]); return p; } });
+  const t = createTerminal({ postgres: temp(), port: 0, env: {}, fetchImpl: async () => new Response('{}', { status: 404 }), providerFactory: (mode) => { const p = mode === 'CRYPTO' ? new Coin() : new Stock(); made.push([mode, p]); return p; } });
   await t.start();
   try {
     await t.desk.addSymbol('BTC/USD');

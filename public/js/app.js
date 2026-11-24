@@ -1036,20 +1036,19 @@
 
   // ------------------------------------------------------------ resources & services
   async function loadResources() {
-    let r; let h; let b;
-    try { [r, h, b] = await Promise.all([U.api('/api/system/resources'), U.api('/api/system/health'), U.api('/api/admin/backups')]); } catch (e) { setHTML($('resources'), `<div class="down">${esc(tr(e.message))}</div>`); return; }
+    let r; let h;
+    try { [r, h] = await Promise.all([U.api('/api/system/resources'), U.api('/api/system/health')]); } catch (e) { setHTML($('resources'), `<div class="down">${esc(tr(e.message))}</div>`); return; }
     const m = (k, v, cls = '') => `<div><label>${esc(T(k))}</label><b class="num ${cls}">${v}</b></div>`;
     const dur = (sec) => { const d = Math.floor(sec / 86400); const hh = Math.floor((sec % 86400) / 3600); const mm = Math.floor((sec % 3600) / 60); return `${d ? `${d}d ` : ''}${hh}h ${mm}m`; };
     const mb = (x) => `${(x / 1048576).toFixed(2)} MB`;
     const comps = Object.entries(h.components).map(([k, v]) => `<tr><td>${esc(T(`comp_${k}`))}</td><td><span class="pill small ${v.state === 'ok' ? 'green' : v.state === 'error' ? 'red' : v.state === 'degraded' ? 'amber' : 'gray'}">${esc(T(`cs_${v.state}`))}</span></td><td class="wrap small muted">${esc(tr(v.detail || ''))}</td></tr>`).join('');
     const feeds = r.dataProviders.map((x) => `<tr><td dir="ltr">${esc(x.symbol)}</td><td>${esc(x.provider || '—')}</td><td>${esc(tr(x.dataLabel || ''))}</td><td class="num">${x.priceTs ? U.etTime(x.priceTs) : '—'}</td></tr>`).join('');
     const jobs = r.scheduler.map((x) => `<span class="chip">${esc(x.symbol)} ${x.paused ? '❚❚' : x.inFlight ? '…' : x.running ? '●' : '○'}</span>`).join(' ');
-    const last = r.database.lastBackup;
     setHTML($('resources'), `<div class="lbl">${esc(T('res_title'))} · <span class="pill small ${h.server.state === 'ONLINE' ? 'green' : 'amber'}">${esc(T(`st_${h.server.state}`))}</span>${h.server.reasons.length ? ` <span class="small muted">${esc(h.server.reasons.join(', '))}</span>` : ''}</div>
       <div class="lbl">${esc(T('res_hosting'))}</div>
       <div class="metrics usage-grid">
         ${m('res_uptime', dur(r.uptimeSec))}${m('res_memory', `${r.memory.rssMb} / ${r.memory.heapUsedMb} MB`)}${m('res_cpu', r.cpuPct == null ? '—' : `${r.cpuPct}%`)}${m('res_loop', `${r.eventLoopDelayMs} ms`)}
-        ${m('res_db_size', mb(r.database.total))}${m('res_backup', last ? `${U.etDate(last.at)} ${U.etTime(last.at)}` : '—')}${m('res_clients', r.websocketClients)}${m('res_symbols', r.monitoredSymbols)}
+        ${m('res_db_size', mb(r.database.total))}${m('res_clients', r.websocketClients)}${m('res_symbols', r.monitoredSymbols)}
         ${m('res_conns', r.marketDataConnections)}${m('res_subs', r.marketSubscriptions)}${m('res_queue', `${r.queues.telegramQueued} / ${r.queues.telegramFailed}`)}
         ${m('u_provider', `${esc(T(`aim_${r.ai.mode}`))}`)}
         ${m('comp_deepseek', `${r.ai.deepseek.requestsToday} · $${(r.ai.deepseek.costTodayUsd || 0).toFixed(4)}`)}${m('comp_gemini', `${r.ai.gemini.requestsToday} · $${(r.ai.gemini.costTodayUsd || 0).toFixed(4)}`)}
@@ -1058,10 +1057,8 @@
       <div class="lbl">${esc(T('res_components'))}</div><table class="tbl small"><tbody>${comps}</tbody></table>
       <div class="lbl">${esc(T('res_feeds'))}</div><table class="tbl small"><tbody>${feeds || `<tr><td class="muted">—</td></tr>`}</tbody></table>
       <div class="lbl">${esc(T('res_jobs'))}</div><div class="small">${jobs || '—'}</div>
-      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button class="btn small" id="rs-backup">${esc(T('res_backup_now'))}</button><a class="btn small ghost" href="/api/admin/backup.db" download>${esc(T('res_backup_dl'))}</a><button class="btn small ghost" id="rs-int">${esc(T('res_integrity'))}</button><span id="rs-out" class="small"></span></div>
-      <div class="small muted">${b.items.length} · ${esc(b.items.slice(0, 3).map((x) => x.name).join(', '))}</div>
+      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button class="btn small ghost" id="rs-int">${esc(T('res_integrity'))}</button><span id="rs-out" class="small"></span></div>
       <p class="small muted">${esc(T('res_note'))}</p>`);
-    $('rs-backup').onclick = async () => { try { const x = await U.api('/api/admin/backups', { method: 'POST' }); U.toast(T('res_backup_done', { n: x.name }), 'ok'); loadResources(); } catch (e) { U.toast(tr(e.message), 'err'); } };
     $('rs-int').onclick = async () => {
       try {
         const x = await U.api('/api/admin/integrity');

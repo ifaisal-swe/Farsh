@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
@@ -128,7 +129,7 @@ test('Scheduler: one analysis at a time, coalesces triggers, honours cooldowns',
 });
 
 test('Usage tracker: peak/off-peak cost, daily budget and RPM limits', () => {
-  const store = new Store(':memory:');
+  const store = tempStore();
   let cfg = { maxRequestsPerMinute: 2, dailyBudgetUsd: 0.01 };
   const u = new UsageTracker({ store, pricing: DEFAULTS.pricing, getAiCfg: () => cfg });
   const peak = Date.UTC(2026, 10, 18, 2, 0); // Wed 02:00 UTC

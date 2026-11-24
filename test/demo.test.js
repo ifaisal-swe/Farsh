@@ -1,4 +1,5 @@
 'use strict';
+const { platformEnv } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -13,7 +14,7 @@ async function setup(env, fn) {
   const keys = new PlatformServices({ dir }); keys.set('ALPACA_KEY_ID', 'operator-key'); keys.set('ALPACA_SECRET_KEY', 'operator-secret'); keys.scope('everyone');
   let t = Date.now();
   const admin = { email: 'admin@example.com', password: crypto.randomBytes(12).toString('hex') };
-  const g = createGateway({ port: 0, dataDir: dir, now: () => t, supervisor: { log: () => {} }, env: { SAAS_ADMIN_EMAIL: admin.email, SAAS_ADMIN_PASSWORD: admin.password, SAAS_PUBLIC_DATA: 'everyone', ...env } });
+  const g = createGateway({ port: 0, dataDir: dir, now: () => t, supervisor: { log: () => {} }, env: { ...platformEnv(), SAAS_ADMIN_EMAIL: admin.email, SAAS_ADMIN_PASSWORD: admin.password, SAAS_PUBLIC_DATA: 'everyone', ...env } });
   const base = 'http://127.0.0.1:' + (await g.start());
   const call = async (p, { body, cookie, method } = {}) => { const r = await fetch(base + p, { method: method || (body === undefined ? 'GET' : 'POST'), redirect: 'manual', headers: { ...(body === undefined && !method ? {} : { 'Content-Type': 'application/json', 'X-Terminal-Client': '1' }), ...(cookie ? { cookie } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) }); const text = await r.text(); let data = text; try { data = JSON.parse(text); } catch { /* html */ } const c = r.headers.get('set-cookie'); return { status: r.status, data, location: r.headers.get('location'), cookie: c ? c.split(';')[0] : null, raw: c }; };
   try { await fn({ g, call, admin, dir, later: (ms) => { t += ms; } }); } finally { await g.stop(); fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5 }); }

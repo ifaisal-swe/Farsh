@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Telegram persistence (own tables on the app's node:sqlite database).
+ * Telegram persistence (own tables on the app's PostgreSQL schema).
  * - tg_notifications: persistent outbound queue (one row per (event, chat), idempotent via idem_key)
  * - tg_audit: every interactive action / denial
  * - tg_nonces: one-time confirmation tokens for sensitive actions
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS tg_state (key TEXT PRIMARY KEY, value TEXT);
 const PRIORITY = { high: 0, normal: 1, low: 2 };
 
 function createTgStore(store, { redact = (s) => s } = {}) {
-  if (!store || !store.db) throw new Error('telegram store requires store.db (node:sqlite DatabaseSync)');
+  if (!store || !store.db) throw new Error('telegram store requires store.db');
   const db = store.db;
   db.exec(SCHEMA);
   const cache = {};

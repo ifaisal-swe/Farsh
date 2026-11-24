@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 /** AI Provider Manager: DeepSeek-only, Gemini-only, AUTO, DUAL, failover, circuit breakers, budgets, usage per provider. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -32,7 +33,7 @@ function fakeDecider(model, script) {
 const err = (code, msg = code) => Object.assign(new Error(msg), { code });
 
 function setup({ ai = {}, keys = { DEEPSEEK_API_KEY: 'k1', GEMINI_API_KEY: 'k2' }, ds = () => buy(), gm = () => buy(), equalPrices = false } = {}) {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const clock = { t: T };
   const cfg = deepMerge(DEFAULTS, { ai: { mode: 'AUTO', fallback: true, ...ai } });
   const pricing = equalPrices ? deepMerge(DEFAULTS.pricing, { models: { 'gemini-3.5-flash-lite': DEFAULTS.pricing.models['deepseek-flash'] } }) : DEFAULTS.pricing;
@@ -198,7 +199,7 @@ test('engine: DUAL disagreement on a news event records both providers, no order
   AnalysisScheduler.prototype.start = function () { this.running = false; };
   try {
     class P extends FakeProvider { connect() { this.state = 'SUBSCRIBED'; this.emit('connection', { state: 'SUBSCRIBED', detail: 't' }); } }
-    const store = new Store(':memory:');
+    const store = tempStore();
     const clock = { t: T0, now() { return this.t; } };
     const redactor = new Redactor();
     const secrets = new SecretStore({ store, dataDir: null, env: { DEEPSEEK_API_KEY: 'sk-ds-0000', GEMINI_API_KEY: 'gm-0000', TERMINAL_MASTER_KEY: 'a'.repeat(64) }, redactor });

@@ -50,7 +50,7 @@
 
 ## ابدأ الآن
 
-تحتاج **Node.js 22.13 أو أحدث**. ثبّت المتطلبات، وابنِ الواجهة، ثم شغّل:
+تحتاج **Node.js 26 أو أحدث** وقاعدة **PostgreSQL** (ضع رابطها في `DATABASE_URL`). ثبّت المتطلبات، وابنِ الواجهة، ثم شغّل:
 
 </div>
 
@@ -70,7 +70,6 @@ npm start
 | `npm run saas` | المنصة المستضافة (بدعوات) |
 | `npm run web:dev` | تطوير الواجهة |
 | `npm run replay` | إعادة تشغيل يوم سابق |
-| `npm run db:check` | فحص سلامة قاعدة البيانات |
 | `npm run predeploy` | الاختبارات وفحص الإعداد قبل النشر |
 
 للنشر: [Railway](DEPLOYMENT.md) أو [خادمك الخاص](DEPLOYMENT-VPS.md).
@@ -130,7 +129,7 @@ npm start
 - Arabic Telegram companion that can never place, change or cancel an order
 - Invite-only hosted mode with a separate engine, database and key per account, and two-factor login
 
-**Quick start:** Node.js 22.13+, then `npm install`, `npm run web:build`, `npm start`, and open `http://localhost:8787/app/`. Choose DEMO data to try it without keys. In hosted mode, `/demo` lets a visitor try it without an account: a separate temporary terminal with invented prices, no keys and no outside calls, erased within two hours (`SAAS_DEMO_MAX`, default 5 at once, `0` turns it off). Deploy with [Railway](DEPLOYMENT.md) or [your own VPS](DEPLOYMENT-VPS.md). Run `npm test` for the tests.
+**Quick start:** Node.js 26+ and a PostgreSQL database (`DATABASE_URL`), then `npm install`, `npm run web:build`, `npm start`, and open `http://localhost:8787/app/`. Choose DEMO data to try it without keys. In hosted mode, `/demo` lets a visitor try it without an account: a separate temporary terminal with invented prices, no keys and no outside calls, erased within two hours (`SAAS_DEMO_MAX`, default 5 at once, `0` turns it off). Deploy with [Railway](DEPLOYMENT.md) or [your own VPS](DEPLOYMENT-VPS.md). Run `npm test` for the tests.
 
 **Brand:** the kit is at `/brand`; source files are in [`web/public/brand`](web/public/brand).
 
@@ -143,7 +142,7 @@ Alpaca keys are used only for market data, news, the market clock/calendar and a
 <details>
 <summary><b>1. Setup, keys and first session</b></summary>
 
-Requirements: **Node.js 22.13 or newer** (developed and tested on Node 24.19). There is no native build step, because the database is Node's built-in `node:sqlite`.
+Requirements: **Node.js 26 or newer** and **PostgreSQL** (tested on 19, UTF8). Put its address in `DATABASE_URL`. Without it the program does not start.
 
 ```powershell
 npm install
@@ -237,7 +236,7 @@ server/
 config/default.json          non-secret defaults (risk limits, pricing, polling…)
 test/                        automated tests (node:test)
 scripts/replay.js            historical replay CLI
-data/                        SQLite database, encrypted key store, replays (git-ignored)
+data/                        encryption key files, replays (git-ignored)
 ```
 
 **Decision flow.** A trigger fires: a candle closes, a key level breaks, volume spikes, news breaks, the risk state changes, price nears the stop or target, or the regular interval passes. The scheduler queues the trigger, coalesces it with others and rate-limits it. The agent then builds a snapshot from **completed real bars only** and stores it. The AI request is sent only if it fits the requests-per-minute limit and the daily budget. The reply is validated strictly: it must be JSON, use known enums, have consistent levels, reference the correct snapshot ID and contain plausible prices. Next comes the risk engine (§6). Only then does the simulator fill against the live bid/ask, and the portfolio, protective orders, database and UI update.
@@ -413,7 +412,7 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 - Keys entered in the UI are **encrypted at rest** (AES-256-GCM, key in `data/master.key` or `TERMINAL_MASTER_KEY`). They are never sent back to the browser (masked only) and are redacted from logs. This protects against casual disclosure, not against someone with full access to your Windows account.
 - `data/` and `.env` are git-ignored.
 
-**Persistence** (SQLite at `data/terminal.db` locally, `DATABASE_PATH` — e.g. `/data/trading.db` on a Railway volume — in production)
+**Persistence** (PostgreSQL: `DATABASE_URL`; key files in `DATA_DIR`)
 
 - Stored: settings, sessions with portfolio, orders, risk and benchmark state, fills, AI decisions with audit trails, market snapshots, news references, activity log, equity curve, and AI usage.
 - On restart the active session is restored. If the AI was running, it resumes; disable this with `session.autoResumeAi`.
@@ -424,7 +423,7 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 <details>
 <summary><b>10. Testing and replay</b></summary>
 
-`npm test` runs the whole suite; PostgreSQL tests are skipped unless `PG_TEST_URL` is set (sections 12 and 13 list what the November 2026 upgrades added; `test/production.test.js` and `test/providers.test.js` cover the Railway / dual-AI work). Besides the list below they cover risk levels and their enforcement, the no-auto-liquidation exposure review, look-ahead-free swings and break events, candlestick pattern conditions, AI-level verification, the Arabic prompt rules, and Arabic translation coverage of every activity message produced by the engine scenarios. The original suite covers:
+`npm test` runs the whole suite on the disposable PostgreSQL server in `PG_TEST_URL` (required) (sections 12 and 13 list what the November 2026 upgrades added; `test/production.test.js` and `test/providers.test.js` cover the Railway / dual-AI work). Besides the list below they cover risk levels and their enforcement, the no-auto-liquidation exposure review, look-ahead-free swings and break events, candlestick pattern conditions, AI-level verification, the Arabic prompt rules, and Arabic translation coverage of every activity message produced by the engine scenarios. The original suite covers:
 
 - Indicators, structure and signals
 - Portfolio accounting identities, and long-only / no-margin enforcement
@@ -615,15 +614,13 @@ At startup the app runs these steps in order:
 
 1. Read the environment and validate the configuration. A public dashboard without a password refuses to
    start.
-2. Apply a one-time database import, if one is waiting.
-3. Open SQLite: WAL, `busy_timeout`, `foreign_keys`.
-4. Apply versioned migrations (`PRAGMA user_version`), each in its own transaction, after an automatic
-   `pre-migration-*.db` backup.
-5. Run `PRAGMA quick_check`.
-6. Reconcile the accounts: every fill is replayed through a fresh portfolio and compared with the stored
+2. Connect to PostgreSQL.
+3. Apply versioned migrations (table `schema_version`), each in its own transaction.
+4. Check that the data can be read.
+5. Reconcile the accounts: every fill is replayed through a fresh portfolio and compared with the stored
    cash, positions and realised P&L.
-7. Restore the portfolio, positions, pending orders, watchlist, risk level, AI mode and operating states.
-8. Connect market data, start AI scheduling and Telegram.
+6. Restore the portfolio, positions, pending orders, watchlist, risk level, AI mode and operating states.
+7. Connect market data, start AI scheduling and Telegram.
 9. Report ready.
 
 Recovery rules:
@@ -681,17 +678,10 @@ On SIGTERM or SIGINT the app:
 
 Set `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30` on Railway: Railway's default is 0 seconds before SIGKILL.
 
-#### Backups, import, retention
+#### Backups, retention
 
-- **Scheduled backups:** verified `VACUUM INTO` copies in `<data>/backups`, every 24 hours, keeping 7.
-- **Dashboard:** "Back up now", "Download a database copy" and "Integrity & accounting check".
-- **Local tools:**
-  - `npm run db:check`: integrity, counts and accounting, read-only;
-  - `npm run db:backup`;
-  - `npm run db:export-for-railway`.
-- **One-time import:** a file placed at `<data>/import/trading.db` is imported at the next start, after
-  a backup of the current database. If the target database already holds trades, the import also needs
-  `DB_IMPORT_CONFIRM=overwrite`.
+- **Backups** are made by the PostgreSQL server (`pg_dump`, or your host's backups). Back up the key files in `DATA_DIR` separately.
+- **Dashboard:** "Integrity & accounting check".
 - **Retention:** prunes only the activity log, app events and market snapshots. Fills, orders, decisions,
   sessions and AI usage are never pruned. Snapshots behind decisions that produced orders are kept.
 
@@ -699,7 +689,7 @@ Set `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30` on Railway: Railway's default is 0 
 
 | File | Content |
 |---|---|
-| `Dockerfile` | Node 24 slim, production dependencies only, no data in the image. The process starts as root only to take ownership of the volume, then drops to `node`. |
+| `Dockerfile` | Node 26 slim, production dependencies only, no data in the image. The process starts as root only to take ownership of the volume, then drops to `node`. |
 | `.dockerignore`, `.gitignore` | Exclude data, `.env`, databases and backups. |
 | `.env.example` | Every variable, with its actual name. |
 | `.github/workflows/test.yml` | Runs the tests, for Railway's "Wait for CI". |
@@ -733,7 +723,7 @@ Run `npm run saas` (or set `SAAS_MODE=1`) with `SAAS_ADMIN_EMAIL`, `SAAS_ADMIN_P
 
 Spot USD pairs from Alpaca (for example `BTC/USD`), as the main symbol or in the watchlist. Open 24/7, fractional, 0.25% simulated fee, one venue. Blocked by the Sharia gate until a sourced ruling is recorded.
 
-PostgreSQL: set `SAAS_DATABASE_URL` (UTF8 database; a role that may create roles and schemas). Accounts live in schema `control`; every customer gets a schema and login role of their own, with a password derived from `tenant-db.key`. To move existing data, stop the platform and run `npm run pg:import`; the platform refuses to start on PostgreSQL while unmoved SQLite data exists. Back up `accounts.key`, `tenant-db.key` and every `master.key` separately from the database. Without `SAAS_DATABASE_URL` everything stays in SQLite.
+PostgreSQL: set `DATABASE_URL` (or `SAAS_DATABASE_URL`) (UTF8 database; a role that may create roles and schemas). Accounts live in schema `control`; every customer gets a schema and login role of their own, with a password derived from `tenant-db.key`. Each demo gets a temporary schema and role, erased when it ends. Back up `accounts.key`, `tenant-db.key` and every `master.key` separately from the database.
 
 </details>
 

@@ -26,16 +26,25 @@ const { sendWebPage, webAssets, brandAssets, ASSETS } = require('../webpage');
 const HOP = ['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'expect'];
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
+/** Never show an empty account while the real one is still in a file of an older version. */
+function refuseOldData(file) {
+  if (fs.existsSync(file) && !fs.existsSync(`${file}.migrated`)) throw Object.assign(new Error(`${file} holds data of an older version that was never moved to PostgreSQL: move it with version d715aa4 (npm run pg:import) or put the file elsewhere`), { code: 'CONFIG' });
+}
+
 function createGateway({ env = process.env, port, dataDir, supervisor = {}, now = Date.now, telegramFetch } = {}) {
   const rt = resolveRuntime(env);
   const root = path.resolve(dataDir || env.SAAS_DATA_DIR || path.join(rt.dataDir, 'saas'));
   if (!env.SAAS_ADMIN_EMAIL || !env.SAAS_ADMIN_PASSWORD) throw Object.assign(new Error('SAAS_ADMIN_EMAIL and SAAS_ADMIN_PASSWORD must be set'), { code: 'CONFIG' });
   if (rt.remote && !rt.publicHosts.length) throw Object.assign(new Error('APP_BASE_URL must be set for the hosted platform'), { code: 'CONFIG' });
   const maxTenants = Math.max(1, Number(env.SAAS_MAX_TENANTS) || 25);
-  const accounts = new Accounts({ file: path.join(root, 'accounts.db'), url: env.SAAS_DATABASE_URL || null, schema: env.SAAS_DATABASE_SCHEMA || 'control', keyDir: root, now });
+  const databaseUrl = env.SAAS_DATABASE_URL || env.DATABASE_URL;
+  if (!databaseUrl) throw Object.assign(new Error('DATABASE_URL must be set (PostgreSQL)'), { code: 'CONFIG' });
+  const accounts = new Accounts({ url: databaseUrl, schema: env.SAAS_DATABASE_SCHEMA || 'control', keyDir: root, now });
 
   // ------------------------------------------------------------------ tenants
-  const provisioner = env.SAAS_DATABASE_URL ? new Provisioner({ url: env.SAAS_DATABASE_URL, keyDir: root, prefix: env.SAAS_TENANT_PREFIX || 't' }) : null;
+  const prefix = env.SAAS_TENANT_PREFIX || 't';
+  const provisioner = new Provisioner({ url: databaseUrl, keyDir: root, prefix });
+  const demoSpace = new Provisioner({ url: databaseUrl, keyDir: root, prefix: `${prefix}demo` });
   // prices read from public pages without keys are for personal use: off unless the operator turns them on
   const PUBLIC = ['operator', 'everyone'].includes(env.SAAS_PUBLIC_DATA) ? env.SAAS_PUBLIC_DATA : 'off';
   const services = new PlatformServices({ dir: root });
@@ -44,19 +53,12 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
     const u = await accounts.byId(id);
     return { labModel: { url: env.LAB_MODEL_URL || null, modelId: env.LAB_MODEL_NAME || null, openrouter: env.OPENROUTER_MODEL || null }, publicData: PUBLIC === 'everyone' || (PUBLIC === 'operator' && !!u && u.role === 'ADMIN'), services: services.forAccount(u && u.role, u && u.email), telegram: botToken ? { chatId: await accounts.telegramChat(id) } : null };
   };
-  const tenants = new Supervisor({ options, ...(provisioner ? {
-    prepare: (id) => {
-      // never show an empty account while the real one is still in SQLite
-      const old = path.join(root, 'tenants', id, 'terminal.db');
-      if (fs.existsSync(old) && !fs.existsSync(`${old}.migrated`)) throw new Error('not moved to PostgreSQL yet: run npm run pg:import');
-      return provisioner.ensure(id);
-    },
-  } : {}), root: path.join(root, 'tenants'), max: maxTenants, memoryMb: Math.max(128, Number(env.SAAS_TENANT_MEMORY_MB) || 384), ...supervisor });
+  const tenants = new Supervisor({ options, prepare: async (id) => { refuseOldData(path.join(root, 'tenants', id, 'terminal.db')); return provisioner.ensure(id); }, root: path.join(root, 'tenants'), max: maxTenants, memoryMb: Math.max(128, Number(env.SAAS_TENANT_MEMORY_MB) || 384), ...supervisor });
   const sockets = new Map(); // user id -> Set<socket>
   let stopping = false;
   const closeSockets = (id) => { for (const s of sockets.get(id) || []) s.destroy(); sockets.delete(id); };
   const maxDemos = env.SAAS_DEMO_MAX === undefined || env.SAAS_DEMO_MAX === '' ? 5 : Math.max(0, Number(env.SAAS_DEMO_MAX) || 0); // 0 turns the demo off
-  const demos = new Demos({ root: path.join(root, 'demos'), max: maxDemos, supervisor, onEnd: closeSockets, now });
+  const demos = new Demos({ root: path.join(root, 'demos'), max: maxDemos, supervisor, space: demoSpace, onEnd: closeSockets, now });
   const tenant = (id) => tenants.get(id);
   const hub = botToken ? new TelegramHub({ token: botToken, accounts, fetchImpl: telegramFetch, onLink: (id, chatId) => tenants.tell(id, { type: 'telegram-chat', chatId }), deliver: async (id, update) => { await tenant(id); tenants.tell(id, { type: 'telegram-update', update }); } }) : null;
   async function stopTenant(id) {
@@ -218,10 +220,9 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   return {
     accounts, tenant, tenants, demos, server,
     async start() {
-      const oldAccounts = path.join(root, 'accounts.db');
-      if (provisioner && fs.existsSync(oldAccounts) && !fs.existsSync(`${oldAccounts}.migrated`)) throw Object.assign(new Error('The accounts are still in SQLite: run npm run pg:import'), { code: 'CONFIG' });
+      refuseOldData(path.join(root, 'accounts.db'));
       await accounts.init();
-      demos.init();
+      await demos.init();
       await accounts.ensureAdmin(env.SAAS_ADMIN_EMAIL, env.SAAS_ADMIN_PASSWORD);
       await new Promise((res, rej) => { server.once('error', rej); server.listen(port != null ? port : rt.port, rt.host, res); });
       // monitoring and alerts must survive a restart without anyone opening a browser
@@ -236,7 +237,7 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
       for (const set of sockets.values()) for (const s of set) s.destroy();
       await Promise.all([tenants.stopAll(), demos.stopAll()]);
       await new Promise((r) => { server.close(r); server.closeAllConnections(); });
-      if (provisioner) await provisioner.close();
+      await Promise.all([provisioner.close(), demoSpace.close()]);
       await accounts.close();
     },
   };

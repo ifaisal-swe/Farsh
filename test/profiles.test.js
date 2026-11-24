@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 /** Risk profiles: presets, CUSTOM detection, migration, real engine enforcement, exposure review. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -25,7 +26,7 @@ test('profile table matches the specification', () => {
 });
 
 test('config: default is BALANCED; editing one limit marks CUSTOM; choosing a preset restores it', () => {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const c = new ConfigManager(store);
   assert.equal(c.get().risk.profile, 'BALANCED');
   assert.equal(c.get().ui.language, 'ar');
@@ -49,7 +50,7 @@ test('migration keeps the effective limits of a stored pre-profile configuration
   assert.equal(user.risk.maxPositionPct, LEGACY_DEFAULTS.maxPositionPct, 'old default allocation pinned');
   assert.equal(user.risk.maxDrawdownPct, LEGACY_DEFAULTS.maxDrawdownPct);
   assert.equal(migrateUserConfig({ ai: { model: 'x' } }).migrated, false, 'no risk overrides → default profile');
-  const store = new Store(':memory:');
+  const store = tempStore();
   store.setSetting('config', { risk: { maxRiskPerTradePct: 5 } });
   const c = new ConfigManager(store);
   assert.equal(c.get().risk.profile, 'CUSTOM');
@@ -96,7 +97,7 @@ test('profile minimum reward:risk and maximum stop distance are enforced', () =>
 });
 
 function makeAgent() {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const clock = { t: T0, now() { return this.t; } };
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { DEEPSEEK_API_KEY: 'sk-test-not-real-0000', TERMINAL_MASTER_KEY: 'a'.repeat(64) }, redactor });
@@ -157,7 +158,7 @@ test('a stricter daily-loss limit is enforced immediately when the profile chang
 });
 
 test('profile keys are all bounded editable settings', () => {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const c = new ConfigManager(store);
   for (const k of PROFILE_KEYS) assert.doesNotThrow(() => c.update({ risk: { [k]: PROFILES.AGGRESSIVE[k] } }), k);
   store.close();

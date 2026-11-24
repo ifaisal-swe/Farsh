@@ -2,12 +2,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
-const { Accounts } = require('../server/saas/accounts');
 const { hashPassword } = require('../server/auth');
 
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const pw = () => crypto.randomBytes(12).toString('hex');
-async function make(o = {}) { const a = new Accounts(o); await a.init(); return a; }
+const { makeAccounts: make } = require('./helpers/db');
 
 test('auth: an account and a session from before Better Auth keep working', async () => {
   const a = await make(); const p = pw(); const n = Date.now(); const old = crypto.randomBytes(32).toString('base64url');

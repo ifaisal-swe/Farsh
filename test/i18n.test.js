@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 /**
  * Arabic interface coverage: real engine scenarios produce activity-log messages (server stays in English);
  * every one of them must be translated by the browser's message catalog. Also checks dictionary parity.
@@ -31,7 +32,7 @@ function loadCatalog(lang = 'ar') {
 }
 
 function makeAgent() {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const clock = { t: T0, now() { return this.t; } };
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { DEEPSEEK_API_KEY: 'sk-test-not-real-0000', TERMINAL_MASTER_KEY: 'a'.repeat(64) }, redactor });

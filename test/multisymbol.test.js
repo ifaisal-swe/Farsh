@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 /** Multi-symbol desk, shared portfolio, orders ledger, AI cost control, Gemini client, overnight reference data, service stats. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -31,7 +32,7 @@ class MultiFake extends FakeProvider {
 }
 
 function makeDesk({ legacy = true, decider = new ScriptedDecider() } = {}) {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const clock = { t: T0, now() { return this.t; } };
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { DEEPSEEK_API_KEY: 'sk-test-not-real-0000', TERMINAL_MASTER_KEY: 'a'.repeat(64) }, redactor });
@@ -155,7 +156,7 @@ test('usage modes and per-symbol / daily limits', () => {
   assert.equal(det.maxOutputTokens, 12000);
   assert.equal(det.reasoningEffort, 'high');
   const { UsageTracker } = require('../server/ai/usage');
-  const store = new Store(':memory:');
+  const store = tempStore();
   const u = new UsageTracker({ store, pricing: require('../server/config').DEFAULTS.pricing, getAiCfg: () => ({ ...effectiveAiCfg({ usageMode: 'ECONOMY', maxRequestsPerMinute: 60, dailyBudgetUsd: 100, webResearch: {} }) }) });
   const ms = Date.UTC(2026, 10, 20, 15);
   assert.equal(u.check({ model: 'deepseek-flash', promptChars: 100, maxOutputTokens: 10, ms, symbol: 'AAA' }), null);

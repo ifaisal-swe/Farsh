@@ -1,4 +1,5 @@
 'use strict';
+const { openStore, tempStore } = require('./helpers/db');
 /**
  * End-to-end engine tests with a fake (scripted) market feed and a scripted decider:
  * snapshot -> proposal -> validation -> risk -> simulated fill -> portfolio -> persistence.
@@ -17,8 +18,8 @@ const { Redactor } = require('../server/util/misc');
 const { T0, FakeProvider, ScriptedDecider, buyProposal, silentFetch } = require('./helpers/fixtures');
 const { LEGACY_DEFAULTS } = require('../server/trading/riskProfiles');
 
-function makeAgent({ dbFile = ':memory:', store: existing } = {}) {
-  const store = existing || new Store(dbFile);
+function makeAgent({ dbFile = null, store: existing } = {}) {
+  const store = existing || (dbFile ? openStore(dbFile) : tempStore());
   const clock = { t: T0, now() { return this.t; } };
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { DEEPSEEK_API_KEY: 'sk-test-not-real-0000', TERMINAL_MASTER_KEY: 'a'.repeat(64) }, redactor });

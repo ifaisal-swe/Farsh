@@ -1,4 +1,5 @@
 'use strict';
+const { URL } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { runReplay } = require('../server/engine/replay');
@@ -48,7 +49,7 @@ test('replay provider never reveals bars that have not closed yet', async () => 
 
 test('replay: no future candles or news leak into any decision', async () => {
   const spy = new AuditingDecider();
-  const r = await runReplay({ symbol: 'TEST', minuteBars: bars, dailyBars: daily, news, decider: spy, initialCapital: 10000, analysisTimeframe: '5m', warmupBars: 60 });
+  const r = await runReplay({ databaseUrl: URL, symbol: 'TEST', minuteBars: bars, dailyBars: daily, news, decider: spy, initialCapital: 10000, analysisTimeframe: '5m', warmupBars: 60 });
   assert.ok(spy.calls > 30, `expected many decisions, got ${spy.calls}`);
   assert.deepEqual(spy.violations, []);
   for (const x of spy.seen) {
@@ -61,8 +62,8 @@ test('replay: no future candles or news leak into any decision', async () => {
 
 test('replay is deterministic: identical inputs give identical fills and equity', async () => {
   const legacy = { risk: { ...LEGACY_DEFAULTS, profile: 'CUSTOM' } };
-  const a = await runReplay({ symbol: 'TEST', minuteBars: bars, dailyBars: daily, decider: new RulesDecider(), initialCapital: 10000, warmupBars: 60, configOverrides: legacy });
-  const b = await runReplay({ symbol: 'TEST', minuteBars: bars, dailyBars: daily, decider: new RulesDecider(), initialCapital: 10000, warmupBars: 60, configOverrides: legacy });
+  const a = await runReplay({ databaseUrl: URL, symbol: 'TEST', minuteBars: bars, dailyBars: daily, decider: new RulesDecider(), initialCapital: 10000, warmupBars: 60, configOverrides: legacy });
+  const b = await runReplay({ databaseUrl: URL, symbol: 'TEST', minuteBars: bars, dailyBars: daily, decider: new RulesDecider(), initialCapital: 10000, warmupBars: 60, configOverrides: legacy });
   const strip = (fs) => fs.map((f) => [f.side, f.qty, f.price.toFixed(6), f.ts, f.kind]);
   assert.ok(a.fills.length >= 1, 'rules baseline traded at least once on the trending sample');
   assert.deepEqual(strip(a.fills), strip(b.fills));

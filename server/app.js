@@ -9,7 +9,6 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
-const os = require('node:os');
 const http = require('node:http');
 const { monitorEventLoopDelay } = require('node:perf_hooks');
 const express = require('express');
@@ -52,7 +51,7 @@ function csvEscape(v) {
 
 const idList = (v) => String(v || '').split(/[,\s]+/).map((x) => x.trim()).filter((x) => /^-?\d{1,20}$/.test(x));
 
-function createTerminal({ dataDir, port, host, env = process.env, providerFactory, fetchImpl, echo = false, dbFile, runtime = null, gatewayToken = null, postgres = null, telegramRelay = null, publicData = false, labModel = null, demoOnly = false } = {}) {
+function createTerminal({ dataDir, port, host, env = process.env, providerFactory, fetchImpl, echo = false, runtime = null, gatewayToken = null, postgres = null, telegramRelay = null, publicData = false, labModel = null, demoOnly = false } = {}) {
   // managed = one account of the hosted platform, reachable only through the gateway (server/saas)
   const viaGateway = (headers) => {
     if (!gatewayToken) return true;
@@ -61,21 +60,16 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   };
   // 1) environment → runtime settings (paths, host/port, login), validated before anything starts
   const rt = { ...(runtime || resolveRuntime(env, DEFAULTS.server)) };
-  if (dataDir) Object.assign(rt, { dataDir, backupDir: path.join(dataDir, 'backups'), importDir: path.join(dataDir, 'import'), dbFile: path.join(dataDir, 'terminal.db') });
-  if (dbFile) rt.dbFile = dbFile;
+  if (dataDir) Object.assign(rt, { dataDir });
   if (port != null) rt.port = port;
   if (host) { rt.host = host; rt.remote = !LOOPBACK.has(host); rt.authRequired = rt.authRequired || rt.remote; }
   const check = validateRuntime(rt);
   if (check.errors.length) { const e = new Error(`Configuration error: ${check.errors.join('; ')}`); e.code = 'CONFIG'; throw e; }
   const bootLog = check.warnings.map((w) => ['warn', w]);
-  const memory = rt.dbFile === ':memory:';
-  const noFile = memory || !!postgres; // nothing to import, copy or download
-  // 2) one-time import of an existing database placed in <data>/import/trading.db (before the DB is opened)
-  if (!noFile) {
-    try { M.applyPendingImport({ dbFile: rt.dbFile, importDir: rt.importDir, backupDir: rt.backupDir, confirm: rt.dbImportConfirm, log: (lvl, m) => bootLog.push([lvl, m]) }); } catch (e) { bootLog.push(['error', `Database import failed: ${e.message}`]); }
-  }
-  // 3) storage + safe migrations (a restorable copy is written before any schema change)
-  const store = new Store(rt.dbFile, { backupDir: memory ? null : rt.backupDir, durable: !!gatewayToken, postgres });
+  // 2) storage + safe migrations
+  const database = postgres || { url: rt.databaseUrl, schema: rt.databaseSchema, createSchema: true };
+  const temporary = !!database.dropOnClose; // erased when it closes: nothing is kept beside it
+  const store = new Store(database);
   const integrity = (() => { try { return store.quickCheck(); } catch (e) { return [e.message]; } })();
   const dbOk = integrity.length === 1 && integrity[0] === 'ok';
   const redactor = new Redactor();
@@ -83,7 +77,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   const envX = { ...env };
   if (!envX.ALPACA_KEY_ID && env.ALPACA_API_KEY) envX.ALPACA_KEY_ID = env.ALPACA_API_KEY;
   if (!envX.ALPACA_SECRET_KEY && env.ALPACA_API_SECRET) envX.ALPACA_SECRET_KEY = env.ALPACA_API_SECRET;
-  const secrets = new SecretStore({ store, dataDir: memory ? null : rt.dataDir, env: envX, redactor });
+  const secrets = new SecretStore({ store, dataDir: temporary ? null : rt.dataDir, env: envX, redactor });
   const config = new ConfigManager(store);
   const PORT = rt.port;
   const HOST = rt.host;
@@ -94,8 +88,8 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
     else if (lvl === 'error') activity.error(m, { source: 'startup' });
     else activity.warn(m, { source: 'startup' });
   }
-  if (store.migration.applied.length) activity.info('SYSTEM', `Database schema upgraded v${store.migration.from} → v${store.migration.to}${store.migration.backup ? ` (backup: ${path.basename(store.migration.backup)})` : ''}`, { source: 'SQLite' });
-  if (!dbOk) activity.error(`Database integrity check FAILED: ${integrity.slice(0, 3).join('; ')} — AI trading will not resume automatically`, { source: 'SQLite' });
+  if (store.migration.applied.length) activity.info('SYSTEM', `Database schema upgraded v${store.migration.from} → v${store.migration.to}`, { source: 'database' });
+  if (!dbOk) activity.error(`Database integrity check FAILED: ${integrity.slice(0, 3).join('; ')} — AI trading will not resume automatically`, { source: 'database' });
   desk = new Desk({ store, config, secrets, activity, providerFactory, fetchImpl, publicData });
   const sharia = new ShariaService({
     store, getConfig: () => config.get(), getSecret: (n) => secrets.get(n), fetchImpl, publicProfile: publicData ? (s) => require('./lab/facts').profile(s, { fetchImpl }) : null,
@@ -545,21 +539,6 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
     quickCheck: store.quickCheck(), schemaVersion: SCHEMA_VERSION, migration: store.migration, counts: store.counts(),
     accounting: M.reconcileSession(store, desk.book.session ? store.getSession(desk.book.session.id) : store.getActiveSession()),
   })));
-  app.get('/api/admin/backups', wrap(() => ({ dir: memory ? null : rt.backupDir, items: M.listBackups(rt.backupDir), last: store.getSetting('backups.last', null) })));
-  app.post('/api/admin/backups', wrap(() => {
-    if (memory) throw new Error('In-memory database: nothing to back up');
-    const b = M.createBackup(store, rt.backupDir, 'manual');
-    activity.ok('SYSTEM', `Database backup created: ${path.basename(b.file)} (${(b.bytes / 1048576).toFixed(2)} MB, verified)`, { source: 'backup' });
-    return { name: path.basename(b.file), bytes: b.bytes, counts: b.counts };
-  }));
-  app.get('/api/admin/backup.db', (req, res) => {
-    if (memory) return res.status(400).json({ error: 'In-memory database' });
-    const tmp = path.join(os.tmpdir(), `forsah-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
-    try { store.backupTo(tmp); } catch (e) { return res.status(500).json({ error: redactor.redactString(e.message) }); }
-    activity.info('SYSTEM', 'Database backup downloaded from the dashboard', { source: 'backup' });
-    res.download(tmp, `forsah-${new Date().toISOString().slice(0, 10)}.db`, () => { fs.unlink(tmp, () => {}); });
-  });
-
   // ---------- exports
   app.get('/api/export/trades.csv', (req, res) => {
     const q = { ...req.query };
@@ -681,7 +660,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
 
   function health() {
     const comps = {};
-    comps.database = dbOk ? { state: 'ok', detail: `${store.pg ? 'PostgreSQL' : 'SQLite'} schema v${SCHEMA_VERSION}` } : { state: 'error', detail: `integrity check failed: ${integrity.slice(0, 2).join('; ')}` };
+    comps.database = dbOk ? { state: 'ok', detail: `PostgreSQL schema v${SCHEMA_VERSION}` } : { state: 'error', detail: `integrity check failed: ${integrity.slice(0, 2).join('; ')}` };
     const st = desk.book.startup || {};
     if (dbOk && st.accountingOk === false) comps.database = { state: 'degraded', detail: `accounting check: ${(st.problems || []).slice(0, 2).join('; ')}` };
     comps.engine = stopping ? { state: 'degraded', detail: 'shutting down' } : ready ? { state: 'ok', detail: `${desk.all().length} symbol(s) monitored` } : { state: 'degraded', detail: 'starting' };
@@ -727,7 +706,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
       at: Date.now(), uptimeSec: Math.round(process.uptime()), node: process.version, platform: `${process.platform}/${process.arch}`,
       memory: { rssMb: +(mem.rss / 1048576).toFixed(1), heapUsedMb: +(mem.heapUsed / 1048576).toFixed(1), heapTotalMb: +(mem.heapTotal / 1048576).toFixed(1) },
       cpuPct: cpuPct == null ? null : +cpuPct.toFixed(1), eventLoopDelayMs: +(loopDelay.mean / 1e6).toFixed(2),
-      database: { file: memory ? ':memory:' : path.basename(rt.dbFile), ...store.sizeBytes(), schemaVersion: SCHEMA_VERSION, lastBackup: store.getSetting('backups.last', null) },
+      database: { ...store.sizeBytes(), schemaVersion: SCHEMA_VERSION },
       websocketClients: clients.size, monitoredSymbols: desk.all().length, marketDataConnections: desk.book.providers.size, marketSubscriptions: subs, dataMode: desk.dataMode,
       scheduler: desk.all().map((a) => ({ symbol: a.symbol, running: !!a.scheduler.running, inFlight: !!a.scheduler.inFlight, pending: !!a.scheduler.pending, paused: !!a.monitoringPaused })),
       queues: { telegramQueued: tg.queued || 0, telegramFailed: tg.failed || 0 },
@@ -738,22 +717,11 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
     };
   }
 
-  // ---------- scheduled maintenance: verified backups + retention (single instance, in-process)
+  // ---------- scheduled maintenance: retention (single instance, in-process)
   function maintenanceTick() {
-    if (memory || stopping) return;
+    if (temporary || stopping) return;
     const c = config.get();
     const now = Date.now();
-    if (c.backups && c.backups.enabled && !store.pg) {
-      const last = store.getSetting('backups.last', null);
-      if (!last || now - last.at > c.backups.intervalHours * 3600000) {
-        try {
-          const b = M.createBackup(store, rt.backupDir, 'scheduled');
-          store.setSetting('backups.last', { at: now, name: path.basename(b.file), bytes: b.bytes });
-          const removed = M.pruneBackups(rt.backupDir, c.backups.keep);
-          activity.info('SYSTEM', `Scheduled database backup ${path.basename(b.file)} verified (${(b.bytes / 1048576).toFixed(2)} MB)${removed.length ? `; ${removed.length} old backup(s) removed` : ''}`, { source: 'backup' });
-        } catch (e) { activity.error(`Scheduled database backup failed: ${e.message}`, { source: 'backup' }); }
-      }
-    }
     const lastPrune = store.getSetting('retention.last', 0);
     if (now - lastPrune > 24 * 3600000) {
       const r = c.retention || {};

@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 /** Telegram bot wired to the REAL engine (desk + service + database); only the Telegram HTTP API is faked. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -23,7 +24,7 @@ class Fake2 extends FakeProvider {
 }
 
 async function setup() {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const clock = { t: T0, now() { return this.t; } };
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { DEEPSEEK_API_KEY: 'sk-test-not-real-0000', TERMINAL_MASTER_KEY: 'a'.repeat(64) }, redactor });

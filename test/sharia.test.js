@@ -1,4 +1,5 @@
 'use strict';
+const { temp } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { ShariaService, evaluate } = require('../server/sharia/screener');
@@ -91,7 +92,7 @@ test('sharia: Telegram alert says a held position was not sold', () => {
 });
 
 test('sharia: service is attached to the book and its API needs the client header', async () => {
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: {} });
+  const t = createTerminal({ postgres: temp(), port: 0, env: {} });
   const port = await t.start();
   try {
     const base = `http://127.0.0.1:${port}/api/sharia`;

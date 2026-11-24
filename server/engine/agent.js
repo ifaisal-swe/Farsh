@@ -234,7 +234,7 @@ class TradingAgent extends EventEmitter {
     if (this.autoTimers) this.startTimers();
     if (!s) { this.activity.info('SYSTEM', 'Terminal ready. No active paper-trading session.'); return; }
     this.restoreSession(s);
-    this.activity.ok('SYSTEM', `Restored paper session #${s.id} (${s.symbol}, ${s.dataMode}) from database: cash $${fmt(this.portfolio.cash)}, ${this.portfolio.position(s.symbol) ? `${this.portfolio.position(s.symbol).qty} sh open` : 'flat'}`, { source: 'SQLite' });
+    this.activity.ok('SYSTEM', `Restored paper session #${s.id} (${s.symbol}, ${s.dataMode}) from database: cash $${fmt(this.portfolio.cash)}, ${this.portfolio.position(s.symbol) ? `${this.portfolio.position(s.symbol).qty} sh open` : 'flat'}`, { source: 'database' });
     this.expireOfflineOrders();
     await this.loadMarket(s.symbol, s.dataMode);
     const prev = s.aiState;
@@ -322,7 +322,7 @@ class TradingAgent extends EventEmitter {
         aiState: this.aiState, portfolio: this.portfolio.toJSON(), orders: this.orders.toJSON(), risk: this.risk.toJSON(), benchmark: this.benchmark, symbol: this.primary ? this.symbol : null,
       });
     } catch (e) {
-      this.activity.error(`Database error while saving session: ${e.message}`, { source: 'SQLite' });
+      this.activity.error(`Database error while saving session: ${e.message}`, { source: 'database' });
     }
   }
 
@@ -2250,7 +2250,7 @@ class TradingAgent extends EventEmitter {
 
   storageRecovered() {
     this.book.storageFault = null;
-    this.activity.ok('RISK', 'Storage works again: new entries are allowed', { source: 'SQLite' });
+    this.activity.ok('RISK', 'Storage works again: new entries are allowed', { source: 'database' });
   }
 
   /** After a storage failure every new entry first proves that the account state can be written. */

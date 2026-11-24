@@ -1,4 +1,5 @@
 'use strict';
+const { platformEnv } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -13,7 +14,7 @@ const pw = () => crypto.randomBytes(12).toString('hex');
 async function setup(fn, extra = {}, supervisor = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dt-saas-'));
   const admin = { email: 'admin@example.com', password: pw() };
-  const g = createGateway({ port: 0, dataDir: dir, supervisor: { log: () => {}, backoffMs: 50, ...supervisor }, env: { ...(process.env.PG_TEST_URL ? { SAAS_DATABASE_URL: process.env.PG_TEST_URL, SAAS_DATABASE_SCHEMA: 't' + crypto.randomBytes(6).toString('hex'), SAAS_TENANT_PREFIX: 'x' + crypto.randomBytes(5).toString('hex') } : {}), SAAS_ADMIN_EMAIL: admin.email, SAAS_ADMIN_PASSWORD: admin.password, ALPACA_KEY_ID: 'operator-key', ...extra } });
+  const g = createGateway({ port: 0, dataDir: dir, supervisor: { log: () => {}, backoffMs: 50, ...supervisor }, env: { ...platformEnv(), SAAS_ADMIN_EMAIL: admin.email, SAAS_ADMIN_PASSWORD: admin.password, ALPACA_KEY_ID: 'operator-key', ...extra } });
   const port = await g.start();
   const base = 'http://127.0.0.1:' + port;
   const call = async (p, { body, cookie, method = body === undefined ? 'GET' : 'POST', headers = {} } = {}) => {

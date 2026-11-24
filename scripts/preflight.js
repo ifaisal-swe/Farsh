@@ -35,8 +35,8 @@ const fail = (m) => rows.push(['FAIL', m]);
 
 for (const e of v.errors) fail(e);
 for (const w of v.warnings) warn(w);
-ok(`bind ${rt.host}:${rt.port}, database ${rt.dbFile}, login ${rt.authRequired ? 'required' : 'off (local only)'}`);
-if (rt.production && !rt.persistentPath) warn('No RAILWAY_VOLUME_MOUNT_PATH / DATABASE_PATH: attach a volume (e.g. /data) or data is lost on redeploy');
+ok(`bind ${rt.host}:${rt.port}, data folder ${rt.dataDir}, login ${rt.authRequired ? 'required' : 'off (local only)'}`);
+if (rt.production && !rt.persistentPath) warn('No RAILWAY_VOLUME_MOUNT_PATH / DATA_DIR: attach a volume (e.g. /data) or the encryption keys are lost on redeploy');
 if (!(set('ALPACA_KEY_ID') || set('ALPACA_API_KEY')) || !(set('ALPACA_SECRET_KEY') || set('ALPACA_API_SECRET'))) warn('Alpaca keys not set as variables (they can also be saved in Settings → Credentials, encrypted on the volume)');
 else ok('Alpaca keys present');
 if (!set('DEEPSEEK_API_KEY') && !set('GEMINI_API_KEY')) warn('No AI key variable (DEEPSEEK_API_KEY or GEMINI_API_KEY); can also be saved in Settings');
@@ -44,6 +44,7 @@ else ok(`AI keys: ${['DEEPSEEK_API_KEY', 'GEMINI_API_KEY'].filter(set).join(', '
 if (set('TELEGRAM_BOT_TOKEN')) ok(`Telegram token present; chat ids: ${set('TELEGRAM_CHAT_ID') ? 'from TELEGRAM_CHAT_ID' : 'set them in Settings → Telegram'}`);
 else warn('TELEGRAM_BOT_TOKEN not set (Telegram stays off until a token is saved)');
 if (rt.production && !set('TERMINAL_MASTER_KEY')) warn('TERMINAL_MASTER_KEY not set: a random key is created in the data folder (keys saved in Settings then depend on that file — keep the volume)');
+if (rt.databaseUrl) ok('DATABASE_URL present'); else fail('DATABASE_URL must be set (PostgreSQL)');
 const errs = validatePatch({});
 if (errs.length) fail(`config/default.json: ${errs.join('; ')}`); else ok('config/default.json valid');
 

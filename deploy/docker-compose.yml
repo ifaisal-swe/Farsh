@@ -24,7 +24,7 @@ services:
       SAAS_MODE: "1"
       PORT: "8080"
       APP_BASE_URL: https://${DOMAIN}
-      DATABASE_PATH: /data/trading.db
+      DATA_DIR: /data
       SAAS_DATA_DIR: /data/saas
       SAAS_ADMIN_EMAIL: ${ADMIN_EMAIL:?set ADMIN_EMAIL in .env}
       SAAS_MAX_TENANTS: ${MAX_TENANTS:-10}
@@ -34,7 +34,7 @@ services:
       SAAS_PUBLIC_DATA: ${PUBLIC_DATA:-off}
       SAAS_TENANT_MEMORY_MB: ${TENANT_MEMORY_MB:-256}
       SAAS_ADMIN_PASSWORD_FILE: /run/secrets/admin_password
-      SAAS_DATABASE_URL_FILE: /run/secrets/database_url
+      DATABASE_URL_FILE: /run/secrets/database_url
     secrets: [admin_password, database_url]
     volumes: ["app_data:/data"]
     networks: [front, back]
@@ -50,7 +50,7 @@ services:
     security_opt: ["no-new-privileges:true"]
     logging: *log
   postgres:
-    image: postgres:17-alpine
+    image: postgres:19-alpine
     restart: unless-stopped
     stop_grace_period: 60s
     environment:
@@ -59,7 +59,7 @@ services:
       POSTGRES_INITDB_ARGS: --encoding=UTF8 --locale=C --data-checksums
     secrets: [postgres_password, app_db_password]
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - pg19_data:/var/lib/postgresql
       - ./postgres-init.sh:/docker-entrypoint-initdb.d/10-app.sh:ro
     networks: [back]
     command: ["postgres", "-c", "max_connections=120", "-c", "password_encryption=scram-sha-256"]
@@ -75,7 +75,7 @@ services:
 networks:
   front: {}
   back: { internal: true }
-volumes: { app_data: {}, pg_data: {}, caddy_data: {}, caddy_config: {} }
+volumes: { app_data: {}, pg19_data: {}, caddy_data: {}, caddy_config: {} }
 secrets:
   admin_password: { file: ./secrets/admin_password }
   postgres_password: { file: ./secrets/postgres_password }

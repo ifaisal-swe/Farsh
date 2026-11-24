@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 set -a; . ./.env; set +a
 id="$1"; t="$2"; d="${BACKUP_DIR:?}"; c="dt-drill-$$"
 trap 'docker rm -f "$c" >/dev/null 2>&1 || true' EXIT
-docker run -d --name "$c" --network none -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=C" postgres:17-alpine >/dev/null
+docker run -d --name "$c" --network none -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=C" postgres:19-alpine >/dev/null
 for _ in $(seq 60); do docker exec "$c" pg_isready -q -U postgres -h 127.0.0.1 && break; sleep 1; done
 age -d -i "$id" "$d/roles-$t.sql.age" | grep -v -E '^(CREATE|ALTER) ROLE postgres' | docker exec -i "$c" psql -q -v ON_ERROR_STOP=1 -U postgres
 docker exec "$c" createdb -U postgres -O dt_app -T template0 -E UTF8 -l C forsah

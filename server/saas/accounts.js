@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Accounts for the hosted platform, on SQLite or PostgreSQL (database.js). Registration is CLOSED: an account can
+ * Accounts for the hosted platform, on PostgreSQL (database.js). Registration is CLOSED: an account can
  * only be created from a single-use, expiring invitation bound to one e-mail address. Only hashes of passwords,
  * session tokens and invitation tokens are stored. EVERY method that touches the database is asynchronous: callers
  * must await it (an un-awaited promise is truthy and would pass a check); test/accounts.test.js enforces this.
@@ -9,7 +9,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { hashPassword, verifyPassword, LoginLimiter } = require('../auth');
-const { SqliteDatabase, PostgresDatabase } = require('./database');
+const { PostgresDatabase } = require('./database');
 const totp = require('./totp');
 const { AuthEngine } = require('./authEngine');
 
@@ -31,22 +31,18 @@ const TABLES = [
   'CREATE TABLE IF NOT EXISTS audit (id TEXT PRIMARY KEY, ts BIGINT NOT NULL, actor TEXT, action TEXT NOT NULL, target TEXT, ip TEXT)',
 ];
 // the audit trail can only grow
-const SCHEMA = {
-  sqlite: [...TABLES,
-    "CREATE TRIGGER IF NOT EXISTS audit_no_update BEFORE UPDATE ON audit BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END",
-    "CREATE TRIGGER IF NOT EXISTS audit_no_delete BEFORE DELETE ON audit BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END"],
-  postgres: [...TABLES,
+const SCHEMA = [...TABLES,
     "CREATE OR REPLACE FUNCTION audit_append_only() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RAISE EXCEPTION ''audit is append-only''; END'",
-    'CREATE OR REPLACE TRIGGER audit_append_only BEFORE UPDATE OR DELETE OR TRUNCATE ON audit FOR EACH STATEMENT EXECUTE FUNCTION audit_append_only()'],
-};
+    'CREATE OR REPLACE TRIGGER audit_append_only BEFORE UPDATE OR DELETE OR TRUNCATE ON audit FOR EACH STATEMENT EXECUTE FUNCTION audit_append_only()'];
 
 class Accounts {
-  constructor({ file = ':memory:', url = null, schema = 'control', keyDir = null, now = Date.now, idleMs = DAY / 2, maxMs = 7 * DAY, inviteMs = 7 * DAY }) {
-    this.db = url ? new PostgresDatabase(url, { schema }) : new SqliteDatabase(file);
+  constructor({ url, schema = 'control', keyDir = null, now = Date.now, idleMs = DAY / 2, maxMs = 7 * DAY, inviteMs = 7 * DAY }) {
+    if (!url) throw Object.assign(new Error('DATABASE_URL must be set (PostgreSQL)'), { code: 'CONFIG' });
+    this.db = new PostgresDatabase(url, { schema });
     Object.assign(this, { now, idleMs, maxMs, inviteMs });
     this.limiter = new LoginLimiter({ now });
     this.requests = new LoginLimiter({ now, global: 200 }); // separate, so a flood of requests can never lock anyone out of login
-    this.key = this.loadKey(keyDir || (file === ':memory:' ? null : path.dirname(file)));
+    this.key = this.loadKey(keyDir);
     this.auth = new AuthEngine({ db: this.db, key: this.key, rules: this }); // Better Auth: sign-in and sessions
   }
 

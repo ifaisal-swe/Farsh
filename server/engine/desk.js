@@ -107,8 +107,8 @@ class Desk extends EventEmitter {
   async init() {
     try {
       const n = this.store.migrateFillsToOrders();
-      if (n) this.activity.info('SYSTEM', `Database migration: ${n} earlier fill(s) linked to order records`, { source: 'SQLite' });
-    } catch (e) { this.activity.error(`Database migration failed: ${e.message}`, { source: 'SQLite' }); }
+      if (n) this.activity.info('SYSTEM', `Database migration: ${n} earlier fill(s) linked to order records`, { source: 'database' });
+    } catch (e) { this.activity.error(`Database migration failed: ${e.message}`, { source: 'database' }); }
     this.monitor.load();
     await this.primary.init();
     this.syncPrimary();

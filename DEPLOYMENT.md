@@ -23,7 +23,7 @@ build comes from the `Dockerfile`, and the few service settings are set once in 
 GitHub (private repo, branch "production") ──► Railway service (Dockerfile)
                                                  ├─ one Node.js process: web + API + WebSocket
                                                  │    market engine · AI manager · paper trading · Telegram
-                                                 └─ Volume mounted at /data  →  /data/trading.db, /data/backups
+                                                 └─ Volume mounted at /data  →  /data (encryption key files); data is in PostgreSQL
 ```
 
 * **One service, one instance, one volume.** Railway does not allow replicas on a service that has a
@@ -37,7 +37,7 @@ GitHub (private repo, branch "production") ──► Railway service (Dockerfile
 
 ## 1. Prepare the local project
 
-1. Install **Node.js 24** (or 22.13 or newer) and **Git**. Check both:
+1. Install **Node.js 26** or newer and **Git**. Check both:
 
    ```powershell
    node --version
@@ -151,7 +151,8 @@ put them in GitHub.
 | Variable | Value | Required |
 |---|---|---|
 | `NODE_ENV` | `production` | yes |
-| `DATABASE_PATH` | `/data/trading.db` | yes (step 14) |
+| `DATABASE_URL` | reference of your PostgreSQL service | yes |
+| `DATA_DIR` | `/data` | yes (step 14) |
 | `DASHBOARD_PASSWORD_HASH` | output of `npm run hash-password` | yes (or `DASHBOARD_PASSWORD`, at least 12 characters) |
 | `TERMINAL_MASTER_KEY` | 64 hex characters (see below) | recommended |
 | `RAILWAY_DEPLOYMENT_DRAINING_SECONDS` | `30` | recommended (step 17) |
@@ -262,11 +263,10 @@ railway volume add --mount-path /data
   `node` user, then drops its privileges. You do **not** need `RAILWAY_RUN_UID`.
 * The Hobby plan includes a 5 GB volume. Volume storage costs $0.15 per GB per month.
 
-## 14. Set `DATABASE_PATH`
+## 14. Set `DATABASE_URL` and `DATA_DIR`
 
-`DATABASE_PATH=/data/trading.db` from step 7 places the database on the volume. If you leave it out,
-the app uses `<volume mount>/trading.db` automatically. Without a volume, every redeploy would start with
-an empty database: the app warns about this at startup, and the preflight check does too.
+Add a PostgreSQL service and reference its address in `DATABASE_URL`. `DATA_DIR=/data` keeps the encryption key
+files on the volume: without them, saved keys cannot be opened after a redeploy.
 
 ## 15. Disable Serverless (app sleeping)
 
@@ -433,96 +433,13 @@ Back up the database before every release (step 29).
 
 ## 29. Back up the database
 
-The app keeps three independent layers of backups:
-
-1. **Automatic in-app backups.** Every 24 hours the app writes a consistent copy (SQLite `VACUUM INTO`) to
-   `/data/backups/scheduled-*.db`, verifies it and keeps the newest 7. You can change this under
-   **Settings → Data**. A `pre-migration-*.db` copy is written before any schema upgrade, and a
-   `pre-import-*.db` copy before any import. These copies sit on the same volume: they protect against
-   mistakes, not against losing the volume.
-2. **Off-site copy.** In the dashboard, open **Resources & services → Download a database copy**. You
-   receive a consistent snapshot of the live database. Keep it somewhere private. **Never commit it.**
-3. **Railway volume backups.** In the service's **Backups** tab you can take manual backups or schedule
-   them daily (kept 6 days), weekly (27 days) or monthly (89 days).
-
-Never copy `trading.db` file by file while the app is running. Always use one of the three methods above,
-or `npm run db:backup` locally.
-
-To verify a backup file locally:
-
-```powershell
-npm run db:check -- --db C:\path\to\backup.db
-```
-
-The output reports the integrity, the record counts and the accounting reconciliation.
+Turn on your host's PostgreSQL backups, or run `pg_dump -Fc "$DATABASE_URL" > forsah.dump`. Back up the key files in
+`/data` separately and keep them apart from the dump.
 
 ## 30. Restore the database
 
-* **From a Railway volume backup:**
-  1. In the **Backups** tab, choose the backup and click **Restore**. Railway creates a volume from it
-     and keeps the old one unmounted.
-  2. Review the staged change and click **Deploy**.
-* **From an app backup file** (scheduled, downloaded or exported):
-  1. Upload the file as `/import/trading.db` (see *Migrate your local data* below).
-  2. Set `DB_IMPORT_CONFIRM=overwrite`, because the current database holds data.
-  3. Redeploy.
-  4. On start, the app saves the current database as `/data/backups/pre-import-*.db`, verifies the
-     uploaded file and swaps it in.
-  5. Remove `DB_IMPORT_CONFIRM` afterwards.
-* **After a failed migration:** the `pre-migration-*.db` file in `/data/backups` is the database exactly
-  as it was before the upgrade. Restore it the same way, together with the previous app version (step 28,
-  Rollback).
-
-## Migrate your local data (trades, decisions, watchlist, settings)
-
-The app **never** creates an empty portfolio over existing data, and it refuses to replace a database
-that already holds trades unless you confirm explicitly.
-
-1. Stop the local app (`Ctrl+C`) so its last state is saved.
-2. Create a verified, consistent copy. The command also prints the record counts and the accounting check:
-
-   ```powershell
-   npm run db:export-for-railway
-   ```
-
-   It writes `railway-import\trading.db`. This folder is git-ignored.
-3. Install the Railway CLI and link it to the project:
-
-   ```powershell
-   npm i -g @railway/cli
-   ```
-
-   ```powershell
-   railway login
-   ```
-
-   ```powershell
-   railway link
-   ```
-
-4. Upload the copy to the volume under the import name:
-
-   ```powershell
-   railway volume files upload .\railway-import\trading.db /import/trading.db
-   ```
-
-   Check that it arrived:
-
-   ```powershell
-   railway volume files list /import
-   ```
-
-   Alternatively, use SCP through `railway ssh`, as described in Railway's SSH docs.
-5. If the Railway database already contains sessions or trades (for example from test runs), set the
-   variable `DB_IMPORT_CONFIRM=overwrite`.
-6. Redeploy or restart. The log should show `Database imported: {…counts…}`. The previous database is
-   backed up first, and the import file is renamed so it is never applied twice.
-7. Compare the counts with step 2, run **Integrity & accounting check** in the dashboard, then remove
-   `DB_IMPORT_CONFIRM`.
-8. **API keys:** keys you saved in the local Settings are encrypted with your local `data\master.key`.
-   On Railway, either set the keys as Variables (recommended) or set `TERMINAL_MASTER_KEY` to the 64-hex
-   content of `data\master.key` so the imported keys can be decrypted. Keys that cannot be decrypted are
-   simply shown as *not set*.
+Stop the service, run `pg_restore --clean --if-exists -d "$DATABASE_URL" forsah.dump`, put the key files back, start it,
+and run the integrity and accounting check in the dashboard.
 
 ## 31. Monitor resource usage
 
@@ -555,7 +472,7 @@ To reduce costs:
 | The deploy fails with exit code 78 and `Configuration error: DASHBOARD_PASSWORD …` in the logs | Set `DASHBOARD_PASSWORD_HASH` (or `DASHBOARD_PASSWORD`, at least 12 characters). |
 | `Forbidden: unexpected Host header` | You use a custom domain. Add it to `ALLOWED_HOSTS` (or set `APP_BASE_URL`). |
 | Healthcheck fails or times out | Read the deploy logs. `/health/ready` returns 503 while the app is starting or if the database integrity check failed. |
-| Data disappears after a redeploy | No volume is attached, or `DATABASE_PATH` does not point into the volume mount path. |
+| Data disappears after a redeploy | `DATABASE_URL` points at another database, or the volume with the key files is not mounted at `DATA_DIR`. |
 | Telegram does not answer; the logs show `409 Conflict` | Another copy (usually the local app) polls the same bot. Stop it, or disable Telegram there. |
 | Market data keeps reconnecting, or Alpaca reports a connection limit | Another copy uses the same Alpaca keys for streaming. Stop it. |
 | Keys show *not set* after importing a database | Master-key mismatch. Set the keys as Variables, or set `TERMINAL_MASTER_KEY` (Migrate your local data, step 8). |

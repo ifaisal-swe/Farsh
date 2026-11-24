@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Store } = require('../server/db');
@@ -24,7 +25,7 @@ class MultiFake extends FakeProvider {
   px(symbol, p) { const t = this.clock.now(); this.emit('quote', { symbol, bid: p - 0.02, ask: p + 0.02, bidSize: 5000, askSize: 5000, ts: t, receivedAt: t }); this.emit('trade', { symbol, price: p, size: 100, ts: t, receivedAt: t }); }
 }
 async function make() {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const clock = { t: T0, now() { return this.t; } };
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { DEEPSEEK_API_KEY: 'sk-test-not-real-0000', TERMINAL_MASTER_KEY: 'a'.repeat(64) }, redactor });

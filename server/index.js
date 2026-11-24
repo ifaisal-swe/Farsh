@@ -23,7 +23,7 @@ if (fs.existsSync(envFile)) {
 }
 
 // secrets as files (Docker secrets): NAME_FILE=/run/secrets/x fills NAME, before privileges are dropped
-for (const name of ['SAAS_ADMIN_PASSWORD', 'SAAS_DATABASE_URL', 'DASHBOARD_PASSWORD', 'TERMINAL_MASTER_KEY']) {
+for (const name of ['SAAS_ADMIN_PASSWORD', 'SAAS_DATABASE_URL', 'DATABASE_URL', 'DASHBOARD_PASSWORD', 'TERMINAL_MASTER_KEY']) {
   const file = process.env[`${name}_FILE`];
   if (file && !process.env[name]) process.env[name] = fs.readFileSync(file, 'utf8').trim();
 }

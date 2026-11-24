@@ -1,4 +1,5 @@
 'use strict';
+const { platformEnv } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -28,7 +29,7 @@ async function setup(values, scope, fn) {
     return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ ok: true, result }), text: async () => JSON.stringify({ ok: true, result }) };
   };
   const admin = { email: 'admin@example.com', password: pw() };
-  const g = createGateway({ port: 0, dataDir: dir, telegramFetch, supervisor: { log: () => {} }, env: { ...(process.env.PG_TEST_URL ? { SAAS_DATABASE_URL: process.env.PG_TEST_URL, SAAS_DATABASE_SCHEMA: 't' + crypto.randomBytes(6).toString('hex'), SAAS_TENANT_PREFIX: 'x' + crypto.randomBytes(5).toString('hex') } : {}), SAAS_ADMIN_EMAIL: admin.email, SAAS_ADMIN_PASSWORD: admin.password } });
+  const g = createGateway({ port: 0, dataDir: dir, telegramFetch, supervisor: { log: () => {} }, env: { ...platformEnv(), SAAS_ADMIN_EMAIL: admin.email, SAAS_ADMIN_PASSWORD: admin.password } });
   const base = 'http://127.0.0.1:' + (await g.start());
   const call = async (p, { body, cookie } = {}) => { const r = await fetch(base + p, { method: body === undefined ? 'GET' : 'POST', redirect: 'manual', headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json', 'X-Terminal-Client': '1' }), ...(cookie ? { cookie } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) }); const t = await r.text(); let data = t; try { data = JSON.parse(t); } catch { /* html */ } const c = r.headers.get('set-cookie'); return { status: r.status, data, text: t, location: r.headers.get('location'), cookie: c ? c.split(';')[0] : null }; };
   const op = (await call('/account/login', { body: admin })).cookie;

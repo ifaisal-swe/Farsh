@@ -21,6 +21,7 @@ if (fs.existsSync(envFile)) {
 }
 
 const { Store } = require('../server/db');
+const { resolveRuntime } = require('../server/runtime');
 const { SecretStore } = require('../server/secrets');
 const { ConfigManager } = require('../server/config');
 const { AlpacaProvider } = require('../server/market/alpaca');
@@ -44,8 +45,9 @@ async function main() {
   const warmup = Number(arg('warmup', 60));
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) throw new Error('Pass --date YYYY-MM-DD (a past trading day)');
 
-  const dataDir = path.join(ROOT, 'data');
-  const store = new Store(path.join(dataDir, 'terminal.db'));
+  const rt = resolveRuntime(process.env);
+  const { dataDir } = rt;
+  const store = new Store({ url: rt.databaseUrl, schema: rt.databaseSchema, createSchema: true });
   const secrets = new SecretStore({ store, dataDir, env: process.env, redactor: new Redactor() });
   const config = new ConfigManager(store);
   const keyId = secrets.get('ALPACA_KEY_ID');
@@ -74,7 +76,7 @@ async function main() {
     console.log('Decision engine: RULES BASELINE (not AI)');
   }
 
-  const r = await runReplay({ symbol, minuteBars: minutes, dailyBars: daily, news, decider, initialCapital: capital, analysisTimeframe: tf, warmupBars: warmup, secretsEnv: deciderKind === 'deepseek' ? { DEEPSEEK_API_KEY: secrets.get('DEEPSEEK_API_KEY') } : {} });
+  const r = await runReplay({ databaseUrl: rt.databaseUrl, symbol, minuteBars: minutes, dailyBars: daily, news, decider, initialCapital: capital, analysisTimeframe: tf, warmupBars: warmup, secretsEnv: deciderKind === 'deepseek' ? { DEEPSEEK_API_KEY: secrets.get('DEEPSEEK_API_KEY') } : {} });
   const mt = r.metrics;
   const bh = r.benchmark && minutes.length ? r.benchmark.cashLeft + r.benchmark.shares * minutes[minutes.length - 1].close : null;
   console.log('\n=== REPLAY RESULT (paper simulation) ===');

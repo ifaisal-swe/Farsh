@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Configuration: config/default.json + validated user overrides persisted in SQLite.
+ * Configuration: config/default.json + validated user overrides persisted in PostgreSQL.
  * Every user-editable value is type-checked and bounded ("allowed simulation settings").
  */
 const fs = require('node:fs');
@@ -33,7 +33,7 @@ const BOUNDS = {
   'ai.maxRequestsPerDay': [0, 5000], 'ai.maxRequestsPerSymbolPerHour': [0, 120], 'ai.monthlyBudgetUsd': [0, 10000],
   'market.maxSymbols': [1, 30], 'market.overnight.pollSec': [15, 3600], 'tiingo.pollSec': [30, 3600], 'telegram.reports.weeklyDay': [0, 6],
   'ai.deepseekDailyBudgetUsd': [0, 500], 'ai.geminiDailyBudgetUsd': [0, 500], 'ai.circuitBreaker.failures': [1, 20], 'ai.circuitBreaker.cooldownMin': [1, 120],
-  'ai.circuitBreaker.maxCooldownMin': [5, 1440], 'backups.intervalHours': [1, 168], 'backups.keep': [1, 60],
+  'ai.circuitBreaker.maxCooldownMin': [5, 1440],
   'adaptiveMonitoring.preMarketMin': [0, 120], 'adaptiveMonitoring.openingMin': [5, 120], 'adaptiveMonitoring.postOpenMin': [0, 180], 'adaptiveMonitoring.closingMin': [5, 120],
   'adaptiveMonitoring.noNewEntriesLastMin': [0, 60], 'adaptiveMonitoring.volatility.enterRatio': [1.2, 10], 'adaptiveMonitoring.volatility.exitRatio': [1, 9],
   'adaptiveMonitoring.volatility.confirmBars': [1, 10], 'adaptiveMonitoring.volatility.exitBars': [1, 30], 'adaptiveMonitoring.volatility.minActiveMin': [1, 60],
@@ -73,7 +73,7 @@ const STRINGS = {
 };
 const ID_LISTS = ['telegram.authorizedChatIds', 'telegram.authorizedUserIds'];
 const EDITABLE_PREFIXES = ['risk.', 'ai.', 'execution.', 'market.feed', 'market.adjustment', 'market.maxQuoteAgeMs', 'market.maxExchangeLagMs',
-  'market.quoteSizeUnit', 'market.historyBars', 'market.maxSymbols', 'market.overnight.', 'news.', 'session.', 'ui.', 'tiingo.', 'telegram.', 'backups.', 'retention.', 'adaptiveMonitoring.', 'sharia.'];
+  'market.quoteSizeUnit', 'market.historyBars', 'market.maxSymbols', 'market.overnight.', 'news.', 'session.', 'ui.', 'tiingo.', 'telegram.', 'retention.', 'adaptiveMonitoring.', 'sharia.'];
 const validTimezone = (tz) => { try { new Intl.DateTimeFormat('en-US', { timeZone: tz }); return true; } catch { return false; } };
 
 function deepMerge(a, b) {

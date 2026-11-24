@@ -1,4 +1,5 @@
 'use strict';
+const { temp, tempStore, openStore } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
@@ -27,7 +28,7 @@ function raw(port, { method = 'GET', path: p = '/', headers = {}, body } = {}) {
 
 test('server: localhost-only Host check, CSRF header, secrets never returned', async () => {
   const secret = 'sk-live-supersecret-123456789';
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: { DEEPSEEK_API_KEY: secret } });
+  const t = createTerminal({ postgres: temp(), port: 0, env: { DEEPSEEK_API_KEY: secret } });
   const port = await t.start();
   const ok = await raw(port, { path: '/api/state', headers: { Host: `localhost:${port}` } });
   assert.equal(ok.status, 200);
@@ -53,17 +54,18 @@ test('server: localhost-only Host check, CSRF header, secrets never returned', a
   await t.stop();
 });
 
-test('credentials are encrypted at rest (never plaintext in the database file)', () => {
+test('credentials are encrypted at rest (never plaintext in the database)', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'att-sec-'));
   const file = path.join(dir, 'db.sqlite');
-  const store = new Store(file);
+  const store = openStore(file);
   const s = new SecretStore({ store, dataDir: dir, env: {}, redactor: new Redactor() });
   s.set('DEEPSEEK_API_KEY', 'sk-plaintext-should-not-appear-42');
   assert.equal(s.get('DEEPSEEK_API_KEY'), 'sk-plaintext-should-not-appear-42');
-  store.close();
-  const bytes = fs.readFileSync(file).toString('latin1') + (fs.existsSync(`${file}-wal`) ? fs.readFileSync(`${file}-wal`).toString('latin1') : '');
+  const bytes = JSON.stringify(store.db.prepare('SELECT * FROM credentials').all());
+  assert.ok(bytes.includes('DEEPSEEK_API_KEY'));
   assert.equal(bytes.includes('sk-plaintext-should-not-appear-42'), false);
-  const store2 = new Store(file);
+  store.close();
+  const store2 = openStore(file);
   const s2 = new SecretStore({ store: store2, dataDir: dir, env: {}, redactor: new Redactor() });
   assert.equal(s2.get('DEEPSEEK_API_KEY'), 'sk-plaintext-should-not-appear-42', 'readable after restart with the same master key');
   assert.equal(s2.describe().find((c) => c.name === 'DEEPSEEK_API_KEY').masked, 'sk-…r-42');
@@ -74,14 +76,14 @@ test('credentials are encrypted at rest (never plaintext in the database file)',
 test('database persistence: settings, sessions, activity survive reopen', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'att-db-'));
   const file = path.join(dir, 'db.sqlite');
-  const store = new Store(file);
+  const store = openStore(file);
   const cfg = new ConfigManager(store);
   cfg.update({ risk: { maxRiskPerTradePct: 0.5 } });
   const id = store.createSession({ symbol: 'ANT', initialCapital: 500, targetCapital: 1000 });
   store.saveSessionState(id, { aiState: 'RUNNING', portfolio: { initialCapital: 500, cash: 410 } });
   new ActivityLog({ store, getSessionId: () => id }).info('SYSTEM', 'persist me');
   store.close();
-  const s2 = new Store(file);
+  const s2 = openStore(file);
   assert.equal(new ConfigManager(s2).get().risk.maxRiskPerTradePct, 0.5);
   const sess = s2.getActiveSession();
   assert.equal(sess.symbol, 'ANT'); assert.equal(sess.aiState, 'RUNNING'); assert.equal(sess.portfolio.cash, 410);

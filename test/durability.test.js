@@ -1,4 +1,5 @@
 'use strict';
+const { named, openStore } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -94,10 +95,10 @@ test('durability: killing the process at every write leaves a consistent account
     for (const at of ['insertOrder:before', 'insertOrder:after', 'insertFill:before', 'insertFill:after', 'saveSessionState:after', 'commit:after']) {
       for (const side of ['BUY', 'SELL']) {
         const file = path.join(dir, at.replace(':', '-') + side + '.db');
-        const r = spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', path.join(__dirname, 'helpers', 'kill-child.js'), file, at, side], { encoding: 'utf8' });
+        const r = spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', path.join(__dirname, 'helpers', 'kill-child.js'), named(file).schema, at, side], { encoding: 'utf8' });
         assert.notEqual(r.status, 0, at + ' ' + side + ' must die: ' + r.stdout + r.stderr);
         assert.match(r.stdout, /DYING/, r.stderr);
-        const store = new Store(file);
+        const store = openStore(file);
         const id = store.getActiveSession().id;
         reconcile(store, id);
         const filled = store.listOrders(id).filter((o) => o.status === 'FILLED').length;

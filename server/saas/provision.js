@@ -55,6 +55,26 @@ class Provisioner {
     return { url: u.toString(), schema: n };
   }
 
+  /** Erases one schema and its role. */
+  drop(id) { return this.erase(this.name(id)); }
+
+  /** Erases everything this prefix ever created. */
+  async dropAll() {
+    const r = await this.pool.query('SELECT rolname FROM pg_roles WHERE rolname ~ $1', [`^${this.prefix}_[0-9a-f]{32}$`]);
+    for (const x of r.rows) await this.erase(x.rolname);
+  }
+
+  async erase(n) {
+    const c = await this.pool.connect();
+    try {
+      await c.query('BEGIN');
+      await c.query('SELECT pg_advisory_xact_lock(727003)');
+      await c.query(`DROP SCHEMA IF EXISTS ${n} CASCADE`);
+      await c.query(`DROP ROLE IF EXISTS ${n}`);
+      await c.query('COMMIT');
+    } catch (e) { await c.query('ROLLBACK').catch(() => {}); throw e; } finally { c.release(); }
+  }
+
   async close() { await this.pool.end(); }
 }
 

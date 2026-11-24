@@ -1,7 +1,7 @@
 'use strict';
 /**
  * Try the platform without an account. Each visitor gets a separate temporary terminal with invented prices: no
- * service keys, no outside calls, no model, its own process and folder, erased when it ends. Nothing here can reach an
+ * service keys, no outside calls, no model, its own process, folder and database schema, erased when it ends. Nothing here can reach an
  * account. The number of running demos and the starts per address are limited.
  */
 const crypto = require('node:crypto');
@@ -15,17 +15,17 @@ const fail = (status, message) => Object.assign(new Error(message), { status });
 const hash = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
 
 class Demos {
-  constructor({ root, max = 5, perAddress = 4, idleMs = HOUR / 2, maxMs = 2 * HOUR, perMinute = 900, memoryMb = 256, supervisor = {}, onEnd = () => {}, now = Date.now }) {
-    Object.assign(this, { root, max, perAddress, idleMs, maxMs, perMinute, onEnd, now });
+  constructor({ root, max = 5, perAddress = 4, idleMs = HOUR / 2, maxMs = 2 * HOUR, perMinute = 900, memoryMb = 256, supervisor = {}, space, onEnd = () => {}, now = Date.now }) {
+    Object.assign(this, { root, max, perAddress, idleMs, maxMs, perMinute, space, onEnd, now });
     this.items = new Map(); // token hash -> { id, at, seen, ready, ending, minute, hits }
     this.starts = new Map(); // address -> times
-    this.tenants = new Supervisor({ max, memoryMb, ...supervisor, root, options: async () => ({ demo: true }) });
+    this.tenants = new Supervisor({ max, memoryMb, ...supervisor, root, options: async () => ({ demo: true }), prepare: (id) => space.ensure(id) });
     this.timer = setInterval(() => this.sweep().catch(() => {}), 30000);
     this.timer.unref();
   }
 
   /** Leftovers of an earlier run belong to nobody. */
-  init() { if (this.max > 0) { fs.rmSync(this.root, { recursive: true, force: true }); fs.mkdirSync(this.root, { recursive: true }); } }
+  async init() { if (this.max > 0) { await this.space.dropAll(); fs.rmSync(this.root, { recursive: true, force: true }); fs.mkdirSync(this.root, { recursive: true }); } }
 
   find(token) {
     const x = token ? this.items.get(hash(token)) : null; const t = this.now();
@@ -49,7 +49,7 @@ class Demos {
     if (this.items.size >= this.max) throw fail(503, 'All demos are in use; try again in a few minutes');
     this.starts.set(ip, [...mine, t]);
     const token = crypto.randomBytes(32).toString('hex');
-    const x = { id: crypto.randomBytes(12).toString('hex'), at: t, seen: t };
+    const x = { id: crypto.randomUUID(), at: t, seen: t };
     this.items.set(hash(token), x);
     try { await this.tenants.get(x.id); } catch (e) { await this.end(x); throw fail(503, 'The demo could not be started'); }
     return { token, endsAt: this.endsAt(x) };
@@ -60,6 +60,7 @@ class Demos {
     x.ending = (async () => {
       this.onEnd(x.id);
       await this.tenants.stop(x.id);
+      await this.space.drop(x.id);
       fs.rmSync(path.join(this.root, x.id), { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     })().catch((e) => console.error(`[demo] ${e.message}`)).finally(() => { for (const [k, v] of this.items) if (v === x) this.items.delete(k); });
     return x.ending;

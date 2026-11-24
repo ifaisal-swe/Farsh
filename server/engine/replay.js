@@ -13,9 +13,9 @@ const { ReplayProvider, VirtualClock } = require('../market/replay');
 const { Redactor } = require('../util/misc');
 const { computeMetrics } = require('../trading/metrics');
 
-async function runReplay({ symbol, minuteBars, dailyBars = [], news = [], decider, initialCapital = 500, analysisTimeframe = '5m', warmupBars = 120, spreadBps = 5, configOverrides = {}, onDecision, echo = false, secretsEnv = {} }) {
+async function runReplay({ databaseUrl, symbol, minuteBars, dailyBars = [], news = [], decider, initialCapital = 500, analysisTimeframe = '5m', warmupBars = 120, spreadBps = 5, configOverrides = {}, onDecision, echo = false, secretsEnv = {} }) {
   if (!minuteBars || minuteBars.length <= warmupBars) throw new Error(`Need more than ${warmupBars} minute bars for a replay`);
-  const store = new Store(':memory:');
+  const store = new Store({ url: databaseUrl, schema: `replay_${require('node:crypto').randomBytes(8).toString('hex')}`, createSchema: true, dropOnClose: true });
   const clock = new VirtualClock((minuteBars[warmupBars - 1].time + 60) * 1000);
   const provider = new ReplayProvider({ symbol, minuteBars, dailyBars, news, spreadBps, warmupBars, clock });
   const config = new ConfigManager(store, {

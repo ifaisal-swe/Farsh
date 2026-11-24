@@ -14,11 +14,11 @@ const { Provisioner } = require('../server/saas/provision');
 const M = require('../server/maintenance');
 const { makeAgent, startLive, manual, buyProposal } = require('./helpers/engine');
 
-const PG = process.env.PG_TEST_URL;
-const opts = { skip: PG ? false : 'PG_TEST_URL is not set' };
+const PG = require('./helpers/db').URL;
+const opts = {};
 const rnd = (p) => p + crypto.randomBytes(6).toString('hex');
 async function admin(fn) { const c = new Client(PG); await c.connect(); try { return await fn(c); } finally { await c.end(); } }
-const open = (schema, o = {}) => new Store(null, { postgres: { url: PG, schema, createSchema: true, ...o } });
+const open = (schema, o = {}) => new Store({ url: PG, schema, createSchema: true, ...o });
 
 test('postgres: dialect translation', () => {
   assert.equal(translate("SELECT a AS fooBar FROM t WHERE x = '?' AND y = ?").sql, "SELECT a AS \"fooBar\" FROM t WHERE x = '?' AND y = $1");
@@ -64,7 +64,7 @@ test('postgres: customer roles cannot reach each other, the control schema or ot
     await admin((c) => c.query('CREATE SCHEMA ' + control + '; CREATE TABLE ' + control + '.users(x int)'));
     const ia = crypto.randomUUID(); const ib = crypto.randomUUID();
     const [A, B] = [await p.ensure(ia), await p.ensure(ib)];
-    const a = new Store(null, { postgres: A }); const b = new Store(null, { postgres: B });
+    const a = new Store(A); const b = new Store(B);
     a.setSetting('secret', 'of a');
     assert.equal(b.getSetting('secret'), null);
     for (const sql of ['SELECT * FROM ' + A.schema + '.settings', 'DELETE FROM ' + A.schema + '.fills', 'SELECT * FROM ' + control + '.users', 'CREATE SCHEMA nope', 'CREATE ROLE nope', 'SET ROLE ' + A.schema, 'CREATE TABLE public.nope(x int)', 'SELECT * FROM pg_authid']) assert.throws(() => b.db.query(sql), /permission denied|denied/, sql);
@@ -115,7 +115,7 @@ test('postgres: an unknown COMMIT outcome is fatal, never guessed', opts, async 
 
 test('postgres: an unreachable server fails within its timeout', () => {
   const t = Date.now();
-  assert.throws(() => new Store(null, { postgres: { url: 'postgres://x:y@127.0.0.1:1/z', schema: 'a', timeoutMs: 1000 } }));
+  assert.throws(() => new Store({ url: 'postgres://x:y@127.0.0.1:1/z', schema: 'a', timeoutMs: 1000 }));
   assert.ok(Date.now() - t < 5000);
 });
 
@@ -123,7 +123,7 @@ test('postgres: killing the process at every write leaves a consistent account',
   for (const at of ['insertOrder:before', 'insertOrder:after', 'insertFill:before', 'insertFill:after', 'saveSessionState:after', 'commit:after']) {
     for (const side of ['BUY', 'SELL']) {
       const schema = rnd('k');
-      const r = spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', path.join(__dirname, 'helpers', 'kill-child.js'), 'pg:' + schema, at, side], { encoding: 'utf8' });
+      const r = spawnSync(process.execPath, ['--disable-warning=ExperimentalWarning', path.join(__dirname, 'helpers', 'kill-child.js'), schema, at, side], { encoding: 'utf8' });
       assert.match(r.stdout, /DYING/, r.stderr);
       const s = open(schema);
       const x = s.getActiveSession();
@@ -133,53 +133,6 @@ test('postgres: killing the process at every write leaves a consistent account',
       await admin((c) => c.query('DROP SCHEMA ' + schema + ' CASCADE'));
     }
   }
-});
-
-test('postgres: moving a hosted platform from SQLite keeps everything, refuses to start unmoved, and is repeatable', { ...opts, timeout: 120000 }, async () => {
-  const { createGateway } = require('../server/saas/gateway');
-  const { importAll } = require('../scripts/pg-import');
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dt-move-'));
-  const schema = rnd('c'); const prefix = rnd('x').slice(0, 12);
-  const pw = crypto.randomBytes(12).toString('hex');
-  const env = { SAAS_ADMIN_EMAIL: 'admin@example.com', SAAS_ADMIN_PASSWORD: pw };
-  const pgEnv = { ...env, SAAS_DATABASE_URL: PG, SAAS_DATABASE_SCHEMA: schema, SAAS_TENANT_PREFIX: prefix };
-  const make = (e) => createGateway({ port: 0, dataDir: dir, env: e, supervisor: { log: () => {}, backoffMs: 50 } });
-  const call = async (port, p, body, cookie) => {
-    const r = await fetch('http://127.0.0.1:' + port + p, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', 'X-Terminal-Client': '1', ...(cookie ? { cookie } : {}) }, body: body ? JSON.stringify(body) : undefined });
-    const d = await r.json();
-    return { status: r.status, d, cookie: (r.headers.get('set-cookie') || '').split(';')[0] };
-  };
-  const login = async (port) => (await call(port, '/account/login', { email: env.SAAS_ADMIN_EMAIL, password: pw })).cookie;
-  try {
-    let g = make(env);
-    let port = await g.start();
-    let ck = await login(port);
-    assert.equal((await call(port, '/api/session/start', { symbol: 'NVDA', initialCapital: 5000, demo: true }, ck)).status, 200);
-    await call(port, '/api/credentials', { name: 'TIINGO_API_KEY', value: 'not-a-real-key-123' }, ck);
-    await call(port, '/api/sharia/ruling', { symbol: 'ABC', status: 'FAIL', source: 'هيئة' }, ck);
-    const id = (await g.accounts.byEmail(env.SAAS_ADMIN_EMAIL)).id;
-    await g.stop();
-
-    const blocked = make(pgEnv);
-    await assert.rejects(blocked.start(), /pg:import/);
-    await blocked.tenants.stopAll();
-    const before = crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, 'tenants', id, 'terminal.db'))).digest('hex');
-    const r = await importAll({ root: dir, url: PG, schema, prefix, log: () => {} });
-    assert.deepEqual(r, { accounts: true, terminals: 1, failed: [] });
-    assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(dir, 'tenants', id, 'terminal.db'))).digest('hex'), before, 'SQLite untouched');
-    assert.deepEqual(await importAll({ root: dir, url: PG, schema, prefix, log: () => {} }), { accounts: false, terminals: 0, failed: [] });
-
-    g = make(pgEnv);
-    port = await g.start();
-    ck = await login(port);
-    const s = (await call(port, '/api/state', null, ck)).d;
-    assert.equal(s.tradingSession.initialCapital, 5000);
-    assert.equal((await call(port, '/api/sharia', null, ck)).d.items.find((x) => x.symbol === 'ABC').ruling.source, 'هيئة');
-    assert.ok((await call(port, '/api/credentials', null, ck)).d.find((c) => c.name === 'TIINGO_API_KEY').configured, 'encrypted keys still open');
-    assert.equal((await call(port, '/api/sharia/ruling', { symbol: 'DEF', status: 'FAIL', source: 'board' }, ck)).status, 200, 'new rows after the move');
-    await g.stop();
-    await admin(async (c) => { const n = prefix + '_' + id.replace(/-/g, ''); await c.query('DROP SCHEMA ' + schema + ' CASCADE; DROP SCHEMA ' + n + ' CASCADE; DROP ROLE ' + n); });
-  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('postgres: the platform works with a role that is not a superuser', opts, async () => {

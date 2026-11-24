@@ -8,20 +8,19 @@ const { Accounts } = require('../server/saas/accounts');
 const { PostgresDatabase } = require('../server/saas/database');
 const totp = require('../server/saas/totp');
 
-const PG = process.env.PG_TEST_URL;
+const PG = require('./helpers/db').URL;
 const pw = () => crypto.randomBytes(12).toString('hex');
 const status = (n) => (e) => e.status === n;
 const count = (rs, ok) => rs.filter((r) => (r.status === 'fulfilled') === ok).length;
 
-for (const kind of ['sqlite', 'postgres']) {
-  const opts = { skip: kind === 'postgres' && !PG ? 'PG_TEST_URL is not set' : false };
-  const run = (name, fn) => test('accounts (' + kind + '): ' + name, opts, async () => {
+{
+  const run = (name, fn) => test('accounts: ' + name, async () => {
     let t = Date.parse('2026-11-23T12:00:00Z');
-    const a = new Accounts({ ...(kind === 'postgres' ? { url: PG, schema: 't' + crypto.randomBytes(6).toString('hex') } : {}), now: () => t });
+    const a = new Accounts({ url: PG, schema: 't' + crypto.randomBytes(6).toString('hex'), now: () => t });
     await a.init();
     await a.init(); // repeatable
     try { await fn(a, (ms) => { t += ms; }); } finally {
-      if (kind === 'postgres') await a.db.q('DROP SCHEMA ' + a.db.schema + ' CASCADE');
+      await a.db.q('DROP SCHEMA ' + a.db.schema + ' CASCADE');
       await a.close();
     }
   });

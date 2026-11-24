@@ -1,12 +1,10 @@
 'use strict';
 /**
- * Local persistence on Node's built-in SQLite (node:sqlite) — no native build step.
+ * Persistence on PostgreSQL: one schema per terminal (db-postgres.js).
  * Stores sessions (with portfolio/risk/order state), fills, AI decisions, market snapshots,
  * news references, the activity log, the equity curve, AI usage, settings and encrypted credentials.
  */
-const { DatabaseSync } = require('node:sqlite');
-const fs = require('node:fs');
-const path = require('node:path');
+const { PostgresSync } = require('./db-postgres');
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL);
@@ -75,7 +73,7 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 );
 `;
 
-/** Schema version stored in PRAGMA user_version. Each step is idempotent and runs inside a transaction. */
+/** Schema version stored in table schema_version. Each step is idempotent and runs inside a transaction. */
 const SCHEMA_VERSION = 3;
 const MIGRATIONS = {
   // one live entry order per decision (skipped when an old database already contains duplicates)
@@ -92,53 +90,21 @@ const MIGRATIONS = {
     if (!hasColumn('decisions', 'provider')) db.exec('ALTER TABLE decisions ADD COLUMN provider TEXT');
   },
 };
-const sqlStr = (s) => `'${String(s).replace(/'/g, "''")}'`;
 
 const j = (x) => (x == null ? null : JSON.stringify(x));
 const pj = (s) => { if (s == null) return null; try { return JSON.parse(s); } catch { return null; } };
 
 class Store {
-  /**
-   * @param {string} file  database path or ':memory:'
-   * @param {object} [opts] { backupDir }: where the automatic pre-migration backup is written
-   */
-  constructor(file, opts = {}) {
-    // the whole test suite can run on PostgreSQL: every ':memory:' store becomes a temporary schema
-    const testUrl = file === ':memory:' && process.env.STORE_TEST_PG;
-    if (opts.postgres || testUrl) { this.openPostgres(opts.postgres || { url: testUrl, schema: `s${require('node:crypto').randomBytes(8).toString('hex')}`, createSchema: true, dropOnClose: true }); return; }
-    if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
-    this.file = file;
-    const existed = file !== ':memory:' && fs.existsSync(file) && fs.statSync(file).size > 0;
-    this.db = new DatabaseSync(file);
-    // busy_timeout first: another connection (backup tool) may briefly hold a lock
-    this.db.exec('PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;');
-    if (opts.durable) this.db.exec('PRAGMA synchronous=FULL'); // a committed trade survives a power loss
-    this.s = {};
-    const from = this.db.prepare('PRAGMA user_version').get().user_version;
-    this.migration = { from, to: SCHEMA_VERSION, backup: null, applied: [] };
-    if (existed && from < SCHEMA_VERSION && opts.backupDir && this.hasTable('sessions')) {
-      // never change the schema of an existing database without a restorable copy
-      fs.mkdirSync(opts.backupDir, { recursive: true });
-      const out = path.join(opts.backupDir, `pre-migration-v${from}-to-v${SCHEMA_VERSION}-${new Date().toISOString().replace(/[:.]/g, '-')}.db`);
-      this.backupTo(out);
-      this.migration.backup = out;
-    }
-    this.db.exec(SCHEMA);
-    this.migrate(from);
-  }
-
-  /** Hosted accounts: one PostgreSQL schema per customer (db-postgres.js). o: { url, schema, createSchema?, onFatal? } */
-  openPostgres(o) {
-    const { PostgresSync } = require('./db-postgres');
-    this.file = ':memory:'; // no file to copy, import or measure
-    this.pg = true;
+  /** o: { url, schema, createSchema?, dropOnClose?, onFatal?, timeoutMs? } */
+  constructor(o) {
+    if (!o || !o.url) throw Object.assign(new Error('DATABASE_URL must be set (PostgreSQL)'), { code: 'CONFIG' });
     this.db = new PostgresSync(o.url, o);
     this.s = {};
     this.db.exec('CREATE TABLE IF NOT EXISTS schema_version (v INTEGER NOT NULL)');
     const row = this.db.prepare('SELECT v FROM schema_version').get();
     const from = row ? row.v : 0;
     if (!row) this.db.prepare('INSERT INTO schema_version(v) VALUES (?)').run(0);
-    this.migration = { from, to: SCHEMA_VERSION, backup: null, applied: [] };
+    this.migration = { from, to: SCHEMA_VERSION, applied: [] };
     if (from > SCHEMA_VERSION) throw new Error(`Database schema v${from} is newer than this program (v${SCHEMA_VERSION})`);
     this.transaction(() => {
       this.db.exec(SCHEMA);
@@ -167,12 +133,10 @@ class Store {
   }
 
   hasTable(name) {
-    if (this.pg) return !!this.db.prepare('SELECT 1 AS x FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = ?').get(name);
-    return !!this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?").get(name);
+    return !!this.db.prepare('SELECT 1 AS x FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = ?').get(name);
   }
   hasColumn(table, col) {
-    if (this.pg) return !!this.db.prepare('SELECT 1 AS x FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?').get(table, col);
-    return this.db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col);
+    return !!this.db.prepare('SELECT 1 AS x FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?').get(table, col);
   }
 
   migrate(from) {
@@ -181,7 +145,7 @@ class Store {
       this.db.exec('BEGIN IMMEDIATE');
       try {
         if (step) step(this.db, (t, c) => this.hasColumn(t, c));
-        if (this.pg) this.db.prepare('UPDATE schema_version SET v = ?').run(v); else this.db.exec(`PRAGMA user_version = ${v}`);
+        this.db.prepare('UPDATE schema_version SET v = ?').run(v);
         this.db.exec('COMMIT');
         this.migration.applied.push(v);
       } catch (e) {
@@ -191,19 +155,10 @@ class Store {
     }
   }
 
-  /** PRAGMA quick_check: ['ok'] when the file is structurally sound. */
+  /** ['ok'] when the data can be read; the server verifies its own pages (checksums). */
   quickCheck() {
-    if (this.pg) { this.db.prepare('SELECT COUNT(*) AS n FROM sessions').get(); return ['ok']; } // the server verifies its own pages (checksums)
-    return this.db.prepare('PRAGMA quick_check').all().map((r) => Object.values(r)[0]);
-  }
-
-  /** Consistent single-file copy of the live database (safe while the app runs; includes WAL content). */
-  backupTo(file) {
-    if (this.pg) throw new Error('This account is stored in PostgreSQL: backups are made by the server');
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    if (fs.existsSync(file)) throw new Error(`Backup target already exists: ${file}`);
-    this.db.exec(`VACUUM INTO ${sqlStr(file)}`);
-    return file;
+    this.db.prepare('SELECT COUNT(*) AS n FROM sessions').get();
+    return ['ok'];
   }
 
   counts() {
@@ -215,10 +170,8 @@ class Store {
   }
 
   sizeBytes() {
-    if (this.file === ':memory:') return { db: 0, wal: 0, total: 0 };
-    const sz = (f) => { try { return fs.statSync(f).size; } catch { return 0; } };
-    const db = sz(this.file); const wal = sz(`${this.file}-wal`);
-    return { db, wal, total: db + wal + sz(`${this.file}-shm`) };
+    const r = this.db.prepare("SELECT COALESCE(SUM(pg_total_relation_size(c.oid)), 0) AS n FROM pg_class c WHERE c.relnamespace = current_schema()::regnamespace AND c.relkind = 'r'").get();
+    return { total: Number(r.n) };
   }
 
   stmt(sql) {

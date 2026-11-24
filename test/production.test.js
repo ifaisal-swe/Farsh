@@ -1,9 +1,10 @@
 'use strict';
+const { temp, named, openStore } = require('./helpers/db');
 /**
  * Production / Railway readiness: runtime configuration, login and session security, health endpoints,
  * browser independence (one engine for any number of dashboards), event catch-up, graceful shutdown,
  * restart recovery (accounting check, offline-expired orders, no auto-resume after failed checks),
- * duplicate-order protection, safe migrations, backup/import, and the deployment files.
+ * duplicate-order protection, safe migrations, and the deployment files.
  * Everything runs locally against mocks/DEMO data — no external service is contacted.
  */
 const test = require('node:test');
@@ -12,8 +13,8 @@ const http = require('node:http');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { DatabaseSync } = require('node:sqlite');
 const WebSocket = require('ws');
+const { PostgresSync } = require('../server/db-postgres');
 const { createTerminal } = require('../server/app');
 const { resolveRuntime, validateRuntime } = require('../server/runtime');
 const { hashPassword, verifyPassword } = require('../server/auth');
@@ -60,7 +61,7 @@ test('runtime: Railway variables → 0.0.0.0:$PORT, database on the volume, logi
   assert.equal(rt.production, true);
   assert.equal(rt.host, '0.0.0.0');
   assert.equal(rt.port, 8080);
-  assert.equal(rt.dbFile.replace(/\\/g, '/').endsWith('/data/trading.db'), true);
+  assert.equal(rt.dataDir.replace(/\\/g, '/').endsWith('/data'), true);
   assert.equal(rt.authRequired, true);
   assert.deepEqual(rt.publicHosts, ['dar.up.railway.app']);
   assert.equal(rt.secureCookies, true);
@@ -70,8 +71,8 @@ test('runtime: Railway variables → 0.0.0.0:$PORT, database on the volume, logi
   const local = resolveRuntime({}, { host: '127.0.0.1', port: 8787 });
   assert.equal(local.host, '127.0.0.1');
   assert.equal(local.authRequired, false);
-  assert.equal(resolveRuntime({ DATABASE_PATH: '/x/trading.db' }).dbFile.replace(/\\/g, '/').endsWith('/x/trading.db'), true);
-  assert.throws(() => createTerminal({ dbFile: ':memory:', port: 0, host: '0.0.0.0', env: {} }), /DASHBOARD_PASSWORD/);
+  assert.equal(resolveRuntime({ DATA_DIR: '/x' }).dataDir.replace(/\\/g, '/').endsWith('/x'), true);
+  assert.throws(() => createTerminal({ postgres: temp(), port: 0, host: '0.0.0.0', env: {} }), /DASHBOARD_PASSWORD/);
 });
 
 test('password hashing: scrypt, salted, timing-safe verification', () => {
@@ -86,7 +87,7 @@ test('password hashing: scrypt, salted, timing-safe verification', () => {
 
 // ---------------------------------------------------------------- login & sessions
 test('login: every page, API route and the WebSocket require a session; cookie is HttpOnly/SameSite; logout revokes', async () => {
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: { DASHBOARD_PASSWORD: PW, SECURE_COOKIES: 'true' }, fetchImpl: silentFetch });
+  const t = createTerminal({ postgres: temp(), port: 0, env: { DASHBOARD_PASSWORD: PW, SECURE_COOKIES: 'true' }, fetchImpl: silentFetch });
   const port = await t.start();
   try {
     assert.equal((await raw(port, { path: '/api/state' })).status, 401);
@@ -123,7 +124,7 @@ test('login: every page, API route and the WebSocket require a session; cookie i
 });
 
 test('login rate limiting locks a client out after repeated failures', async () => {
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: { DASHBOARD_PASSWORD: PW }, fetchImpl: silentFetch });
+  const t = createTerminal({ postgres: temp(), port: 0, env: { DASHBOARD_PASSWORD: PW }, fetchImpl: silentFetch });
   const port = await t.start();
   try {
     for (let i = 0; i < 5; i++) assert.equal((await post(port, '/api/auth/login', { password: `wrong-${i}-xxxxxxxx` })).status, 401);
@@ -135,7 +136,7 @@ test('login rate limiting locks a client out after repeated failures', async () 
 
 // ---------------------------------------------------------------- health, independence, events
 test('health: /health/live and /health/ready (also for Railway healthcheck host); components without secrets', async () => {
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: { DASHBOARD_PASSWORD: PW, DEEPSEEK_API_KEY: 'sk-secret-health-0001' }, fetchImpl: silentFetch });
+  const t = createTerminal({ postgres: temp(), port: 0, env: { DASHBOARD_PASSWORD: PW, DEEPSEEK_API_KEY: 'sk-secret-health-0001' }, fetchImpl: silentFetch });
   const port = await t.start();
   try {
     const live = await raw(port, { path: '/health/live', headers: { Host: 'healthcheck.railway.app' } });
@@ -156,7 +157,7 @@ test('health: /health/live and /health/ready (also for Railway healthcheck host)
 });
 
 test('browser independence: the engine runs with no dashboard; many dashboards share ONE engine; closing them stops nothing', async () => {
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: { DASHBOARD_PASSWORD: PW }, fetchImpl: silentFetch });
+  const t = createTerminal({ postgres: temp(), port: 0, env: { DASHBOARD_PASSWORD: PW }, fetchImpl: silentFetch });
   const port = await t.start();
   try {
     const cookie = cookieOf(await post(port, '/api/auth/login', { password: PW }));
@@ -198,12 +199,12 @@ test('browser independence: the engine runs with no dashboard; many dashboards s
 
 test('graceful shutdown persists state and marks the run clean; a crash is detected on the next start', async () => {
   const dir = tmp('dt-shut-');
-  const t = createTerminal({ dataDir: dir, port: 0, env: {}, fetchImpl: silentFetch });
+  const t = createTerminal({ dataDir: dir, postgres: named(path.join(dir, 'terminal.db')), port: 0, env: {}, fetchImpl: silentFetch });
   await t.start();
   t.desk.book.lock.run(() => new Promise((r) => setTimeout(r, 200))); // in-flight work
   await t.stop();
   assert.equal(t.desk.book.shuttingDown, true);
-  const s = new Store(path.join(dir, 'terminal.db'));
+  const s = openStore(path.join(dir, 'terminal.db'));
   assert.equal(s.getSetting('runtime.run').cleanShutdown, true);
   assert.equal(M.markRunStart(s, Date.now()).unclean, false);
   assert.equal(M.markRunStart(s, Date.now()).unclean, true, 'a run that never stopped cleanly is reported');
@@ -218,7 +219,7 @@ test.after(() => { AnalysisScheduler.prototype.start = origStart; });
 class Fake2 extends FakeProvider { connect() { this.state = 'SUBSCRIBED'; this.emit('connection', { state: 'SUBSCRIBED', detail: 'test' }); } }
 
 function makeDesk(file, clock, startup = null) {
-  const store = new Store(file);
+  const store = openStore(file);
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { DEEPSEEK_API_KEY: 'sk-test-not-real-0000', TERMINAL_MASTER_KEY: 'a'.repeat(64) }, redactor });
   const config = new ConfigManager(store, { news: { pollSec: { alpaca: 9999, sec: 9999, fed: 9999, halts: 9999, rss: 9999 } } });
@@ -266,6 +267,7 @@ test('restart recovery: balances survive, accounting is reconciled, offline-expi
   clock.t += 10 * 60000;
   const rec = M.reconcileSession(a.store, a.store.getActiveSession());
   assert.equal(rec.ok, true, `accounting reconciles: ${JSON.stringify(rec.problems)}`);
+  a.store.close();
   const b = makeDesk(file, clock, { dbOk: true, accountingOk: true, problems: [] });
   await b.desk.init();
   assert.equal(b.desk.book.portfolio.cash, cash, 'cash survives the restart');
@@ -279,6 +281,7 @@ test('restart recovery: balances survive, accounting is reconciled, offline-expi
   assert.equal(bad.ok, false);
   assert.match(bad.problems.join(), /cash/);
   const events = [];
+  b.store.close();
   const c = makeDesk(file, clock, { dbOk: true, accountingOk: false, problems: bad.problems });
   c.desk.on('appEvent', (e) => events.push(e));
   await c.desk.init();
@@ -299,11 +302,12 @@ test('a watchlist symbol never overwrites the session main symbol', async () => 
   await a.desk.shutdown();
 });
 
-// ---------------------------------------------------------------- migrations, backup, import
-test('migrations: an older database is backed up first, upgraded in place, and provider usage is backfilled', () => {
+// ---------------------------------------------------------------- migrations
+test('migrations: an older database is upgraded in place, and provider usage is backfilled', () => {
   const dir = tmp('dt-mig-');
   const file = path.join(dir, 'terminal.db');
-  const db = new DatabaseSync(file);
+  const target = named(file);
+  const db = new PostgresSync(target.url, target);
   db.exec(`CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER NOT NULL);
     CREATE TABLE sessions (id INTEGER PRIMARY KEY AUTOINCREMENT, symbol TEXT NOT NULL, data_mode TEXT NOT NULL DEFAULT 'LIVE', initial_capital REAL NOT NULL, target_capital REAL, started_at INTEGER NOT NULL, ended_at INTEGER, ai_state TEXT NOT NULL DEFAULT 'IDLE', portfolio_json TEXT, orders_json TEXT, risk_json TEXT, benchmark_json TEXT, meta_json TEXT, updated_at INTEGER NOT NULL);
     CREATE TABLE ai_usage (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, day TEXT NOT NULL, model TEXT, purpose TEXT, ok INTEGER, prompt_tokens INTEGER, completion_tokens INTEGER, cache_hit INTEGER, cache_miss INTEGER, reasoning_tokens INTEGER, cost_usd REAL, latency_ms INTEGER, error TEXT);
@@ -311,52 +315,21 @@ test('migrations: an older database is backed up first, upgraded in place, and p
     INSERT INTO sessions(symbol, initial_capital, started_at, updated_at) VALUES ('ANT', 500, 1, 1);
     INSERT INTO ai_usage(ts, day, model, ok) VALUES (1, '2026-11-20', 'deepseek-flash', 1), (2, '2026-11-20', 'gemini-3.5-flash-lite', 1);`);
   db.close();
-  const s = new Store(file, { backupDir: path.join(dir, 'backups') });
+  const s = openStore(file);
   assert.deepEqual(s.migration.applied, [1, 2, 3]);
-  assert.ok(fs.existsSync(s.migration.backup), 'pre-migration backup written');
-  assert.deepEqual(M.inspectDatabaseFile(s.migration.backup).counts.sessions, 1);
   assert.deepEqual(s.db.prepare('SELECT provider FROM ai_usage ORDER BY id').all().map((r) => r.provider), ['deepseek', 'gemini']);
   assert.equal(s.getActiveSession().symbol, 'ANT', 'existing data kept');
   s.close();
-  const again = new Store(file, { backupDir: path.join(dir, 'backups') });
+  const again = openStore(file);
   assert.deepEqual(again.migration.applied, [], 'idempotent');
   again.close();
-});
-
-test('backup and one-time import: verified copies; never overwrite trading data without explicit confirmation', () => {
-  const dir = tmp('dt-imp-');
-  const src = new Store(path.join(dir, 'src.db'));
-  src.createSession({ symbol: 'NVDA', initialCapital: 1000 });
-  const b = M.createBackup(src, path.join(dir, 'b'), 'manual');
-  assert.equal(b.counts.sessions, 1);
-  src.close();
-  // import into an empty data directory
-  const data = path.join(dir, 'data');
-  fs.mkdirSync(path.join(data, 'import'), { recursive: true });
-  fs.copyFileSync(b.file, path.join(data, 'import', 'trading.db'));
-  const r1 = M.applyPendingImport({ dbFile: path.join(data, 'trading.db'), importDir: path.join(data, 'import'), backupDir: path.join(data, 'backups') });
-  assert.equal(r1.applied, true);
-  assert.equal(fs.existsSync(path.join(data, 'import', 'trading.db')), false, 'never applied twice');
-  // second import over a database that now holds a session → refused without confirmation
-  fs.copyFileSync(b.file, path.join(data, 'import', 'trading.db'));
-  const r2 = M.applyPendingImport({ dbFile: path.join(data, 'trading.db'), importDir: path.join(data, 'import'), backupDir: path.join(data, 'backups') });
-  assert.equal(r2.applied, false);
-  assert.equal(r2.error, 'confirmation required');
-  const r3 = M.applyPendingImport({ dbFile: path.join(data, 'trading.db'), importDir: path.join(data, 'import'), backupDir: path.join(data, 'backups'), confirm: 'overwrite' });
-  assert.equal(r3.applied, true);
-  assert.ok(r3.backup && fs.existsSync(r3.backup), 'the replaced database was backed up first');
-  // a corrupt file is rejected
-  fs.writeFileSync(path.join(data, 'import', 'trading.db'), 'not a database');
-  const r4 = M.applyPendingImport({ dbFile: path.join(data, 'trading.db'), importDir: path.join(data, 'import'), backupDir: path.join(data, 'backups') });
-  assert.equal(r4.applied, false);
-  assert.match(r4.error, /not an SQLite database/);
 });
 
 // ---------------------------------------------------------------- deployment files
 test('deployment files: Docker image without data or secrets, ignore files, env example, CI workflow', () => {
   const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
   const docker = read('Dockerfile');
-  assert.match(docker, /^FROM node:24/m);
+  assert.match(docker, /^FROM node:26/m);
   assert.match(docker, /npm ci --omit=dev/);
   assert.match(docker, /CMD \["node", "--disable-warning=ExperimentalWarning", "server\/index\.js"\]/);
   assert.doesNotMatch(docker, /(API_KEY|SECRET|TOKEN|PASSWORD)\s*=/i, 'no credentials in the image');
@@ -371,6 +344,6 @@ test('deployment files: Docker image without data or secrets, ignore files, env 
   assert.ok(fs.existsSync(path.join(ROOT, '.github', 'workflows', 'test.yml')));
   assert.ok(fs.existsSync(path.join(ROOT, 'DEPLOYMENT.md')));
   const pkg = JSON.parse(read('package.json'));
-  for (const s of ['start', 'test', 'preflight', 'hash-password', 'db:check', 'db:backup', 'db:export-for-railway']) assert.ok(pkg.scripts[s], s);
+  for (const s of ['start', 'test', 'preflight', 'hash-password']) assert.ok(pkg.scripts[s], s);
   assert.equal(Object.keys(pkg.devDependencies || {}).length, 0, 'production image needs no build tooling');
 });

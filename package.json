@@ -6,13 +6,12 @@
   "main": "server/index.js",
   "type": "commonjs",
   "engines": {
-    "node": ">=22.13"
+    "node": ">=26"
   },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "saas": "node --disable-warning=ExperimentalWarning -e \"process.env.SAAS_MODE='1';require('./server/index.js')\"",
     "services": "node scripts/services.js",
-    "pg:import": "node --disable-warning=ExperimentalWarning scripts/pg-import.js",
     "web:build": "npm --prefix web ci && npm --prefix web run build",
     "web:dev": "npm --prefix web run dev",
     "demo": "node --disable-warning=ExperimentalWarning server/index.js --demo",
@@ -20,13 +19,10 @@
     "replay": "node --disable-warning=ExperimentalWarning scripts/replay.js",
     "hash-password": "node scripts/hash-password.js",
     "preflight": "node --disable-warning=ExperimentalWarning scripts/preflight.js",
-    "predeploy": "npm test && npm run preflight -- --production",
-    "db:check": "node --disable-warning=ExperimentalWarning scripts/db-tools.js check",
-    "db:backup": "node --disable-warning=ExperimentalWarning scripts/db-tools.js backup",
-    "db:export-for-railway": "node --disable-warning=ExperimentalWarning scripts/db-tools.js export-for-railway"
+    "predeploy": "npm test && npm run preflight -- --production"
   },
   "dependencies": {
-    "@mastra/core": "1.82.0",
+    "@mastra/core": "1.85.0",
     "better-auth": "1.7.27",
     "express": "^5.3.0",
     "fast-xml-parser": "^5.12.1",

@@ -1,4 +1,5 @@
 'use strict';
+const { tempStore } = require('./helpers/db');
 /**
  * End-to-end LIVE code path against local mock Alpaca REST + WebSocket servers:
  * real AlpacaProvider -> candles/market state -> snapshot -> (scripted) AI -> risk -> paper fill.
@@ -73,7 +74,7 @@ function startMocks({ dailyCount }) {
 const waitFor = async (fn, ms = 4000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (fn()) return; await new Promise((r) => setTimeout(r, 20)); } throw new Error('timeout'); };
 
 async function makeLiveAgent(mocks, overrides = {}) {
-  const store = new Store(':memory:');
+  const store = tempStore();
   const redactor = new Redactor();
   const secrets = new SecretStore({ store, dataDir: null, env: { ALPACA_KEY_ID: 'PKTEST', ALPACA_SECRET_KEY: 'SECRETTEST', DEEPSEEK_API_KEY: 'sk-test-0000000000', TERMINAL_MASTER_KEY: 'b'.repeat(64) }, redactor });
   // Keep the mock network endpoints when individual tests override market settings.

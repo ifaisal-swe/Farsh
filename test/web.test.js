@@ -1,4 +1,5 @@
 'use strict';
+const { temp } = require('./helpers/db');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
@@ -22,7 +23,7 @@ test('research snapshot: every item is sourced, graded, dated and bilingual', ()
 });
 
 test('Nuxt interface: every inline script is allowed by hash, never by unsafe-inline', { skip: !built }, async () => {
-  const t = createTerminal({ dbFile: ':memory:', port: 0, env: {} });
+  const t = createTerminal({ postgres: temp(), port: 0, env: {} });
   const port = await t.start();
   try {
     for (const p of ['/app/', '/app/research', '/app/sharia', '/app/alerts']) {

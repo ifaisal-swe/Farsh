@@ -1,7 +1,6 @@
 'use strict';
 /**
- * PostgreSQL behind the same synchronous interface as node:sqlite (prepare().get/all/run, exec, close), so the trading
- * code path is identical on both. Queries run in a worker thread while this thread waits (Atomics.wait): use it ONLY
+ * PostgreSQL behind a synchronous interface (prepare().get/all/run, exec, close). Queries run in a worker thread while this thread waits (Atomics.wait): use it ONLY
  * in a process that serves one customer (server/saas/tenant.js).
  *
  * - one connection, guarded by an advisory lock: two processes can never write the same account
@@ -15,7 +14,7 @@ const path = require('node:path');
 const SCHEMA_RE = /^[a-z][a-z0-9_]{0,50}$/;
 const IDENTITY = { sessions: 'id', activity: 'id', app_events: 'seq', tg_notifications: 'id' };
 
-/** SQLite dialect used by db.js and telegram/store.js -> PostgreSQL. All numbers are DOUBLE PRECISION, exactly like JS numbers. */
+/** SQL shorthand used by db.js and telegram/store.js -> PostgreSQL. All numbers are DOUBLE PRECISION, exactly like JS numbers. */
 function translate(sql) {
   let s = sql.trim().replace(/;\s*$/, '');
   if (/^BEGIN IMMEDIATE$/i.test(s)) return { sql: 'BEGIN' };
@@ -42,7 +41,7 @@ function translate(sql) {
 
 const param = (x) => {
   if (x === undefined) throw new TypeError('undefined cannot be stored');
-  if (typeof x === 'number' && !Number.isFinite(x)) return null; // as SQLite does for NaN
+  if (typeof x === 'number' && !Number.isFinite(x)) return null;
   if (typeof x === 'string') return x.includes('\u0000') ? x.split('\u0000').join('') : x;
   if (x === null || typeof x === 'number' || typeof x === 'bigint') return x;
   throw new TypeError(`cannot store a ${typeof x}`);
@@ -95,6 +94,7 @@ class PostgresSync {
     const word = /^\s*(\w+)/.exec(text)[1].toUpperCase();
     if (!this.link) {
       if (word === 'ROLLBACK') { this.inTx = false; return { rows: [], count: 0 }; } // the server rolled back when the connection ended
+      if (this.closed) throw new Error('database is closed');
       if (this.inTx) throw Object.assign(new Error('transaction lost'), { lost: true });
       this.open();
     }
@@ -131,6 +131,8 @@ class PostgresSync {
   }
 
   close() {
+    if (this.closed) return;
+    this.closed = true; // a late call must never reconnect and take the lock again
     if (!this.link) return;
     try { if (this.dropOnClose) this.query(`DROP SCHEMA ${this.schema} CASCADE`); this.call({ end: true }, 3000); } catch { /* closing anyway */ }
     this.dropLink();

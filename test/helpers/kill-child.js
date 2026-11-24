@@ -6,8 +6,8 @@ const [method, when] = point.split(':');
 const die = () => { require('node:fs').writeSync(1, 'DYING'); process.kill(process.pid, 'SIGKILL'); for (;;) ; };
 (async () => {
   const { Store } = require('../../server/db');
-  const c = file.startsWith('pg:') ? makeAgent({ store: new Store(null, { postgres: { url: process.env.PG_TEST_URL, schema: file.slice(3), createSchema: true } }) }) : makeAgent({ dbFile: file });
-  if (file.startsWith('pg:')) c.config.update({ risk: { ...require('../../server/trading/riskProfiles').LEGACY_DEFAULTS, profile: 'CUSTOM' } });
+  const c = makeAgent({ store: new Store({ url: process.env.PG_TEST_URL, schema: file, createSchema: true }) });
+  c.config.update({ risk: { ...require('../../server/trading/riskProfiles').LEGACY_DEFAULTS, profile: 'CUSTOM' } });
   await startLive(c);
   const arm = () => {
     if (method === 'commit') { const real = c.store.transaction.bind(c.store); c.store.transaction = (fn) => { real(fn); die(); }; return; }
