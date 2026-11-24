@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // the wallet first, then every market it can trade; the chart is the detail of one of them
 import { Ban, Minus, Pause, Play, Plus, Sparkles, Square, TrendingDown, TrendingUp, X } from '@lucide/vue'
+import { ACTIONS, isBuy, isSell } from '~/lib/calls'
 import { plain } from '~/lib/plain'
 const { t, num, lang } = useLang()
 const ar = computed(() => lang.value === 'ar')
@@ -21,6 +22,8 @@ const sharia = ref<Record<string, any>>({})
 const side = ref('BUY')
 const curve = ref<number[]>([])
 const lines = ref<Record<string, number[]>>({})
+const calls = ref<any[]>([])
+async function loadCalls() { try { calls.value = ((await api('opportunities')).items || []).filter((x: any) => (isBuy(x) && !x.blocked) || isSell(x)).slice(0, 3) } catch { /* the page has them */ } }
 
 async function run(path: string, body: unknown = {}) {
   busy.value = true
@@ -55,7 +58,7 @@ const start = () => run('session/start', { symbol: s.value.primarySymbol, initia
 async function close() { const x = confirming.value; confirming.value = ''; await run('position/close', { symbol: x }) }
 function trade(x: string, how: string) { symbol.value = x; side.value = how; nextTick(() => document.getElementById('trade')?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })) }
 const timers: any[] = []
-onMounted(() => { loadSharia(); loadCurve(); timers.push(setInterval(loadSharia, 30000), setInterval(loadCurve, 30000), setInterval(loadLines, 60000)) })
+onMounted(() => { loadSharia(); loadCurve(); loadCalls(); timers.push(setInterval(loadCalls, 30000), setInterval(loadSharia, 30000), setInterval(loadCurve, 30000), setInterval(loadLines, 60000)) })
 onBeforeUnmount(() => timers.forEach(clearInterval))
 
 const s = computed(() => state.value || {})
@@ -112,6 +115,9 @@ const time = (ts: number) => new Date(ts).toLocaleTimeString('en-GB')
     <ul class="relative mt-5 grid !list-none grid-cols-2 gap-3 !p-0 xl:grid-cols-4"><li v-for="[k, v] in FACTS" :key="k" class="min-w-0 rounded-2xl bg-[#0d0f26]/55 px-5 py-3.5"><span class="block text-sm text-panel-muted">{{ k }}</span><b class="block font-display text-xl leading-snug font-semibold"><span class="num">{{ v }}</span></b></li></ul>
     <p class="relative !mt-5 !mb-0 flex flex-wrap gap-x-6 gap-y-1 text-sm"><span v-for="[k, v] in STATUS" :key="k"><span class="text-white/80">{{ k }}:</span> <b>{{ v }}</b></span></p>
   </section>
+
+  <section v-if="calls.length" class="mb-4" aria-labelledby="calls"><div class="mb-3 flex items-center gap-3"><h2 id="calls" class="!m-0 !text-2xl">{{ L('الفرص الآن', 'Opportunities now') }}</h2><span class="grow" /><NuxtLink to="/app/opportunities" class="font-semibold underline">{{ L('كل الفرص', 'All of them') }}</NuxtLink></div>
+    <ul class="grid !list-none gap-3 !p-0 md:grid-cols-2 xl:grid-cols-3"><li v-for="x in calls" :key="x.symbol"><NuxtLink to="/app/opportunities" data-slot="nav" class="flex h-full items-center gap-4 rounded-3xl border bg-card p-5 transition-colors hover:border-primary"><SymbolIcon :symbol="x.symbol" class="!size-11" /><span class="min-w-0 flex-1"><b class="block text-lg"><bdi>{{ x.symbol }}</bdi></b><span class="small muted block">{{ ar ? x.why.ar : x.why.en }}</span></span><span class="shrink-0 rounded-full px-4 py-1.5 font-semibold" :class="ACTIONS[x.action]!.c">{{ L(...ACTIONS[x.action]!.n) }}</span></NuxtLink></li></ul></section>
 
   <MarketHours />
 

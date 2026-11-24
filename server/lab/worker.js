@@ -9,6 +9,13 @@ process.on('message', async (m) => {
     try { const { proposeLevels } = require('./agents'); await send({ type: 'result', report: await proposeLevels(m.evidence, m.model, { lang: m.lang }) }); } catch (e) { await send({ type: 'error', message: 'levels' }); }
     process.exit(0);
   }
+  if (m.task === 'opportunity' || m.task === 'chat') {
+    try {
+      const report = m.task === 'chat' ? await require('../helper/agent').chat(m.ask, m.model, { lang: m.lang }) : await require('../opportunity/agents').reviewOpportunity(m.evidence, m.model, { lang: m.lang, onProgress: (step, state) => send({ type: 'progress', step, state }) });
+      await send({ type: 'result', report });
+    } catch (e) { if (process.env.LAB_DEBUG) console.error(e); await send({ type: 'error', message: m.task }); }
+    process.exit(0);
+  }
   try {
     send({ type: 'progress', step: 'numbers', state: 'start' });
     const quant = analyze(m.bars, m.bench, m.options);

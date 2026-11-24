@@ -24,8 +24,11 @@ process.on('message', async (m) => {
   if (m.type === 'telegram-update') { if (t) t.telegram.update(m.update); return; }
   if (m.type !== 'start' || t) return;
   try {
-    t = createTerminal({ dataDir: m.dataDir, host: '127.0.0.1', port: 0, env: m.services || {}, gatewayToken: m.token, postgres: m.postgres || null, telegramRelay: m.telegram || null, publicData: !!m.publicData, labModel: m.labModel || null });
+    const none = async () => { throw new Error('The demo has no outside connection'); };
+    if (m.demo) globalThis.fetch = none;
+    t = createTerminal({ dataDir: m.dataDir, host: '127.0.0.1', port: 0, env: m.services || {}, gatewayToken: m.token, postgres: m.postgres || null, telegramRelay: m.telegram || null, publicData: !!m.publicData, labModel: m.labModel || null, demoOnly: !!m.demo, ...(m.demo ? { fetchImpl: none } : {}) });
     const port = await t.start();
+    if (m.demo) await t.openDemo();
     process.send({ type: 'ready', port });
   } catch (e) {
     console.error(`[tenant] start failed: ${e.message}`);

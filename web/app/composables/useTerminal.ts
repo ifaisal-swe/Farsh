@@ -40,7 +40,7 @@ function connect() {
   }
   ws.onclose = (e) => {
     connected.value = false
-    if (e.code === 4401) { location.href = '/login'; return }
+    if (e.code === 4401) { location.href = '/app'; return }
     setTimeout(connect, retry)
     retry = Math.min(retry * 2, 15000)
   }
@@ -48,7 +48,7 @@ function connect() {
 
 export async function api(path: string, body?: unknown) {
   const r = await fetch(`/api/${path}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Terminal-Client': '1' }, body: JSON.stringify(body) })
-  if (r.status === 401) { location.href = '/login'; throw new Error('Login required') }
+  if (r.status === 401) { location.href = '/app'; throw new Error('Login required') }
   const d = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(plain.error(d.error || '', useLang().lang.value === 'ar'))
   return d

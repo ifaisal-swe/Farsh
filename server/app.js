@@ -26,6 +26,8 @@ const { isCrypto } = require('./market/crypto');
 const { marketHours } = require('./market/hours');
 const chartbook = require('./analysis/chartbook');
 const { InvestorService } = require('./lab/investors');
+const { OpportunityService, parseEarningsDate } = require('./opportunity/service');
+const { HelperService } = require('./helper/service');
 const { sendWebPage, webAssets, ASSETS } = require('./webpage');
 const { ShariaService } = require('./sharia/screener');
 const { TerminalService } = require('./services/terminalService');
@@ -50,7 +52,7 @@ function csvEscape(v) {
 
 const idList = (v) => String(v || '').split(/[,\s]+/).map((x) => x.trim()).filter((x) => /^-?\d{1,20}$/.test(x));
 
-function createTerminal({ dataDir, port, host, env = process.env, providerFactory, fetchImpl, echo = false, dbFile, runtime = null, gatewayToken = null, postgres = null, telegramRelay = null, publicData = false, labModel = null } = {}) {
+function createTerminal({ dataDir, port, host, env = process.env, providerFactory, fetchImpl, echo = false, dbFile, runtime = null, gatewayToken = null, postgres = null, telegramRelay = null, publicData = false, labModel = null, demoOnly = false } = {}) {
   // managed = one account of the hosted platform, reachable only through the gateway (server/saas)
   const viaGateway = (headers) => {
     if (!gatewayToken) return true;
@@ -121,6 +123,9 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   const plan = new PlanService({ store, desk, lab, activity, getConfig: () => config.get() });
   const planTimer = setInterval(() => plan.tick().catch((e) => activity.warn(`The plan could not run: ${e.message}`, { source: 'plan' })), 15000);
   planTimer.unref();
+  let opportunities = null;
+  const oppTimer = setInterval(() => { if (opportunities) opportunities.scan().catch((e) => activity.warn(`Opportunities could not be checked: ${e.message}`, { source: 'opportunity' })); }, 60000);
+  oppTimer.unref();
   const invest = new InvestService({ store, desk, lab, activity });
   const commands = new CommandService({ store, desk, activity });
   const techCache = new Map();
@@ -245,6 +250,17 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   app.post('/api/auth/logout', (req, res) => { auth.logout(req.headers.cookie); res.clearCookie(COOKIE, { path: '/' }); res.json({ ok: true }); });
   app.post('/api/auth/logout-all', (req, res) => { const n = auth.enabled() ? auth.logoutAll() : 0; res.clearCookie(COOKIE, { path: '/' }); activity.warn(`All dashboard sessions signed out (${n})`, { source: 'login' }); res.json({ ok: true, sessions: n }); });
 
+  // a demo can practise, and nothing else: no keys, no outside services, only invented prices
+  const DEMO_ACTIONS = /^\/api\/(watchlist\/(add|remove|pause|resume)|invest(\/(suggest|update|cancel|goal|goal\/remove))?|commands(\/(read|change|cancel))?|plan(\/(toggle|answer))?|symbol\/(verify|change)|session\/(start|reset)|ai\/(pause|resume|stop|analyze)|position\/(close|reduce)|risk\/profile|capital|proposals\/[\w-]+\/\w+|opportunities\/scan|helper(\/clear)?|settings)$/;
+  if (demoOnly) app.use((req, res, next) => {
+    if (['GET', 'HEAD'].includes(req.method)) return next();
+    const b = req.body || {};
+    const only = (o, k) => o && typeof o === 'object' && Object.keys(o).every((x) => x === k);
+    const ok = req.method === 'POST' && DEMO_ACTIONS.test(req.path) && (req.path !== '/api/settings' || (only(b, 'ai') && only(b.ai, 'autonomy'))) && (req.path !== '/api/watchlist/add' || desk.dataMode === 'DEMO');
+    if (!ok) return res.status(403).json({ error: 'Not part of the demo' });
+    if (/^\/api\/(session\/start|symbol\/(verify|change))$/.test(req.path)) { req.body = { ...b, demo: true }; delete req.body.mode; }
+    return next();
+  });
   app.use('/api/admin', (req, res, next) => (gatewayToken ? res.status(404).json({ error: 'Not found' }) : next()));
   app.get('/terminal', (req, res) => res.sendFile(path.join(ROOT, 'public', 'index.html')));
   app.get('/vendor/lightweight-charts.js', (req, res) => res.type('application/javascript').sendFile(path.join(ROOT, 'node_modules', 'lightweight-charts', 'dist', 'lightweight-charts.standalone.production.js')));
@@ -306,6 +322,23 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   app.post('/api/invest/goal/remove', wrap((req) => invest.removeGoal(String((req.body && req.body.id) || ''))));
   const investors = new InvestorService({ desk, lab, publicData, isCrypto, getBars: techBars, gatherImpl: (s) => require('./lab/facts').gather(s, { fetchImpl }) });
   app.get('/api/investors', wrap(() => investors.status()));
+  const earningsDate = publicData ? async (s) => { const { data } = await fetchJson(`https://api.nasdaq.com/api/analyst/${encodeURIComponent(s)}/earnings-date`, { headers: { 'User-Agent': 'market-data-client/1.0' }, timeoutMs: 15000, fetchImpl }); return parseEarningsDate(data && data.data && data.data.announcement); } : null;
+  let catalysts = [];
+  try { catalysts = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'research-snapshot.json'), 'utf8')).catalysts || []; } catch { /* no dated events */ }
+  opportunities = new OpportunityService({ store, desk, lab, investors, sharia, getBars: techBars, technical, catalysts, earningsDate, isCrypto, activity });
+  const helper = new HelperService({ store, lab, activity, getBundle: async () => {
+    if (!opportunities.scannedAt || Date.now() - opportunities.scannedAt > 120000) await opportunities.scan();
+    const st = desk.primary.publicState(); const s = opportunities.status(); const h = marketHours((desk.stockAgent() || {}).calendar, Date.now());
+    const now = Date.now(); const today = h.days.find((d) => d.open && now >= d.open && now < d.close); const next = h.days.find((d) => d.open && d.open > now); const open = !!today && !h.closedUntil;
+    const inv = invest.status();
+    return { session: s.session, live: s.live, wallet: st.portfolio || {}, positions: desk.positions().map((p) => ({ symbol: p.symbol, qty: p.qty, avgPrice: p.avgPrice, price: p.mark, unrealizedPnl: p.unrealizedPnl })), calls: s.items, record: s.record, hours: { open, closesAt: open ? today.close : null, opensAt: open ? null : h.closedUntil || (next && next.open) || null }, goals: ((inv && inv.goals) || []).map((g) => ({ name: g.name, target: g.amount, date: g.by })) };
+  } });
+  app.get('/api/opportunities', wrap(async () => { if (!opportunities.scannedAt) await opportunities.scan(); return opportunities.status(); }));
+  app.post('/api/opportunities/scan', wrap(async () => { await opportunities.scan(); return opportunities.status(); }));
+  app.post('/api/opportunities/review', wrap(async (req) => { await opportunities.review(req.body && req.body.symbol, req.body && req.body.lang); return opportunities.status(); }));
+  app.get('/api/helper', wrap(() => helper.status()));
+  app.post('/api/helper', wrap((req) => helper.ask(req.body)));
+  app.post('/api/helper/clear', wrap(() => helper.clear()));
   app.get('/api/chart', wrap(async (req) => {
     const tf = String(req.query.tf || '1d');
     const symbol = symQ(req) || (desk.primary && desk.primary.symbol);
@@ -782,7 +815,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
       try { activity.info('SYSTEM', 'Shutting down: new proposals are refused; waiting for in-flight work, then saving state', { source: 'server' }); } catch { /* ignore */ }
       for (const a of desk.all()) a.scheduler.stop();
       telegram.stop();
-      clearInterval(labTimer); clearInterval(planTimer); clearInterval(investTimer);
+      clearInterval(oppTimer); clearInterval(labTimer); clearInterval(planTimer); clearInterval(investTimer);
       lab.stop();
       // an analysis that is already running may finish; its proposal is refused because shuttingDown is set
       await Promise.race([desk.book.lock.tail, new Promise((r) => { const t = setTimeout(r, Math.min(10000, timeoutMs / 2)); if (t.unref) t.unref(); })]);
@@ -798,7 +831,15 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
     return stopping;
   }
 
-  return { app, server, wss, agent, desk, service, telegram, store, config, secrets, activity, auth, runtime: rt, start, stop, health, resources, setTelegramChat(id) { relayChat = id || null; telegram.restart(); } };
+  /** A demo opens with a wallet that already follows a few invented markets. */
+  async function openDemo() {
+    if (!demoOnly) return;
+    config.update({ ai: { autonomy: 'SEMI' } });
+    await desk.startTrading({ symbol: 'NVDA', initialCapital: 10000, demo: true });
+    for (const s of ['AAPL', 'MSFT', 'BTC/USD']) { try { await desk.addSymbol(s); } catch (e) { activity.warn(`${s} was not added: ${e.message}`); } }
+  }
+
+  return { openDemo, app, server, wss, agent, desk, service, telegram, store, config, secrets, activity, auth, runtime: rt, start, stop, health, resources, setTelegramChat(id) { relayChat = id || null; telegram.restart(); } };
 }
 
 /**

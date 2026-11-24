@@ -5,14 +5,14 @@ const { t, lang } = useLang()
 const L = (ar: string, en: string) => (lang.value === 'ar' ? ar : en)
 const route = useRoute()
 const home = computed(() => route.path === '/')
-const full = computed(() => home.value || /^\/brand\/?$/.test(route.path))
+const full = computed(() => home.value || /^\/(brand|demo)\/?$/.test(route.path))
 const menu = ref(false)
 watch(() => route.fullPath, () => { menu.value = false })
 const LINKS = computed(() => [['#products', L('المنتجات', 'Products')], ['#how', L('كيف تعمل', 'How it works')], ['#tools', L('الأدوات', 'Tools')], ['#sharia', L('الفحص الشرعي', 'Sharia screen')], ['#faq', L('أسئلة شائعة', 'Questions')]] as [string, string][])
 const COLS = computed(() => [
   [L('المنتجات', 'Products'), [['#products', L('الأسهم والعملات الرقمية', 'Stocks and crypto')], ['#tools', L('أدوات التحليل', 'Analysis tools')], ['#features', L('الأمان والخصوصية', 'Security and privacy')]]],
   [L('عن فرصة', 'About Forsah'), [['#how', L('كيف تعمل', 'How it works')], ['#sharia', L('الفحص الشرعي', 'Sharia screen')], ['#faq', L('أسئلة شائعة', 'Questions')], ['/brand', L('هوية العلامة', 'Brand kit')]]],
-  [L('حسابك', 'Your account'), [['#join', L('اطلب دعوة', 'Ask for an invitation')], ['/invite', L('أنشئ حسابك', 'Create your account')], ['/login', L('تسجيل الدخول', 'Sign in')]]],
+  [L('حسابك', 'Your account'), [['/demo', L('جرّب بلا حساب', 'Try without an account')], ['#join', L('اطلب دعوة', 'Ask for an invitation')], ['/invite', L('أنشئ حسابك', 'Create your account')], ['/login', L('تسجيل الدخول', 'Sign in')]]],
 ] as [string, [string, string][]][])
 </script>
 

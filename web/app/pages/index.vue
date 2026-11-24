@@ -41,7 +41,7 @@ const STEPPED = [38, 24, 60, 30, 14, 20, 46, 78, 58, 96] // column heights behin
       <div :class="wrap" class="relative flex flex-col items-center pt-12 text-center sm:pt-16">
         <h1 class="display">{{ L('افحص الفرصة', 'Check the opportunity') }} <span class="block text-sun">{{ L('قبل أن تنفّذها', 'before you take it') }}</span></h1>
         <p class="mt-4 max-w-[52ch] text-lg">{{ L('فرصة منصة عربية للتداول الورقي الآلي. تفحص كل سهم شرعيًا، وتضبط المخاطرة، ثم تنفّذ أو تنتظر موافقتك.', 'Forsah is an Arabic-first platform for automated paper trading. It screens every stock, limits the risk, then acts or waits for your approval.') }}</p>
-        <div class="mt-7 flex flex-wrap justify-center gap-3"><a href="#join" class="inline-flex h-13 items-center rounded-full bg-sun px-9 text-lg font-semibold text-sun-foreground transition-colors hover:bg-white">{{ L('اطلب دعوة', 'Ask for an invitation') }}</a><a href="#how" class="inline-flex h-13 items-center rounded-full border border-white/45 px-8 text-lg font-semibold transition-colors hover:bg-white hover:text-[#0d0f26]">{{ L('كيف تعمل', 'How it works') }}</a></div>
+        <div class="mt-7 flex flex-wrap justify-center gap-3"><a href="#join" class="inline-flex h-13 items-center rounded-full bg-sun px-9 text-lg font-semibold text-sun-foreground transition-colors hover:bg-white">{{ L('اطلب دعوة', 'Ask for an invitation') }}</a><NuxtLink to="/demo" class="inline-flex h-13 items-center rounded-full border border-white/45 px-8 text-lg font-semibold transition-colors hover:bg-white hover:text-[#0d0f26]">{{ L('جرّب بلا حساب', 'Try without an account') }}</NuxtLink></div>
         <HeroScene class="mt-11" />
       </div>
     </section>

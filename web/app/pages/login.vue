@@ -45,5 +45,6 @@ function back() { step.value = 'password'; password.value = ''; code.value = '';
       <UiButton type="submit" variant="default" size="lg" class="mt-6 w-full" :disabled="busy">{{ step === 'password' ? L('دخول', 'Sign in') : L('تأكيد', 'Confirm') }}</UiButton>
       <div class="mt-4 text-center text-sm text-muted-foreground"><template v-if="step === 'password'">{{ L('نسيت كلمة المرور؟ اطلب رابطًا جديدًا من فريق فرصة.', 'Forgot your password? Ask the Forsah team for a new link.') }}</template><button v-else type="button" class="font-medium text-primary hover:underline" @click="back">{{ L('الرجوع', 'Back') }}</button></div>
     </form>
+    <p class="mt-5 text-center">{{ L('ليس لديك حساب؟', 'No account?') }} <NuxtLink to="/demo" class="font-semibold text-primary underline">{{ L('جرّب فرصة', 'Try Forsah') }}</NuxtLink></p>
   </div>
 </template>

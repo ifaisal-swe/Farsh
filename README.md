@@ -1,25 +1,156 @@
-# AI Trading Terminal (paper trading only)
+<p align="center"><img src="docs/brand/readme/banner-ar.svg" alt="شعار فرصة" width="100%"></p>
 
-This is a local web terminal. It streams **real** US stock data from Alpaca, computes indicators and market structure itself, and asks **DeepSeek** for structured trade proposals. A deterministic risk engine checks every proposal before it can become a **simulated** trade, and every step shows up live on the dashboard.
+<div dir="rtl">
 
-> **Paper trading only.** No code path places, changes or cancels a brokerage order. Every request to `*.alpaca.markets` must be a read-only `GET`, and order and position endpoints are blocked outright (`server/util/http.js`, covered by a test). Alpaca keys are used only for market data, news, the market clock/calendar and asset lookup.
+<h1 align="center">افحص الفرصة قبل أن تنفّذها</h1>
 
-> **Always-on deployment:** to run it 24/7 on Railway (no PC or browser needed), follow
-> **[DEPLOYMENT.md](DEPLOYMENT.md)**. Section 13 below summarises the production architecture.
+<p align="center">منصة عربية للتداول الورقي الآلي. تفحص كل سهم شرعيًا، وتضبط المخاطرة، ثم تنفّذ أو تنتظر موافقتك.</p>
+
+<p align="center"><a href="#ابدأ-الآن">ابدأ الآن</a> · <a href="#كيف-تعمل">كيف تعمل</a> · <a href="#الضوابط">الضوابط</a> · <a href="#الهوية">الهوية</a> · <a href="#english">English</a> · <a href="#technical-reference">المرجع التقني</a></p>
+
+> [!IMPORTANT]
+> **تداول ورقي فقط.** كل الصفقات محاكاة، ولا يوجد في الشيفرة مسار يرسل أمرًا إلى وسيط. لا تَعِد المنصة بربح، والخسارة واردة حتى في المحاكاة، ومحتواها ليس نصيحة استثمارية.
+
+![الصفحة الرئيسية لفرصة](docs/brand/readme/landing-ar.webp)
+
+## ما فرصة؟
+
+تتابع فرصة أسعار السوق والأخبار، وتطلب من نموذج ذكاء اصطناعي اقتراحًا مشروحًا، ثم تمرره على فحص شرعي وحدود مخاطر ثابتة لا يستطيع النموذج تجاوزها. إذا اجتازها الاقتراح يصبح صفقة ورقية في محفظة افتراضية، مع وقف خسارة وهدف وسجل كامل لسبب القرار.
+
+## كيف تعمل
+
+| الخطوة | ما يحدث |
+|---|---|
+| <img src="web/public/brand/icons/trending-up.svg" width="24" alt=""> **تراقب** | أسعار وأخبار ومؤشرات محسوبة داخل المنصة من شموع مكتملة |
+| <img src="web/public/brand/icons/sparkles.svg" width="24" alt=""> **تقترح** | صفقة مشروحة: السبب، ومتى يتغير الرأي، وسعر الوقف والهدف |
+| <img src="web/public/brand/icons/shield-check.svg" width="24" alt=""> **تفحص** | الفحص الشرعي أولًا، ثم حدود المخاطر. نقص البيانات يمنع الشراء |
+| <img src="web/public/brand/icons/hand.svg" width="24" alt=""> **تنفّذ أو تنتظرك** | صفقة ورقية، أو طلب ينتظر موافقتك بحسب اختيارك |
+
+## المزايا
+
+| الميزة | ما تقدمه |
+|---|---|
+| <img src="web/public/brand/icons/wallet.svg" width="24" alt=""> **محفظة واحدة لعدة أسواق** | أسهم أمريكية وعملات رقمية فورية برصيد واحد وحدود واحدة |
+| <img src="web/public/brand/icons/clock.svg" width="24" alt=""> **ساعات السوق** | متى يفتح السوق ومتى يغلق، والوقت المتبقي، مع العطل والإغلاق المبكر |
+| <img src="web/public/brand/icons/chart-candlestick.svg" width="24" alt=""> **مكتب الرسم البياني** | شموع وقمم وقيعان مؤكدة ودعم ومقاومة وأنماط، بلا رسم لاحق |
+| <img src="web/public/brand/icons/landmark.svg" width="24" alt=""> **اختيار الأسهم** | قواعد منشورة لمستثمرين معروفين: تجتاز أو لا تجتاز أو غير معلومة |
+| <img src="web/public/brand/icons/newspaper.svg" width="24" alt=""> **فريق تحليل** | وكلاء مبنيون على Mastra يقرؤون الأدلة، وتُحذف أي جملة فيها رقم غير موجود فيها |
+| <img src="web/public/brand/icons/target.svg" width="24" alt=""> **أهداف وخطة محفظة** | توزيع على أهداف تحددها، بتنفيذ آلي أو بموافقتك أو اقتراحات فقط |
+| <img src="web/public/brand/icons/bell.svg" width="24" alt=""> **رفيق تيليجرام** | تقارير وتنبيهات وأسئلة بالعربية. لا يضع أمرًا ولا يلغيه |
+| <img src="web/public/brand/icons/user-check.svg" width="24" alt=""> **منصة مستضافة بالدعوة** | لكل حساب محرك وقاعدة بيانات ومفتاح تشفير مستقل، ودخول بخطوتين |
+
+## الضوابط
+
+- **لا أموال حقيقية.** كل طلب إلى الوسيط قراءة فقط، ونقاط الأوامر والمراكز محجوبة ومغطاة باختبار.
+- **الشرع قبل الشراء.** الدين والودائع أقل من 30% من القيمة السوقية، والدخل غير المباح أقل من 5% من الإيرادات، مع فحص النشاط. هذا فحص آلي أولي وليس فتوى.
+- **الحدود لا يتجاوزها الذكاء الاصطناعي.** خسارة يومية، وأقصى تراجع، وحجم مركز، ونسبة عائد إلى مخاطرة.
+- **البيع لا يُمنع.** يمنع الفحص الدخول فقط، ووقف الخسارة يعمل حتى لو توقف الذكاء الاصطناعي.
+- **لا بيانات مختلقة.** البيانات التجريبية موسومة بوضوح، ونقص البيانات يظهر كما هو.
+- **المفاتيح سرية.** تُحفظ مشفرة ولا تعود إلى المتصفح ولا تظهر في السجلات.
+
+## ابدأ الآن
+
+تحتاج **Node.js 22.13 أو أحدث**. ثبّت المتطلبات، وابنِ الواجهة، ثم شغّل:
+
+</div>
+
+```powershell
+npm install
+npm run web:build
+npm start
+```
+
+<div dir="rtl">
+
+افتح <code dir="ltr">http://localhost:8787/app</code>. في المنصة المستضافة تتيح صفحة <code dir="ltr">/demo</code> تجربة بلا حساب: محفظة مؤقتة بأسعار تجريبية تُمسح بعد ساعتين على الأكثر (<code dir="ltr">SAAS_DEMO_MAX=0</code> يوقفها). لتجربة الواجهة بلا مفاتيح اختر البيانات التجريبية **DEMO** عند بدء الجلسة. المفاتيح وخطوات الإعداد كلها في [المرجع التقني](#technical-reference).
+
+| الأمر | الغرض |
+|---|---|
+| `npm test` | كل الاختبارات |
+| `npm run saas` | المنصة المستضافة (بدعوات) |
+| `npm run web:dev` | تطوير الواجهة |
+| `npm run replay` | إعادة تشغيل يوم سابق |
+| `npm run db:check` | فحص سلامة قاعدة البيانات |
+| `npm run predeploy` | الاختبارات وفحص الإعداد قبل النشر |
+
+للنشر: [Railway](DEPLOYMENT.md) أو [خادمك الخاص](DEPLOYMENT-VPS.md).
+
+## بنية المشروع
+
+| المجلد | المحتوى |
+|---|---|
+| [server](server) | المحرك وبيانات السوق والمخاطر والفحص الشرعي والتحليل وتيليجرام والمنصة المستضافة |
+| [web](web) | الواجهة (Nuxt 4) بالعربية والإنجليزية |
+| [public](public) | الطرفية الأصلية |
+| [config](config) | الإعدادات الافتراضية وملف البحث المؤرخ |
+| [test](test) | الاختبارات |
+| [deploy](deploy) · [scripts](scripts) | النشر والنسخ الاحتياطي والأدوات |
+| [docs](docs) | دليل الهوية ووثائق التصميم |
+
+## الهوية
+
+صفحة الهوية <code dir="ltr">/brand</code> فيها الشعار والألوان والخطوط والأيقونات جاهزة للتنزيل. [الدليل PDF](docs/brand/forsah-brand-identity-ar.pdf) · [كل الملفات ZIP](web/public/brand/forsah-brand-kit.zip)
+
+![الألوان والخطوط في صفحة الهوية](docs/brand/readme/brand-ar.webp)
+
+<p align="center">
+<picture><source media="(prefers-color-scheme: dark)" srcset="web/public/brand/forsah-ar-white.svg"><img src="web/public/brand/forsah-ar.svg" alt="شعار فرصة" width="200"></picture>
+</p>
+
+| اللون | الرمز | الاستخدام |
+|---|---|---|
+| نيلي فرصة | <code dir="ltr">#4254F5</code> | الأساسي |
+| أصفر الشمس | <code dir="ltr">#FFD32E</code> | الفعل والنقطة، عُشر المساحة على الأكثر |
+| سماوي | <code dir="ltr">#6CBCFF</code> | مساند |
+| بنفسجي | <code dir="ltr">#6A45E0</code> | مساند |
+| كحلي | <code dir="ltr">#0D0F26</code> | الأقسام الداكنة |
+
+الخطوط: **Readex Pro** للعناوين والأرقام الكبيرة، و**IBM Plex Sans Arabic** للنصوص. لا يجتمع الشعاران العربي والإنجليزي في مساحة واحدة، ولا تُفصل النقطة عن الحرف. الأيقونات من Lucide برخصة ISC ([النص](web/public/brand/icons/LICENSE.txt)).
+
+</div>
 
 ---
 
-## 1. Quick start
+<p align="center"><img src="docs/brand/readme/banner-mark.svg" alt="Forsah mark" width="100%"></p>
+
+## English
+
+**Forsah** (Arabic for *opportunity*) is an Arabic-first platform for automated **paper trading**. It follows prices and news, asks an AI model for an explained proposal, then puts it through a Sharia screen and fixed risk limits that the model cannot override. What passes becomes a simulated trade, with a stop, a target and a full record of why, or waits for your approval.
+
+> [!IMPORTANT]
+> **Paper trading only.** No code path places, changes or cancels a brokerage order. Every request to `*.alpaca.markets` must be a read-only `GET`, and order and position endpoints are blocked outright ([`server/util/http.js`](server/util/http.js), covered by a test). Nothing here promises a profit or is investment advice; losses are possible even in simulation.
+
+**What is in it**
+
+- One paper wallet for several US stocks and spot crypto, with market hours and countdowns
+- Chart workspace, technical analysis, and stock picking by published investor rules
+- Analysis team built with Mastra; sentences with numbers that are not in the evidence are dropped
+- Sharia screen before every live-data entry, and four risk levels
+- Saving goals and a portfolio plan that acts, asks first, or only suggests
+- Arabic Telegram companion that can never place, change or cancel an order
+- Invite-only hosted mode with a separate engine, database and key per account, and two-factor login
+
+**Quick start:** Node.js 22.13+, then `npm install`, `npm run web:build`, `npm start`, and open `http://localhost:8787/app/`. Choose DEMO data to try it without keys. In hosted mode, `/demo` lets a visitor try it without an account: a separate temporary terminal with invented prices, no keys and no outside calls, erased within two hours (`SAAS_DEMO_MAX`, default 5 at once, `0` turns it off). Deploy with [Railway](DEPLOYMENT.md) or [your own VPS](DEPLOYMENT-VPS.md). Run `npm test` for the tests.
+
+**Brand:** the kit is at `/brand`; source files are in [`web/public/brand`](web/public/brand).
+
+---
+
+## Technical reference
+
+Alpaca keys are used only for market data, news, the market clock/calendar and asset lookup. Open a section to read it.
+
+<details>
+<summary><b>1. Setup, keys and first session</b></summary>
 
 Requirements: **Node.js 22.13 or newer** (developed and tested on Node 24.19). There is no native build step, because the database is Node's built-in `node:sqlite`.
 
 ```powershell
-cd ai-trading-terminal
 npm install
 npm start
 ```
 
-Then open **http://localhost:8787**.
+Then open **http://localhost:8787** for the original terminal described below, or **http://localhost:8787/app/** for the Nuxt interface (build it once with `npm run web:build`).
 
 The interface opens in **Arabic (right-to-left)** by default. Use the **العربية | English** switch in the top bar to change language instantly; the choice is remembered and also sets the language of new AI explanations.
 
@@ -48,9 +179,10 @@ npm test
 npm run replay -- --symbol NVDA --date 2026-11-18 --decider rules --capital 500
 ```
 
----
+</details>
 
-## 2. What you see
+<details>
+<summary><b>2. What you see</b></summary>
 
 > Layout (since the Arabic/RTL upgrade): a **top bar** (stock, price, market / data / AI status, trading controls, language switch), a **large central chart** (about 65-70% of the workspace on a 1920x1080 screen; ⇱ expands it to the full window, ⛶ enters fullscreen), a **resizable, collapsible side panel** (risk level, AI decision, AI chart explanation, portfolio, position, session setup, risk engine, scenarios, performance, news, DeepSeek usage) and a **resizable, collapsible bottom dock** (activity log, AI decisions, trade history, previous analyses, equity curve, indicators). In Arabic the side panel sits on the left (mirrored layout); the chart itself always runs left to right in time. The table below describes the panel contents.
 
@@ -64,12 +196,13 @@ npm run replay -- --symbol NVDA --date 2026-11-18 --decider rules --capital 500
 | **Watchlist (side panel, top)** | Every monitored symbol: price, % change, trend, last AI decision, open position and unrealized P&L, data source and freshness. Click a row to show that symbol on the chart; ❚❚ / ▶ pause or resume its AI monitoring; ✕ removes it (refused while it has a position or a pending order). Positions of all symbols appear under *Open positions* in the portfolio section. |
 | **Bottom right** | **AI Decision Explanations** (click for the full observable audit: triggers, data sent, indicators, news, AI request status, final proposal, each risk check pass/fail, execution result). **Equity curve vs buy & hold.** **Trades** (CSV export). **Indicators** (live values, with "unavailable" shown where data is insufficient). |
 
----
+</details>
 
-## 3. Architecture
+<details>
+<summary><b>3. Architecture</b></summary>
 
 ```
-public/                      HTML/CSS/JS dashboard (no secrets ever reach the browser)
+public/                      original HTML/CSS/JS terminal (no secrets ever reach the browser)
   index.html, css/terminal.css, js/{i18n,i18n-messages,util,explain,chart,settings,app}.js
 server/
   index.js                   entry point (.env loader)
@@ -102,7 +235,7 @@ server/
   trading/metrics.js         performance statistics
   db.js, secrets.js, config.js, activity.js
 config/default.json          non-secret defaults (risk limits, pricing, polling…)
-test/                        65 automated tests (node:test)
+test/                        automated tests (node:test)
 scripts/replay.js            historical replay CLI
 data/                        SQLite database, encrypted key store, replays (git-ignored)
 ```
@@ -111,9 +244,10 @@ data/                        SQLite database, encrypted key store, replays (git-
 
 The chart and market data never wait for the AI, and only one analysis runs at a time, so overlapping requests can never produce conflicting trades.
 
----
+</details>
 
-## 4. Market data (Alpaca), and what that honestly means
+<details>
+<summary><b>4. Market data (Alpaca), and what that honestly means</b></summary>
 
 | Setting `market.feed` | Label | Meaning |
 |---|---|---|
@@ -135,9 +269,10 @@ How the data is handled:
 - **Market closed.** The chart keeps the last real candles and shows the last price with its timestamp. No candles are generated and no per-minute updates are expected. Scheduled AI calls pause to save budget.
 - **Broad market.** SPY and QQQ snapshots are included in every AI snapshot.
 
----
+</details>
 
-## 5. DeepSeek integration (checked against api-docs.deepseek.com on 2026-11-19)
+<details>
+<summary><b>5. DeepSeek integration (checked against api-docs.deepseek.com on 2026-11-19)</b></summary>
 
 - **Models.** `deepseek-flash` (default; served by DeepSeek-V4.1-Flash) and `deepseek-v4-pro`. The settings dropdown is filled live from `GET /models`. `deepseek-chat` and `deepseek-reasoner` were discontinued on 2026-07-24 and are not used.
 - **Reasoning effort.** `none` / `low` / `high` / `max`, sent as `thinking:{type}` plus `reasoning_effort`. The model's hidden reasoning (`reasoning_content`) is **never displayed or stored**; only its size is counted. Live progress shows "reasoning (hidden) · N chars", then the structured answer.
@@ -146,11 +281,12 @@ How the data is handled:
 - **Costs.** Estimated from the documented peak / off-peak prices in `config/default.json → pricing`. Each request is checked against **max requests per minute** and the **daily USD budget** before it is sent. Errors 401 (invalid key), 402 (insufficient balance), 429 and 5xx are mapped to clear messages; 401 and 402 pause the AI, and protective orders keep running.
 - **Untrusted content.** News and web text are fenced as `untrusted_external_content`. The system prompt tells the model to ignore instructions inside them, and nothing the AI says bypasses validation and the risk engine.
 
----
+</details>
 
-## 6. Risk engine and simulated execution
+<details>
+<summary><b>6. Risk engine and simulated execution</b></summary>
 
-### Risk level (one control)
+#### Risk level (one control)
 
 The side panel's **مستوى المخاطرة / Risk level** selector sets every profile-controlled limit of the deterministic risk engine at once. These are configurable paper-trading presets, not investment advice and not "safe" settings:
 
@@ -166,7 +302,7 @@ The side panel's **مستوى المخاطرة / Risk level** selector sets ever
 | Loss streak -> cooldown | 2 -> 60 min | 3 -> 30 min | 4 -> 20 min | 5 -> 15 min |
 | Max entries per day | 4 | 8 | 12 | 20 |
 
-- The terminal trades **one symbol at a time**, so in practice at most one position is open whatever the profile allows; the UI says so.
+- The "max simultaneous positions" limit applies to all monitored symbols together, because they share one portfolio.
 - **Show advanced settings** reveals the individual values. Editing any of them marks the level **Custom (مخصص)**; editing them back to a preset's exact values selects that preset again.
 - **Per-trade risk is computed, not assumed:** entry (ask + slippage) minus stop, plus expected stop slippage, commissions, SEC fee and FINRA TAF, times the quantity. The engine records explicit `risk_per_trade` and `max_allocation` checks before any simulated order. Allocation (% of capital in the position) and risk (loss if the stop is hit) are separate limits.
 - **Switching levels while trading:** the new limits apply to new trades immediately; daily-loss and drawdown are re-checked at once. Existing positions are **never sold automatically**: an exposure review explains what exceeds the new limits (allocation, risk to stop, stop distance, daily loss, drawdown) and how many shares would have to be sold, and the user can confirm a reduction. Protective stops stay active and pending limit orders are re-validated before they can fill.
@@ -215,9 +351,10 @@ Protective orders are evaluated on every real trade and quote, independently of 
 
 **Strategies.** The AI chooses one of: momentum, breakout, support bounce, resistance rejection, VWAP, trend following, pullback, mean reversion, news-driven, or opening-range breakout. The app supplies deterministic evidence for each: detected signals, levels, opening range and VWAP. None of these strategies is assumed to be profitable, and "no trade" is a normal outcome.
 
----
+</details>
 
-## 6a. Chart technicals and AI annotations
+<details>
+<summary><b>6a. Chart technicals and AI annotations</b></summary>
 
 All chart annotations are computed by the application from **completed real candles** (`server/analysis/technicals.js`, shared by the server and the browser):
 
@@ -232,7 +369,10 @@ The **AI** receives these values in every snapshot (full detail for the analysis
 
 The **Chart layers** menu toggles highs/lows, support/resistance, trend lines & ranges, breakouts, candlestick patterns, executed trades, AI decisions, stop-loss and take-profit levels, moving averages (each one), momentum (RSI pane) and volume, with *Clean* and *Detailed* presets. The choice is stored in the browser. The **Previous analyses** tab keeps the history of AI assessments separate from executed trades.
 
-## 7. News
+</details>
+
+<details>
+<summary><b>7. News</b></summary>
 
 | Source | Status |
 |---|---|
@@ -245,9 +385,10 @@ The **Chart layers** menu toggles highs/lows, support/resistance, trend lines & 
 
 For every item the terminal records the source, publication time, retrieval time, relevance score and reason, duplicate detection (URL plus title similarity), verification class, estimated impact, and what was actually retrieved (headline / summary / filing metadata). The AI's bullish / bearish / neutral assessment is shown next to each item. News is never invented. Significant fresh news triggers a re-evaluation, subject to a cooldown and the API limits.
 
----
+</details>
 
-## 8. ANT (Anthropic) and newly listed stocks
+<details>
+<summary><b>8. ANT (Anthropic) and newly listed stocks</b></summary>
 
 `config/default.json` keeps a labelled reference for ANT: listed on Nasdaq on 2026-11-19 at an $83 offer price. This is **reference information only**; the live price always comes from the feed. For a stock with fewer than 5 daily bars, **IPO mode** turns on automatically:
 
@@ -259,9 +400,10 @@ For every item the terminal records the source, publication time, retrieval time
 
 If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 
----
+</details>
 
-## 9. Security and persistence
+<details>
+<summary><b>9. Security and persistence</b></summary>
 
 **Security**
 
@@ -277,11 +419,12 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 - On restart the active session is restored. If the AI was running, it resumes; disable this with `session.autoResumeAi`.
 - Exports: **trades CSV** (guarded against spreadsheet formula injection) and **activity + decisions JSON**.
 
----
+</details>
 
-## 10. Testing and replay
+<details>
+<summary><b>10. Testing and replay</b></summary>
 
-`npm test` runs 176 tests (sections 12 and 13 list what the November 2026 upgrades added; `test/production.test.js` and `test/providers.test.js` cover the Railway / dual-AI work). Besides the list below they cover risk levels and their enforcement, the no-auto-liquidation exposure review, look-ahead-free swings and break events, candlestick pattern conditions, AI-level verification, the Arabic prompt rules, and Arabic translation coverage of every activity message produced by the engine scenarios. The original suite covers:
+`npm test` runs the whole suite; PostgreSQL tests are skipped unless `PG_TEST_URL` is set (sections 12 and 13 list what the November 2026 upgrades added; `test/production.test.js` and `test/providers.test.js` cover the Railway / dual-AI work). Besides the list below they cover risk levels and their enforcement, the no-auto-liquidation exposure review, look-ahead-free swings and break events, candlestick pattern conditions, AI-level verification, the Arabic prompt rules, and Arabic translation coverage of every activity message produced by the engine scenarios. The original suite covers:
 
 - Indicators, structure and signals
 - Portfolio accounting identities, and long-only / no-margin enforcement
@@ -306,9 +449,10 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 - With `--decider deepseek`, the app prevents data look-ahead, but an LLM may still know about past events from its training.
 - A few simulated trades say nothing reliable about profitability. Every metrics view carries that warning until there is a meaningful sample.
 
----
+</details>
 
-## 11. Limitations and what was not verified
+<details>
+<summary><b>11. Limitations and what was not verified</b></summary>
 
 - **Not run against live services.** The real Alpaca and DeepSeek services were not exercised during development because no credentials were available. Both connectors are built from the current documentation and tested against local mock servers that speak the documented protocols. The first live run is your acceptance test, and any provider error is shown in the Activity panel.
 - **Alpaca quote sizes.** The stream docs say round lots; the REST docs say shares since 2025-11-03. The default is `shares`; switch to `round_lots` in Settings if fills look off.
@@ -318,24 +462,25 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 - **Language of stored text.** The server keeps its logs, exports and audit trail in English; the browser translates them through a message catalog (`public/js/i18n-messages.js`). A message the catalog does not know is shown in its original English, left to right. AI explanations are written in the language selected when the analysis ran, so older analyses keep their original language after you switch. News headlines are shown as published by the source; the AI's assessment of each item appears in the selected language.
 - **Doubling is not expected.** The +100% target is an objective, not a promise. Expect many WAIT / NO TRADE decisions, and losses are possible even in simulation.
 
----
+</details>
 
-## 12. November 2026 upgrade: watchlist, overnight data, AI cost control, Telegram
+<details>
+<summary><b>12. November 2026 upgrade: watchlist, overnight data, AI cost control, Telegram</b></summary>
 
-### Multi-symbol watchlist and one shared portfolio
+#### Multi-symbol watchlist and one shared portfolio
 
 - Add symbols from the **Watchlist** panel (or Telegram `/addstock`). Each symbol has its own candles, indicators, AI analysis, levels, decisions and data-freshness state. All symbols share **one** WebSocket connection and **one** virtual portfolio: same cash, same risk limits, same accounting for the web dashboard and Telegram.
 - The session's first symbol is the *main* symbol. It cannot be removed, but its monitoring can be paused.
 - Removing a symbol never closes a position. It is refused while the symbol has an open position or a pending order, and its trade history is kept.
 - Pausing a symbol stops new AI analysis and new entries for it. Market data, stop-loss, take-profit and trailing stops keep running.
 
-### Orders ledger and trade history
+#### Orders ledger and trade history
 
 - Proposals, orders, executions and positions are stored separately. Every order has its own id and status: `PENDING`, `PARTIALLY_FILLED`, `FILLED`, `REJECTED` (with the risk-engine reason), `CANCELLED` or `EXPIRED`. Every fill links to its order.
 - Fills recorded before the upgrade are migrated once to `FILLED` orders with ids `ord_m_<fillId>`.
 - The **Trade history** tab switches between *Executions* and *Orders* and filters by symbol, period, BUY/SELL, profit/loss, strategy and order status. The CSV export applies the same filters.
 
-### Extended hours and overnight
+#### Extended hours and overnight
 
 - The calendar knows pre-market (04:00–09:30 ET), regular hours, after-hours (16:00–20:00) and the **overnight** session (20:00–04:00, Sunday to Thursday nights before a trading day), including DST, weekends, holidays and early closes.
 - Overnight prices come from the Alpaca `overnight` snapshot feed (free plans: indicative quotes and 15-minute-delayed trades), or from Alpaca BOATS on a paid plan, then from Tiingo as a fallback. They are polled over REST, because Alpaca's overnight WebSocket was reported inactive.
@@ -343,7 +488,7 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 - Overnight simulated execution stays **suspended** (`execution.overnight`), because the free sources carry no execution-quality quotes.
 - The chart's **Extended & overnight hours** layer shows or hides non-regular bars. Pre-market and after-hours are shaded amber; overnight is shaded purple. Overnight candles come only from actual Alpaca BOATS minute bars (delayed on free plans) and are drawn in a muted purple.
 
-### AI cost control (DeepSeek or Gemini)
+#### AI cost control (DeepSeek or Gemini)
 
 - **Usage modes**, all with identical risk protections:
   - **ECONOMY**: review hourly, at most 2 analyses per symbol per hour and 40 per day, no candle-close trigger, no web research.
@@ -355,7 +500,7 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 - Limits: per-symbol hourly, daily cap, daily budget and monthly budget. After an API error the AI backs off exponentially. While the AI is unavailable, monitoring and protective orders continue but no new AI decisions are made.
 - The **AI usage** tab shows today/month requests, tokens, estimated spend, remaining configured budget, requests avoided by the cache, last analysis, API status and recent errors. The budget is a spending cap you set; it says nothing about free quota at the provider.
 
-### Telegram companion bot (Arabic)
+#### Telegram companion bot (Arabic)
 
 Setup:
 
@@ -386,11 +531,11 @@ Notifications (fills, order rejections, proposals, risk limits, AI pauses and er
 
 The bot can never place, change or cancel an order, and the whole platform never sends anything to a brokerage.
 
-### New database tables
+#### New database tables
 
 `orders`, `watchlist`, `ai_cache`, `ai_avoided`, `tg_notifications`, `tg_audit`, `tg_nonces`, `tg_state`, plus an `orderId` link on fills (migrated automatically and safely on first start).
 
-### New tests
+#### New tests
 
 The upgrade added these suites:
 
@@ -399,9 +544,10 @@ The upgrade added these suites:
 
 **Not verified:** none of Gemini, Tiingo, Alpaca overnight/BOATS or Telegram was called live, because no credentials were available. Those connectors are tested against faked HTTP responses that follow the providers' documentation.
 
----
+</details>
 
-## 13. Production architecture (Railway, always on)
+<details>
+<summary><b>13. Production architecture (Railway, always on)</b></summary>
 
 The browser is **only a view**. One Node.js process is the single authoritative backend. It contains:
 
@@ -417,7 +563,7 @@ The browser is **only a view**. One Node.js process is the single authoritative 
 Opening a dashboard never starts an engine. Closing every tab stops nothing. Ten browsers see the same
 engine and the same portfolio.
 
-### AI Provider Manager (DeepSeek and Gemini)
+#### AI Provider Manager (DeepSeek and Gemini)
 
 The manager lives in `server/ai/providerManager.js`.
 
@@ -453,7 +599,7 @@ The manager lives in `server/ai/providerManager.js`.
   - The existing cost controls stay in place: local event detection, the per-symbol analysis cache with
     state hashing, news de-duplication and the usage modes.
 
-### Operating states (persisted, independent)
+#### Operating states (persisted, independent)
 
 | State | Values |
 |---|---|
@@ -463,7 +609,7 @@ The manager lives in `server/ai/providerManager.js`.
 
 All three appear in the dashboard header and in Telegram `/status`. Closing a page never changes them.
 
-### Startup and recovery (`server/index.js`, `server/app.js`)
+#### Startup and recovery (`server/index.js`, `server/app.js`)
 
 At startup the app runs these steps in order:
 
@@ -489,7 +635,7 @@ Recovery rules:
 - No fills are reconstructed for the downtime.
 - A run that did not shut down cleanly is detected and reported, including on Telegram.
 
-### Integrity and duplicate protection
+#### Integrity and duplicate protection
 
 - One engine owns the portfolio.
 - Analyses for all symbols are serialised.
@@ -497,7 +643,7 @@ Recovery rules:
 - A decision can create at most one live entry order (idempotency check).
 - A watchlist symbol can no longer overwrite the session's main symbol (bug fixed in this upgrade).
 
-### Security
+#### Security
 
 - **Single-user login:**
   - scrypt password hash (`npm run hash-password`);
@@ -513,7 +659,7 @@ Recovery rules:
 - Secrets come from Railway Variables or the encrypted store. They are never sent to the browser and are
   redacted from logs.
 
-### Health, resources, events
+#### Health, resources, events
 
 | Endpoint / feature | Purpose |
 |---|---|
@@ -523,7 +669,7 @@ Recovery rules:
 | `/api/system/resources` | Memory, CPU, event-loop delay, DB size, subscriptions, queues, AI usage per provider. Shown in the **Resources & services** tab. |
 | `app_events` | Every application event is stored with a sequence number. A dashboard that reconnects fetches `/api/events?after=<seq>` and shows **"While you were away"**. |
 
-### Shutdown
+#### Shutdown
 
 On SIGTERM or SIGINT the app:
 
@@ -535,7 +681,7 @@ On SIGTERM or SIGINT the app:
 
 Set `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30` on Railway: Railway's default is 0 seconds before SIGKILL.
 
-### Backups, import, retention
+#### Backups, import, retention
 
 - **Scheduled backups:** verified `VACUUM INTO` copies in `<data>/backups`, every 24 hours, keeping 7.
 - **Dashboard:** "Back up now", "Download a database copy" and "Integrity & accounting check".
@@ -549,7 +695,7 @@ Set `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30` on Railway: Railway's default is 0 
 - **Retention:** prunes only the activity log, app events and market snapshots. Fills, orders, decisions,
   sessions and AI usage are never pruned. Snapshots behind decisions that produced orders are kept.
 
-### Deployment files
+#### Deployment files
 
 | File | Content |
 |---|---|
@@ -563,26 +709,37 @@ There is **no** `railway.json`: Railway deprecated Config as Code (new services 
 stops on 2026-12-01). The few service settings are set in the Railway dashboard, as DEPLOYMENT.md
 explains.
 
+</details>
 
----
-
-## Nuxt interface, Sharia screen and research page
+<details>
+<summary><b>Nuxt interface, Sharia screen and research page</b></summary>
 
 - **Build:** `npm run web:build`, then open `http://localhost:8787/app/` (same login as the terminal). For development run the server and `npm run web:dev`. Session setup, credentials and settings are on the Settings page. The original terminal stays at `/` (and `/terminal`).
 - **Sharia screen** (`server/sharia/screener.js`): new entries on live data need a PASS. Limits: debt and deposits below 30% of market cap, impermissible income below 5% of revenue, plus a business-activity check. Data comes from SEC EDGAR and needs the SEC User-Agent. Missing or expired data blocks buying; exits are never blocked and nothing is sold automatically. Stocks whose filings do not report interest income separately stay unresolved until a sourced ruling is recorded. This is an automated pre-screen, not a fatwa.
 - **Alerts:** a status change sends a `SHARIA_STATUS` Telegram alert (high priority when the stock is held).
 - **Research:** `config/research-snapshot.json` is a dated, sourced snapshot. It does not update itself and never feeds trading decisions.
 
-## Hosted platform (closed registration)
+</details>
+
+<details>
+<summary><b>Hosted platform (closed registration)</b></summary>
 
 Run `npm run saas` (or set `SAAS_MODE=1`) with `SAAS_ADMIN_EMAIL`, `SAAS_ADMIN_PASSWORD` (12+ characters) and, in public, `APP_BASE_URL`. Optional: `SAAS_DATA_DIR`, `SAAS_MAX_TENANTS` (default 25). Landing page `/`, sign-in `/login`, operator page `/admin` (create invitation links and send them yourself; no e-mail is sent). Each account has its own engine, database, encryption key and API keys, in its own process that is restarted after a crash (`SAAS_TENANT_MEMORY_MB`, default 384, limits each one). Back up the whole data directory, including every `master.key`. Operators issue one-hour password-reset links; customers can change their password and turn on two-factor login (TOTP) in Settings. Not included: billing and automatic e-mail.
 
-## Crypto
+</details>
+
+<details>
+<summary><b>Crypto</b></summary>
 
 Spot USD pairs from Alpaca (for example `BTC/USD`), as the main symbol or in the watchlist. Open 24/7, fractional, 0.25% simulated fee, one venue. Blocked by the Sharia gate until a sourced ruling is recorded.
 
 PostgreSQL: set `SAAS_DATABASE_URL` (UTF8 database; a role that may create roles and schemas). Accounts live in schema `control`; every customer gets a schema and login role of their own, with a password derived from `tenant-db.key`. To move existing data, stop the platform and run `npm run pg:import`; the platform refuses to start on PostgreSQL while unmoved SQLite data exists. Back up `accounts.key`, `tenant-db.key` and every `master.key` separately from the database. Without `SAAS_DATABASE_URL` everything stays in SQLite.
 
-## Design system
+</details>
+
+<details>
+<summary><b>Design system</b></summary>
 
 `web/app/assets/main.css` holds the light and dark tokens; `web/app/components/ui` holds shadcn-style components on Base UI (`base-ui-vue`) and Tailwind CSS. Base UI for Vue has no Select or Dialog yet: those use shadcn's native select pattern and the browser's `<dialog>`. `/` (landing), `/login`, `/invite`, `/reset` and `/admin` are Nuxt pages served by the hosted gateway; `/app/*` is the product.
+
+</details>

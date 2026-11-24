@@ -19,6 +19,7 @@ const { Supervisor } = require('./supervisor');
 const { Provisioner } = require('./provision');
 const { PlatformServices } = require('./services');
 const { TelegramHub } = require('./telegramHub');
+const { Demos, COOKIE: DEMO } = require('./demo');
 
 const COOKIE = 'dt_account';
 const { sendWebPage, webAssets, brandAssets, ASSETS } = require('../webpage');
@@ -53,11 +54,13 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   } : {}), root: path.join(root, 'tenants'), max: maxTenants, memoryMb: Math.max(128, Number(env.SAAS_TENANT_MEMORY_MB) || 384), ...supervisor });
   const sockets = new Map(); // user id -> Set<socket>
   let stopping = false;
+  const closeSockets = (id) => { for (const s of sockets.get(id) || []) s.destroy(); sockets.delete(id); };
+  const maxDemos = env.SAAS_DEMO_MAX === undefined || env.SAAS_DEMO_MAX === '' ? 5 : Math.max(0, Number(env.SAAS_DEMO_MAX) || 0); // 0 turns the demo off
+  const demos = new Demos({ root: path.join(root, 'demos'), max: maxDemos, supervisor, onEnd: closeSockets, now });
   const tenant = (id) => tenants.get(id);
   const hub = botToken ? new TelegramHub({ token: botToken, accounts, fetchImpl: telegramFetch, onLink: (id, chatId) => tenants.tell(id, { type: 'telegram-chat', chatId }), deliver: async (id, update) => { await tenant(id); tenants.tell(id, { type: 'telegram-update', update }); } }) : null;
   async function stopTenant(id) {
-    for (const s of sockets.get(id) || []) s.destroy();
-    sockets.delete(id);
+    closeSockets(id);
     await tenants.stop(id);
   }
 
@@ -73,6 +76,9 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   // same-origin only: the Origin must name the host the request was sent to
   const originOk = (req) => { const o = req.headers.origin; if (!o) return true; try { return new URL(o).host.toLowerCase() === String(req.headers.host).toLowerCase(); } catch { return false; } };
   const userOf = async (req) => accounts.session(parseCookies(req.headers.cookie)[COOKIE]);
+  const demoOf = (req) => demos.find(parseCookies(req.headers.cookie)[DEMO]);
+  /** The terminal of this request: the signed-in account's own, or else the visitor's demo. */
+  const ownerOf = async (req) => { const u = await userOf(req); if (u) return { id: u.id, open: () => tenant(u.id) }; const d = demoOf(req); return d ? { id: d.id, demo: true, open: () => { demos.touch(d); return demos.tenants.get(d.id); } } : null; };
 
   app.get('/health/live', (req, res) => res.set('Cache-Control', 'no-store').json({ status: 'ok' }));
   app.get('/health/ready', (req, res) => res.set('Cache-Control', 'no-store').status(stopping ? 503 : 200).json({ status: stopping ? 'stopping' : 'ready' }));
@@ -88,7 +94,7 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   app.get('/brand', sendWebPage); // the page; files are below it
   app.use('/brand', ...brandAssets());
   app.get('/login', async (req, res, next) => ((await userOf(req)) ? res.redirect(302, '/app') : next()));
-  app.get(['/', '/login', '/invite', '/reset'], sendWebPage);
+  app.get(['/', '/login', '/invite', '/reset', '/demo'], sendWebPage);
 
   const json = express.json({ limit: '10kb' });
   const wrap = (fn) => async (req, res) => {
@@ -101,6 +107,17 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
     const u = await accounts.register({ token: b.token, email: b.email, password: b.password, ip: req.ip });
     signIn(req, res, await accounts.login({ email: u.email, password: b.password, ip: req.ip }));
   }));
+  // ---------- the demo: no account, no keys, erased when it ends
+  app.get('/demo/status', wrap(async (req) => { const d = demoOf(req); return { available: maxDemos > 0, signedIn: !!(await userOf(req)), running: !!d, endsAt: d ? demos.endsAt(d) : null }; }));
+  app.post('/demo/start', wrap(async (req, res) => {
+    if (stopping || !maxDemos) throw Object.assign(new Error('The demo is not available right now'), { status: 503 });
+    const d = demoOf(req);
+    if (d) return { endsAt: demos.endsAt(d) };
+    const s = await demos.start(req.ip);
+    res.cookie(DEMO, s.token, { httpOnly: true, sameSite: 'strict', secure: rt.secureCookies || req.secure, path: '/', maxAge: demos.maxMs });
+    return { endsAt: s.endsAt };
+  }));
+  app.post('/demo/end', wrap(async (req, res) => { const d = demoOf(req); res.clearCookie(DEMO, { path: '/' }); if (d) await demos.end(d); }));
   app.post('/account/request', json, wrap(async (req) => { await accounts.requestInvite((req.body || {}).email, req.ip); }));
   app.get('/account/telegram', wrap(async (req) => { const u = await me(req); return { available: !!hub, linked: !!(await accounts.telegramChat(u.id)) }; }));
   app.post('/account/telegram/link', json, wrap(async (req) => { const u = await me(req); if (!hub) throw Object.assign(new Error('Telegram is not available right now'), { status: 503 }); return hub.link(u.id); }));
@@ -138,15 +155,15 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
     return { host: '127.0.0.1', port: t.port, method: req.method, path: target, headers };
   }
   app.use(async (req, res) => {
-    const u = await userOf(req);
+    const u = await ownerOf(req);
     if (!u) {
-      if (req.method === 'GET' && /^\/(app|terminal)(\/|$)/i.test(req.path)) return res.redirect(302, '/login');
+      if (req.method === 'GET' && /^\/(app|terminal)(\/|$)/i.test(req.path)) return res.redirect(302, parseCookies(req.headers.cookie)[DEMO] ? '/demo' : '/login');
       return res.status(401).json({ error: 'Login required' });
     }
     // the detailed technical interface is not part of the hosted product
     if (req.method === 'GET' && /^\/(terminal|index\.html)(\/|$)/i.test(req.path)) return res.redirect(302, '/app');
     let t;
-    try { t = await tenant(u.id); } catch (e) { return res.status(e.status || 500).json({ error: e.status ? e.message : 'Your terminal could not be started' }); }
+    try { t = await u.open(); } catch (e) { return res.status(e.status || 500).json({ error: e.status ? e.message : 'Your terminal could not be started' }); }
     const up = http.request(forward(req, t, req.originalUrl), (r) => {
       const h = { ...r.headers };
       for (const k of [...HOP, 'set-cookie', 'strict-transport-security']) delete h[k];
@@ -167,10 +184,10 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   server.on('upgrade', async (req, socket, head) => {
     socket.on('error', () => socket.destroy());
     let u = null;
-    try { u = hostOk(req) && req.headers.origin && originOk(req) && req.url === '/ws' ? await userOf(req) : null; } catch { u = null; }
+    try { u = hostOk(req) && req.headers.origin && originOk(req) && req.url === '/ws' ? await ownerOf(req) : null; } catch { u = null; }
     if (!u) { socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n'); return; }
     let t;
-    try { t = await tenant(u.id); } catch { socket.destroy(); return; }
+    try { t = await u.open(); } catch { socket.destroy(); return; }
     if (socket.destroyed) return;
     const o = forward(req, t, '/ws');
     Object.assign(o.headers, { connection: 'Upgrade', upgrade: 'websocket' });
@@ -185,6 +202,7 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
       us.pipe(socket).pipe(us);
       const set = sockets.get(u.id) || new Set();
       sockets.set(u.id, set);
+      socket.dtDemo = u.demo ? parseCookies(req.headers.cookie)[DEMO] : null;
       socket.dtCookie = parseCookies(req.headers.cookie)[COOKIE];
       set.add(socket);
       socket.on('close', () => { set.delete(socket); us.destroy(); });
@@ -193,16 +211,17 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   });
   // a signed-out or expired session loses its live connection too
   const sweep = setInterval(async () => {
-    for (const set of sockets.values()) for (const s of [...set]) { try { if (!(await accounts.session(s.dtCookie))) s.destroy(); } catch { s.destroy(); } }
+    for (const set of sockets.values()) for (const s of [...set]) { try { if (s.dtDemo ? !demos.find(s.dtDemo) : !(await accounts.session(s.dtCookie))) s.destroy(); } catch { s.destroy(); } }
   }, 60000);
   sweep.unref();
 
   return {
-    accounts, tenant, tenants, server,
+    accounts, tenant, tenants, demos, server,
     async start() {
       const oldAccounts = path.join(root, 'accounts.db');
       if (provisioner && fs.existsSync(oldAccounts) && !fs.existsSync(`${oldAccounts}.migrated`)) throw Object.assign(new Error('The accounts are still in SQLite: run npm run pg:import'), { code: 'CONFIG' });
       await accounts.init();
+      demos.init();
       await accounts.ensureAdmin(env.SAAS_ADMIN_EMAIL, env.SAAS_ADMIN_PASSWORD);
       await new Promise((res, rej) => { server.once('error', rej); server.listen(port != null ? port : rt.port, rt.host, res); });
       // monitoring and alerts must survive a restart without anyone opening a browser
@@ -215,7 +234,7 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
       clearInterval(sweep);
       if (hub) await hub.stop();
       for (const set of sockets.values()) for (const s of set) s.destroy();
-      await tenants.stopAll();
+      await Promise.all([tenants.stopAll(), demos.stopAll()]);
       await new Promise((r) => { server.close(r); server.closeAllConnections(); });
       if (provisioner) await provisioner.close();
       await accounts.close();

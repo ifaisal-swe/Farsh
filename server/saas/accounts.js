@@ -11,6 +11,7 @@ const path = require('node:path');
 const { hashPassword, verifyPassword, LoginLimiter } = require('../auth');
 const { SqliteDatabase, PostgresDatabase } = require('./database');
 const totp = require('./totp');
+const { AuthEngine } = require('./authEngine');
 
 const DAY = 86400000;
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -46,11 +47,10 @@ class Accounts {
     this.limiter = new LoginLimiter({ now });
     this.requests = new LoginLimiter({ now, global: 200 }); // separate, so a flood of requests can never lock anyone out of login
     this.key = this.loadKey(keyDir || (file === ':memory:' ? null : path.dirname(file)));
-    // verified against when the e-mail is unknown, so the response time does not reveal which accounts exist
-    this.dummy = hashPassword(token());
+    this.auth = new AuthEngine({ db: this.db, key: this.key, rules: this }); // Better Auth: sign-in and sessions
   }
 
-  async init() { await this.db.migrate(SCHEMA); }
+  async init() { await this.db.migrate(SCHEMA); await this.auth.load(); }
 
   /** Two-factor secrets are encrypted at rest; the key is a file, never in the database. */
   loadKey(dir) {
@@ -228,21 +228,21 @@ class Accounts {
   // ------------------------------------------------------------------ sessions
   async login({ email, password, code, ip = '' }) {
     const ok = this.attempt(ip);
-    const u = await this.byEmail(String(email || '').trim().toLowerCase());
-    const right = typeof password === 'string' && password.length <= 200 && verifyPassword(password, u ? u.hash : this.dummy);
-    if (!u || !right || u.status !== 'ACTIVE') throw fail(401, 'Wrong e-mail or password');
-    if (await this.hasTotp(u.id)) {
+    const n = this.now();
+    await this.db.q('DELETE FROM sessions WHERE expires_at < ? OR seen_at < ?', [n, n - this.idleMs]);
+    let u = null;
+    // an unusable password is replaced by a random one, so the answer takes as long as for any other wrong password
+    const usable = typeof password === 'string' && password && password.length <= 200;
+    const t = await this.auth.signIn(String(email || '').trim().toLowerCase(), usable ? password : token(), async (id) => {
+      u = await this.byId(id);
+      if (!u || u.status !== 'ACTIVE') throw fail(401, 'Wrong e-mail or password');
+      if (!(await this.hasTotp(u.id))) return;
       if (!code) { ok(); throw fail(401, 'Two-factor code required'); }
       const okCode = this.attempt(`code:${u.id}`);
       if ((await this.useCode(u.id, code)) !== true) throw fail(401, 'Wrong code');
       okCode();
-    }
-    const t = token();
-    const n = this.now();
-    await this.db.q('DELETE FROM sessions WHERE expires_at < ? OR seen_at < ?', [n, n - this.idleMs]);
-    // only if the account is still active and the password was not changed meanwhile
-    const made = await this.db.q("INSERT INTO sessions SELECT CAST(? AS TEXT), id, CAST(? AS BIGINT), CAST(? AS BIGINT) FROM users WHERE id = ? AND status = 'ACTIVE' AND hash = ?", [sha(t), n, n + this.maxMs, u.id, u.hash]);
-    if (made.count !== 1) throw fail(401, 'Wrong e-mail or password');
+    });
+    if (!t || !u) throw fail(401, 'Wrong e-mail or password');
     await this.audit('login', { actor: u.id, ip });
     ok();
     return { token: t, user: u };
@@ -251,10 +251,11 @@ class Accounts {
   async session(t) {
     if (!t || t.length > 200) return null;
     const n = this.now();
-    const r = await this.one('SELECT s.seen_at, s.expires_at, u.id, u.email, u.role, u.status FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.hash = ?', [sha(t)]);
-    if (!r || r.status !== 'ACTIVE' || r.expires_at < n || n - r.seen_at > this.idleMs) return null;
-    if (n - r.seen_at > 300000) await this.db.q('UPDATE sessions SET seen_at = ? WHERE hash = ?', [n, sha(t)]);
-    return { id: r.id, email: r.email, role: r.role };
+    const r = await this.auth.session(t);
+    const u = r && (await this.byId(r.userId));
+    if (!u || u.status !== 'ACTIVE') return null;
+    if (n - r.seenAt > 300000) await this.db.q('UPDATE sessions SET seen_at = ? WHERE hash = ?', [n, sha(t)]);
+    return { id: u.id, email: u.email, role: u.role };
   }
 
   async logout(t) { if (t) await this.db.q('DELETE FROM sessions WHERE hash = ?', [sha(t)]); }

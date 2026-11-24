@@ -173,6 +173,7 @@ const DAY = 86400000;
 /** Keeps company facts for half a day and fetches them one symbol at a time. */
 class InvestorService {
   constructor({ desk, lab, getBars, publicData = false, gatherImpl, isCrypto, now = Date.now }) { Object.assign(this, { desk, lab, getBars, publicData, gatherImpl, isCrypto, now }); this.facts = new Map(); this.busy = null; this.bench = null; }
+  lensOf(facts, bars) { return lens({ bars, bench: (this.bench && this.bench.bars) || [], facts }); }
   wants(a) { return this.publicData && a.dataMode === 'LIVE' && !this.isCrypto(a.symbol); }
   fresh(x) { return x && this.now() - x.at < (x.facts ? DAY / 2 : 900000); }
   async fill() {

@@ -9,7 +9,7 @@ const { esc, money, signedMoney, price, pct, qty, label } = F;
 
 const CATEGORY = {
   FILL_EXECUTED: 'trades', ORDER_PENDING: 'trades', ORDER_CANCELLED: 'trades', ORDER_EXPIRED: 'trades', ORDER_REJECTED: 'trades', PROPOSAL: 'trades',
-  DECISION_CHANGED: 'ai', AI_STATE: 'ai', AI_PAUSED_ERROR: 'ai', AI_PROVIDER_DOWN: 'ai', AI_PROVIDER_RECOVERED: 'ai',
+  OPPORTUNITY: 'ai', DECISION_CHANGED: 'ai', AI_STATE: 'ai', AI_PAUSED_ERROR: 'ai', AI_PROVIDER_DOWN: 'ai', AI_PROVIDER_RECOVERED: 'ai',
   RISK_LIMIT: 'risk', SHARIA_STATUS: 'risk',
   NEWS_MATERIAL: 'news',
   DATA_UNRELIABLE: 'data', DATA_RECOVERED: 'data', ENGINE_STARTED: 'data', ENGINE_UNCLEAN_RESTART: 'data', ENGINE_CHECK_FAILED: 'data',
@@ -108,6 +108,19 @@ function renderEvent(ev, { tz = F.DEFAULT_TZ, redact = (s) => s } = {}) {
       if (f.id != null && SAFE_ID.test(String(f.id))) rows.push(['📋 تفاصيل الصفقة', `td:${f.id}`]);
       rows.push(['💼 المحفظة', 'pf']);
       markup = kb(rows);
+      break;
+    }
+    case 'OPPORTUNITY': {
+      const sell = d.action === 'SELL' || d.action === 'SELL_PART';
+      lines.push(sell ? `🔔 <b>${d.action === 'SELL' ? 'وقت البيع' : 'وقت بيع جزء'}</b>` : `✨ <b>فرصة ${d.action === 'BUY' ? 'شراء الآن' : 'شراء عند سعر محدد'}</b>`);
+      lines.push('');
+      lines.push(ln('السهم', sym(ev.symbol)));
+      lines.push(ln('السعر الآن', price(d.price)));
+      if (!sell && F.isNum(d.entry)) { lines.push(ln('شراء عند', price(d.entry))); lines.push(ln('وقف الخسارة', price(d.stop))); lines.push(ln('الهدف', price(d.target))); }
+      if (d.why && d.why.ar) lines.push(ln('السبب', esc(F.clip(d.why.ar, 300))));
+      lines.push('لا ربح مضمون، والوقف يحدد خسارتك.');
+      lines.push(timeLine(ts, tz));
+      lines.push(PAPER);
       break;
     }
     case 'ORDER_PENDING':
