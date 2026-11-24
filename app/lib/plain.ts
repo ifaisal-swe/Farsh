@@ -1,0 +1,71 @@
+// Turns what the server reports into plain sentences. Pages show these and never the raw codes or messages.
+type P = [string, string]
+const pick = (m: Record<string, P>, k: any, ar: boolean, d: P = ['—', '—']) => (m[k] || d)[ar ? 0 : 1]
+const AUTO: Record<string, P> = { IDLE: ['لم يبدأ', 'Not started'], STOPPED: ['متوقف', 'Stopped'], PAUSED: ['متوقف مؤقتًا', 'Paused'], RUNNING: ['يعمل', 'On'], ANALYZING: ['يحلل الآن', 'Analyzing'], MARKET_CLOSED: ['ينتظر افتتاح السوق', 'Waiting for the market'], NO_DATA: ['ينتظر الأسعار', 'Waiting for prices'], HALTED: ['تداول السهم موقوف', 'Stock halted'], RISK_PAUSE: ['الشراء متوقف مؤقتًا', 'Buying paused'], TRADING_DISABLED: ['متوقف لحماية المحفظة', 'Stopped to protect you'], AI_ERROR: ['متوقف مؤقتًا', 'Paused'] }
+const MARKET: Record<string, P> = { REGULAR: ['مفتوح', 'Open'], PRE: ['قبل الافتتاح', 'Before open'], POST: ['بعد الإغلاق', 'After close'], OVERNIGHT: ['الجلسة الليلية', 'Overnight'], CLOSED: ['مغلق', 'Closed'], CRYPTO: ['مفتوح دائمًا', 'Always open'] }
+const ACTION: Record<string, P> = { BUY: ['شراء', 'Buy'], SELL: ['بيع', 'Sell'], HOLD: ['احتفاظ', 'Hold'], WAIT: ['انتظار', 'Wait'], NO_TRADE: ['لا تداول', 'No trade'], WAITING_FOR_BREAKOUT: ['انتظار صعود', 'Waiting for a rise'], WAITING_FOR_PULLBACK: ['انتظار سعر أفضل', 'Waiting for a better price'], EXIT_POSITION: ['خروج', 'Exit'], REDUCE_POSITION: ['تقليص', 'Reduce'] }
+const ORDER: Record<string, P> = { PENDING: ['معلق', 'Pending'], FILLED: ['منفذ', 'Done'], PARTIALLY_FILLED: ['منفذ جزئيًا', 'Partly done'], PARTIAL: ['منفذ جزئيًا', 'Partly done'], REJECTED: ['مرفوض', 'Declined'], CANCELLED: ['ملغى', 'Cancelled'], EXPIRED: ['انتهت مدته', 'Expired'], OPEN: ['مفتوح', 'Open'] }
+const WHY: Record<string, P> = { COMMAND: ['أمرك', 'Your order'], PLAN: ['خطة المحفظة', 'Portfolio plan'], GOAL: ['استثمار حددته', 'Your investment'], STOP: ['وقف الخسارة', 'Stop loss'], TRAILING_STOP: ['وقف متحرك', 'Moving stop'], TAKE_PROFIT: ['بلغ الهدف', 'Target reached'], USER: ['قرارك', 'Your decision'], AI: ['التداول الآلي', 'Automation'] }
+const RISK: Record<string, P> = { CONSERVATIVE: ['منخفض', 'Low'], BALANCED: ['متوازن', 'Balanced'], AGGRESSIVE: ['مرتفع', 'High'], VERY_AGGRESSIVE: ['مرتفع جدًا', 'Very high'], CUSTOM: ['مخصص', 'Custom'] }
+const SHARIA: Record<string, P> = { PASS: ['مجتاز', 'Pass'], FAIL: ['غير متوافق', 'Fail'], UNKNOWN: ['غير محسوم', 'Unresolved'] }
+export const plain = {
+  auto: (x: any, ar: boolean) => pick(AUTO, x, ar), market: (x: any, ar: boolean) => pick(MARKET, x, ar), action: (x: any, ar: boolean) => pick(ACTION, x, ar), order: (x: any, ar: boolean) => pick(ORDER, x, ar), why: (x: any, ar: boolean) => pick(WHY, x, ar), risk: (x: any, ar: boolean) => pick(RISK, x, ar),
+  prices: (s: any, ar: boolean): string => {
+    const mode = s?.dataMode || s?.tradingSession?.dataMode
+    if (!s?.tradingSession) return '—'
+    if (mode !== 'LIVE') return ar ? 'تجريبية غير حقيقية' : 'Demo, not real'
+    const d = s.market?.dataStatus
+    return d?.tradable ? (ar ? 'حية' : 'Live') : d?.code === 'CLOSED' ? (ar ? 'آخر سعر' : 'Last price') : d?.code === 'DELAYED' ? (ar ? 'متأخرة' : 'Delayed') : (ar ? 'بانتظار التحديث' : 'Updating')
+  },
+  block: (x: string, ar: boolean): string => {
+    if (/^TRADING DISABLED/.test(x)) return ar ? 'توقف الشراء لأن المحفظة بلغت أقصى تراجع حددته' : 'Buying stopped: the portfolio reached your maximum drop'
+    if (/^DAILY LOSS/.test(x)) return ar ? 'بلغت حد الخسارة اليومي' : 'Daily loss limit reached'
+    if (/^LOSS COOLDOWN/.test(x)) return ar ? 'استراحة قصيرة بعد خسائر متتالية' : 'A short break after losses in a row'
+    if (/^Max \d+ entries/.test(x)) return ar ? 'اكتمل عدد الصفقات المسموح اليوم' : 'All of today\'s allowed trades are used'
+    return ar ? 'الشراء متوقف مؤقتًا' : 'Buying is paused'
+  },
+  /** One sentence for an event, or '' when it is not for the reader. */
+  event: (e: any, ar: boolean): string => {
+    const d = e.data || {}; const s = e.symbol || ''; const n = (v: any) => (typeof v === 'number' ? v.toLocaleString('en-US', { maximumFractionDigits: 4 }) : '')
+    switch (e.type) {
+      case 'FILL_EXECUTED': { const f = d.fill || {}; const sell = f.side === 'SELL'; return ar ? `${sell ? 'بيع' : 'شراء'} ورقي: ${n(f.qty)} من ${s} بسعر ${n(f.price)}${sell ? `. السبب: ${pick(WHY, f.kind, true)}` : ''}` : `Paper ${sell ? 'sell' : 'buy'}: ${n(f.qty)} ${s} at ${n(f.price)}${sell ? `. Reason: ${pick(WHY, f.kind, false)}` : ''}` }
+      case 'ORDER_PENDING': return ar ? `أمر ${s} ينتظر السعر المطلوب` : `The ${s} order is waiting for its price`
+      case 'ORDER_CANCELLED': return ar ? `أُلغي أمر ${s}` : `The ${s} order was cancelled`
+      case 'ORDER_EXPIRED': return ar ? `انتهت مدة أمر ${s} دون تنفيذ` : `The ${s} order expired without a trade`
+      case 'ORDER_REJECTED': return ar ? `لم يجتز أمر ${s} ضوابط المخاطر، فلم يُنفذ` : `The ${s} order did not pass the risk limits and was not placed`
+      case 'PROPOSAL': return ar ? `اقتراح جديد في ${s}: ${pick(ACTION, d.action, true)}` : `New suggestion for ${s}: ${pick(ACTION, d.action, false)}`
+      case 'DECISION_CHANGED': return ar ? `تغيّر الرأي في ${s} إلى: ${pick(ACTION, d.to, true)}` : `View on ${s} changed to: ${pick(ACTION, d.to, false)}`
+      case 'RISK_LIMIT': return ar ? 'بلغت أحد حدود المخاطر، وتوقف الشراء لحمايتك' : 'A risk limit was reached and buying stopped to protect you'
+      case 'SHARIA_STATUS': return ar ? `حالة ${s} الشرعية الآن: ${pick(SHARIA, d.status, true)}` : `Sharia status of ${s} is now: ${pick(SHARIA, d.status, false)}`
+      case 'NEWS_MATERIAL': return ar ? `خبر مؤثر في ${s}: ${d.title || ''}` : `Important news for ${s}: ${d.title || ''}`
+      case 'MARKET_SESSION': return ar ? `السوق الآن: ${pick(MARKET, d.to, true)}` : `The market is now: ${pick(MARKET, d.to, false)}`
+      case 'SYMBOL_ADDED': return ar ? `أُضيف ${s} إلى المتابعة` : `${s} was added to your list`
+      case 'SYMBOL_REMOVED': return ar ? `أُزيل ${s} من المتابعة` : `${s} was removed from your list`
+      case 'MONITORING_PAUSED': return ar ? `توقفت متابعة ${s} مؤقتًا` : `Following ${s} is paused`
+      case 'MONITORING_RESUMED': return ar ? `عادت متابعة ${s}` : `Following ${s} again`
+      case 'BREAKOUT': return d.type === 'BREAKDOWN' ? (ar ? `كسر ${s} مستوى مهمًا نزولًا` : `${s} fell through an important level`) : (ar ? `تجاوز ${s} مستوى مهمًا صعودًا` : `${s} rose through an important level`)
+      case 'HIGH_VOLATILITY': return d.active ? (ar ? `حركة قوية في ${s || 'السوق'}` : `Strong movement in ${s || 'the market'}`) : (ar ? `هدأت حركة ${s || 'السوق'}` : `${s || 'The market'} has calmed down`)
+      case 'AI_STATE': return ar ? `التداول الآلي: ${pick(AUTO, d.to, true)}` : `Automation: ${pick(AUTO, d.to, false)}`
+      case 'AI_PAUSED_ERROR': return ar ? 'توقف التداول الآلي مؤقتًا. مراكزك محمية' : 'Automation is paused. Your positions stay protected'
+      case 'DATA_UNRELIABLE': return ar ? 'الأسعار غير مؤكدة الآن، والشراء متوقف حتى تعود' : 'Prices are uncertain, so buying waits until they return'
+      case 'DATA_RECOVERED': return ar ? 'عادت الأسعار' : 'Prices are back'
+      case 'ENGINE_UNCLEAN_RESTART': return ar ? 'استُعيدت محفظتك بعد انقطاع، ولم تُنفذ أي صفقة خلاله' : 'Your portfolio was restored after an interruption; nothing traded during it'
+      default: return ''
+    }
+  },
+  kind: (type: string): 'up' | 'down' | 'warn' | '' => (type === 'FILL_EXECUTED' ? 'up' : ['RISK_LIMIT', 'ORDER_REJECTED', 'AI_PAUSED_ERROR', 'DATA_UNRELIABLE'].includes(type) ? 'warn' : ''),
+  error: (m: string, ar: boolean): string => {
+    const E: [RegExp, string, string][] = [
+      [/do not hold this symbol/, 'لا تملك هذا الرمز', 'You do not hold this symbol'], [/do not hold this quantity/, 'لا تملك هذه الكمية', 'You do not hold this quantity'], [/Write the price/, 'اكتب السعر', 'Write the price'], [/Write the quantity/, 'اكتب الكمية أو المبلغ', 'Write the quantity or the amount'], [/less than one share/, 'المبلغ أقل من سهم واحد', 'The amount is less than one share'], [/own order in this symbol/, 'لديك أمر أو شراء بنفسك في هذا الرمز', 'You have your own order or purchase in this symbol'], [/between 0.5 and 50/, 'المسافة بين 0.5 و50%', 'The distance must be between 0.5% and 50%'], [/no price yet/, 'لا يوجد سعر لهذا الرمز بعد', 'There is no price for this symbol yet'], [/order has ended|order was not found/, 'انتهى هذا الأمر', 'That order has ended'], [/part is already done/, 'نُفذ جزء من الأمر. ألغِ الباقي بدل تعديله', 'A part is already done. Cancel the rest instead'], [/Too many orders/, 'عدد الأوامر كبير', 'There are too many orders'], [/Choose buy or sell/, 'اختر شراء أو بيع', 'Choose buy or sell'],
+      [/stop must be below/, 'يجب أن يكون الوقف أقل من السعر والهدف أعلى منه', 'The stop must be below the price and the target above it'], [/already have an investment/, 'لديك استثمار قائم في هذا الرمز', 'You already have an investment in this symbol'], [/in your running plan/, 'هذا الرمز ضمن خطة المحفظة التي تعمل', 'This symbol is in your running portfolio plan'], [/already hold this/, 'لديك مركز مفتوح في هذا الرمز. أغلقه أولًا', 'You already hold this symbol. Close it first'], [/Not enough cash/, 'النقد المتاح لا يكفي لهذا المبلغ', 'There is not enough free cash for this amount'], [/at least 10/, 'أقل مبلغ 10 دولارات', 'The smallest amount is 10 dollars'], [/Choose how long/, 'اختر المدة', 'Choose how long'], [/gain is too high/, 'هذا الربح مرتفع جدًا', 'That gain is too high'], [/Not enough price history/, 'لا توجد أسعار سابقة كافية لهذا الرمز', 'There is too little price history for this symbol'], [/Name the goal/, 'اكتب اسم الهدف', 'Name the goal'], [/later date/, 'اختر تاريخًا لاحقًا', 'Choose a later date'], [/eight goals/, 'الحد ثمانية أهداف', 'The limit is eight goals'], [/already running/, 'يوجد تحليل يعمل الآن', 'An analysis is already running'], [/has ended|was not found/, 'انتهى هذا الاستثمار', 'That investment has ended'],
+      [/add up to more/, 'مجموع النسب أكبر من 100', 'The percentages add up to more than 100'], [/at least one percentage|Save a plan/, 'حدد نسبة واحدة على الأقل واحفظ الخطة', 'Set at least one percentage and save the plan'], [/Choose what to buy/, 'اختر ما يُشترى لكل نسبة', 'Choose what to buy for every percentage'], [/may appear once/, 'كرّرت رمزًا في الخطة', 'A symbol appears twice in the plan'], [/at most ten|Too many symbols/, 'عدد الرموز كبير. الحد عشرة مع ما تتابعه الآن', 'Too many symbols. The limit is ten, with those you already follow'], [/Start a session first/, 'ابدأ محاكاة أولًا', 'Start a simulation first'], [/Symbol \S+ not found|symbol in the plan/, 'أحد الرموز غير صحيح أو غير متاح', 'One of the symbols is wrong or not available'],
+      [/needs real prices/, 'التحليل يحتاج إلى أسعار حقيقية. ابدأ محاكاة بأسعار حقيقية أولًا', 'Analysis needs real prices. Start a simulation with real prices first'], [/already running/, 'تحليل آخر يعمل الآن', 'Another analysis is running'], [/Add the symbol/, 'أضف السهم إلى قائمتك أولًا', 'Add the stock to your list first'], [/analysis (took|could|stopped)/i, 'تعذّر إكمال التحليل. حاول مرة أخرى', 'The analysis did not finish. Please try again'],
+      [/Invalid ticker|valid ticker|Invalid symbol/i, 'رمز السهم غير صحيح', 'That symbol is not valid'], [/already in the watchlist/i, 'السهم في قائمتك بالفعل', 'This is already in your list'], [/Watchlist limit/i, 'اكتملت قائمة المتابعة', 'Your list is full'], [/Not found|unknown symbol|no such|does not exist/i, 'لم نعثر على هذا السهم', 'We could not find that symbol'],
+      [/capital must|Target/i, 'راجع مبلغ رأس المال والهدف', 'Check the capital and target amounts'], [/already has trades/i, 'لديك محاكاة قائمة. أعد ضبطها من الإعدادات لتبدأ من جديد', 'You already have a simulation. Reset it in Settings to start again'], [/provider key|not configured|No market data|credentials/i, 'البيانات الحية غير متاحة لحسابك الآن. ابدأ بالبيانات التجريبية', 'Live data is not available for your account yet. Start with demo data'],
+      [/approval/i, 'انتهت مدة هذا الاقتراح', 'This suggestion has expired'], [/market is closed|session.*closed|not tradable|stale|halted/i, 'لا يمكن التنفيذ الآن. السوق مغلق أو السعر غير مؤكد', 'Not possible now: the market is closed or the price is uncertain'], [/No open paper position/i, 'لا يوجد مركز مفتوح', 'There is no open position'], [/No session|Start a session/i, 'ابدأ محاكاة أولًا من الإعدادات', 'Start a simulation in Settings first'],
+      [/ruling needs its source/i, 'اكتب مصدر الحكم', 'Write where the ruling comes from'], [/Wrong e-mail or password/, 'البريد أو كلمة المرور غير صحيحة', 'The e-mail or password is not right'], [/Wrong password/, 'كلمة المرور غير صحيحة', 'The password is not right'], [/Too many attempts/, 'محاولات كثيرة. حاول لاحقًا', 'Too many attempts. Try again later'], [/by invitation only/, 'التسجيل بالدعوة فقط، وهذه الدعوة غير صالحة', 'Registration is by invitation, and this invitation is not valid'], [/already has an account|already exists/, 'لهذا البريد حساب بالفعل', 'This e-mail already has an account'], [/12 to 200/, 'كلمة المرور من 12 إلى 200 حرف', 'The password needs 12 to 200 characters'], [/valid e-mail/, 'أدخل بريدًا صحيحًا', 'Enter a valid e-mail'], [/Two-factor code required/, 'أدخل رمز التحقق بخطوتين', 'Enter your two-step code'], [/Wrong code/, 'الرمز غير صحيح', 'The code is not right'], [/reset link/, 'رابط إعادة التعيين غير صالح', 'This reset link is not valid'], [/capacity/, 'المنصة مكتملة الآن. حاول لاحقًا', 'The platform is full right now. Try later'], [/starting|restarting|not responding|could not be started/i, 'حسابك يُجهَّز الآن. حاول بعد لحظات', 'Your account is getting ready. Try again in a moment'], [/Telegram/i, 'تيليجرام غير متاح الآن', 'Telegram is not available right now'],
+    ]
+    const x = E.find(([re]) => re.test(m || ''))
+    return x ? x[ar ? 1 : 2] : (ar ? 'تعذّر تنفيذ الطلب. حاول مرة أخرى' : 'That did not work. Please try again')
+  },
+}
