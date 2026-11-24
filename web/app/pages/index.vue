@@ -37,7 +37,7 @@ const STEPPED = [38, 24, 60, 30, 14, 20, 46, 78, 58, 96] // column heights behin
 <template>
   <div>
     <section class="night relative overflow-hidden text-white">
-      <svg class="pointer-events-none absolute inset-0 size-full" aria-hidden="true"><defs><pattern id="field" width="40" height="40" patternUnits="userSpaceOnUse"><circle cx="20" cy="20" r="3.5" fill="#fff" /></pattern><linearGradient id="field-fade" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.02" /><stop offset="1" stop-color="#fff" stop-opacity="0.2" /></linearGradient><mask id="field-mask"><rect width="100%" height="100%" fill="url(#field-fade)" /></mask></defs><rect width="100%" height="100%" fill="url(#field)" mask="url(#field-mask)" /></svg>
+      <NightField />
       <div :class="wrap" class="relative flex flex-col items-center pt-12 text-center sm:pt-16">
         <h1 class="display">{{ L('افحص الفرصة', 'Check the opportunity') }} <span class="block text-sun">{{ L('قبل أن تنفّذها', 'before you take it') }}</span></h1>
         <p class="mt-4 max-w-[52ch] text-lg">{{ L('فرصة منصة عربية للتداول الورقي الآلي. تفحص كل سهم شرعيًا، وتضبط المخاطرة، ثم تنفّذ أو تنتظر موافقتك.', 'Forsah is an Arabic-first platform for automated paper trading. It screens every stock, limits the risk, then acts or waits for your approval.') }}</p>

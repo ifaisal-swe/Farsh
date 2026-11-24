@@ -9,5 +9,5 @@ const control = computed(() => (props.modelValue === undefined ? {} : { value: S
 </script>
 
 <template>
-  <Input data-slot="input" v-bind="{ ...$attrs, ...control }" :class="cn('h-10 min-w-0 max-w-full rounded-md border border-input bg-card px-3 text-sm placeholder:text-muted-foreground disabled:opacity-50', $attrs.class as string)" @value-change="(v: string) => emit('update:modelValue', v)" />
+  <Input data-slot="input" v-bind="{ ...$attrs, ...control }" :class="cn('h-10 min-w-0 max-w-full rounded-full border border-input bg-card px-4 text-sm placeholder:text-muted-foreground disabled:opacity-50', $attrs.class as string)" @value-change="(v: string) => emit('update:modelValue', v)" />
 </template>

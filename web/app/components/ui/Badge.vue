@@ -6,5 +6,5 @@ defineProps<{ tone?: string }>()
 </script>
 
 <template>
-  <span data-slot="badge" v-bind="$attrs" :class="cn('inline-flex items-center rounded-full border px-2 text-xs font-medium leading-5', tone ? TONE[tone] : 'text-muted-foreground', $attrs.class as string)"><slot /></span>
+  <span data-slot="badge" v-bind="$attrs" :class="cn('inline-flex items-center rounded-full border px-2.5 text-xs font-semibold leading-6', tone ? TONE[tone] : 'text-muted-foreground', $attrs.class as string)"><slot /></span>
 </template>
