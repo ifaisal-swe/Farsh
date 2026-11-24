@@ -196,7 +196,7 @@
     "reports": { "daily": false, "weekly": false, "monthly": false, "time": "16:30", "timezone": "America/New_York", "weeklyDay": 5 }
   },
   "sharia": {
-    "_comment": "AAOIFI-style screen for NEW entries on live data (30% debt, 30% deposits, 5% impermissible income). Missing or expired data blocks buying; exits are never blocked. An automated pre-screen, not a fatwa.",
+    "_comment": "AAOIFI-style screen for NEW entries on live data (30% debt, 30% deposits, 5% impermissible income). Missing or expired data blocks buying; exits are never blocked. An automated pre-screen.",
     "enabled": true,
     "mode": "FULL",
     "maxDebtPct": 30,

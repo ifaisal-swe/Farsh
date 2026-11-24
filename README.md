@@ -42,7 +42,7 @@
 ## الضوابط
 
 - **لا أموال حقيقية.** كل طلب إلى الوسيط قراءة فقط، ونقاط الأوامر والمراكز محجوبة ومغطاة باختبار.
-- **الشرع قبل الشراء.** الدين والودائع أقل من 30% من القيمة السوقية، والدخل غير المباح أقل من 5% من الإيرادات، مع فحص النشاط. هذا فحص آلي أولي وليس فتوى.
+- **الشرع قبل الشراء.** الدين والودائع أقل من 30% من القيمة السوقية، والدخل غير المباح أقل من 5% من الإيرادات، مع فحص النشاط. هذا فحص آلي أولي.
 - **الحدود لا يتجاوزها الذكاء الاصطناعي.** خسارة يومية، وأقصى تراجع، وحجم مركز، ونسبة عائد إلى مخاطرة.
 - **البيع لا يُمنع.** يمنع الفحص الدخول فقط، ووقف الخسارة يعمل حتى لو توقف الذكاء الاصطناعي.
 - **لا بيانات مختلقة.** البيانات التجريبية موسومة بوضوح، ونقص البيانات يظهر كما هو.
@@ -705,7 +705,7 @@ explains.
 <summary><b>Nuxt interface, Sharia screen and research page</b></summary>
 
 - **Build:** `npm run web:build`, then open `http://localhost:8787/app/` (same login as the terminal). For development run the server and `npm run web:dev`. Session setup, credentials and settings are on the Settings page. The original terminal stays at `/` (and `/terminal`).
-- **Sharia screen** (`server/sharia/screener.js`): new entries on live data need a PASS. Limits: debt and deposits below 30% of market cap, impermissible income below 5% of revenue, plus a business-activity check. Data comes from SEC EDGAR and needs the SEC User-Agent. Missing or expired data blocks buying; exits are never blocked and nothing is sold automatically. Stocks whose filings do not report interest income separately stay unresolved until a sourced ruling is recorded. This is an automated pre-screen, not a fatwa.
+- **Sharia screen** (`server/sharia/screener.js`): new entries on live data need a PASS. Limits: debt and deposits below 30% of market cap, impermissible income below 5% of revenue, plus a business-activity check. Data comes from SEC EDGAR and needs the SEC User-Agent. Missing or expired data blocks buying; exits are never blocked and nothing is sold automatically. Stocks whose filings do not report interest income separately stay unresolved until a sourced result is recorded. This is an automated pre-screen.
 - **Alerts:** a status change sends a `SHARIA_STATUS` Telegram alert (high priority when the stock is held).
 - **Research:** `config/research-snapshot.json` is a dated, sourced snapshot. It does not update itself and never feeds trading decisions.
 
@@ -721,7 +721,7 @@ Run `npm run saas` (or set `SAAS_MODE=1`) with `SAAS_ADMIN_EMAIL`, `SAAS_ADMIN_P
 <details>
 <summary><b>Crypto</b></summary>
 
-Spot USD pairs from Alpaca (for example `BTC/USD`), as the main symbol or in the watchlist. Open 24/7, fractional, 0.25% simulated fee, one venue. Blocked by the Sharia gate until a sourced ruling is recorded.
+Spot USD pairs from Alpaca (for example `BTC/USD`), as the main symbol or in the watchlist. Open 24/7, fractional, 0.25% simulated fee, one venue. Blocked by the Sharia gate until a sourced result is recorded.
 
 PostgreSQL: set `DATABASE_URL` (or `SAAS_DATABASE_URL`) (UTF8 database; a role that may create roles and schemas). Accounts live in schema `control`; every customer gets a schema and login role of their own, with a password derived from `tenant-db.key`. Each demo gets a temporary schema and role, erased when it ends. Back up `accounts.key`, `tenant-db.key` and every `master.key` separately from the database.
 

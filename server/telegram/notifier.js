@@ -275,7 +275,7 @@ function renderEvent(ev, { tz = F.DEFAULT_TZ, redact = (s) => s } = {}) {
       lines.push(ln('إلى', names[d.status] || F.NA));
       if (d.status !== 'PASS') lines.push('لن تُفتح مراكز شراء جديدة في هذا السهم.');
       if (d.held && d.status !== 'PASS') lines.push('لديك مركز مفتوح فيه. لم يُبَع شيء تلقائيًا؛ القرار لك.');
-      lines.push('<i>فحص آلي أولي وليس فتوى.</i>');
+      lines.push('<i>فحص آلي أولي.</i>');
       lines.push(timeLine(ts, tz));
       break;
     }

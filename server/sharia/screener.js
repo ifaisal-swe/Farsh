@@ -1,7 +1,7 @@
 'use strict';
 /**
  * Sharia screening (AAOIFI-style thresholds). Deterministic, and it FAILS CLOSED: a symbol is buyable only
- * when every test passes on recent, complete data, or when the user recorded a dated ruling with its source.
+ * when every test passes on recent, complete data, or when the user recorded a dated result with its source.
  *
  *   1. business activity  SEC SIC code + company name against excluded activities
  *   2. debt               interest-bearing debt / market cap            < maxDebtPct
@@ -13,7 +13,7 @@
  * mode FULL applies all four. mode BUSINESS applies only the company's activity (the account owner's choice): the
  * ratios are still shown when known but do not decide. Doubtful activities stay UNKNOWN in both modes.
  *
- * This is an automated pre-screen, not a fatwa: XBRL cannot show every impermissible revenue line. It only
+ * This is an automated pre-screen: XBRL cannot show every impermissible revenue line. It only
  * decides whether NEW entries are allowed. It never sells anything and never blocks an exit.
  */
 const { fetchJson } = require('../util/http');
@@ -29,7 +29,7 @@ const SIC_EXCLUDED = [
   [6300, 6411, 'conventional insurance'], [7990, 7990, 'gambling / amusement'], [7993, 7993, 'gambling'],
   [2011, 2013, 'meat processing (pork exposure unverified)'], [3480, 3489, 'weapons'],
 ];
-/** Activities that need a human ruling: the code alone cannot decide. */
+/** Activities that need a human decision: the code alone cannot decide. */
 const SIC_REVIEW = [[6700, 6799, 'holding / investment vehicle'], [7011, 7011, 'hotels (alcohol, gambling)'], [7810, 7841, 'film / entertainment'], [4830, 4841, 'broadcasting'], [5800, 5812, 'restaurants'], [5411, 5411, 'grocery (alcohol, pork)']];
 const NAME_EXCLUDED = /\b(casino|brewing|brewery|distill\w*|winery|tobacco|cannabis|gaming & leisure|bancorp|bank|insurance)\b/i;
 
@@ -167,7 +167,7 @@ class ShariaService {
 
   canScreen() { return !!this.getSecret('SEC_USER_AGENT') || !!this.publicProfile; }
 
-  /** Effective status: an unexpired user ruling wins, then a fresh automatic result, else UNKNOWN. */
+  /** Effective status: an unexpired user result wins, then a fresh automatic result, else UNKNOWN. */
   effective(symbol) {
     const c = this.cfg();
     const auto = this.results[symbol] || null;
@@ -192,7 +192,7 @@ class ShariaService {
     if (!SYMBOL.test(symbol)) throw new Error('Invalid symbol');
     if (![STATUS.PASS, STATUS.FAIL].includes(status)) throw new Error('Ruling must be PASS or FAIL');
     const src = String(source || '').trim();
-    if (src.length < 3) throw new Error('A ruling needs its source (scholar, board or screening service)');
+    if (src.length < 3) throw new Error('A result needs its source (board or screening service)');
     const prev = this.effective(symbol).status;
     this.rulings[symbol] = { status, source: src.slice(0, 200), note: String(note).slice(0, 500), at: this.now() };
     this.save();
@@ -223,9 +223,9 @@ class ShariaService {
 
   async _screen(symbol) {
     if (isCrypto(symbol)) {
-      // no financial statements exist: only a sourced ruling can open the gate
+      // no financial statements exist: only a sourced result can open the gate
       const before = this.effective(symbol).status;
-      this.results[symbol] = { symbol, name: symbol, status: STATUS.UNKNOWN, checks: [{ id: 'business', status: STATUS.UNKNOWN, value: null, limit: null, asOf: null, detail: 'Crypto asset: needs a recorded ruling' }], asOf: null, at: this.now() };
+      this.results[symbol] = { symbol, name: symbol, status: STATUS.UNKNOWN, checks: [{ id: 'business', status: STATUS.UNKNOWN, value: null, limit: null, asOf: null, detail: 'Crypto asset: needs a recorded result' }], asOf: null, at: this.now() };
       this.save();
       return this.changed(symbol, before);
     }

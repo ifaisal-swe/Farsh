@@ -82,7 +82,7 @@ function plainEvent(ev, { tz = F.DEFAULT_TZ, demo = false } = {}) {
     case 'PROPOSAL': return say(`💡 اقتراح في ${s}: ${F.label('action', d.action)}`, F.isNum(d.stop) ? `وقف الخسارة: ${F.price(d.stop)}` : null, F.isNum(d.target) ? `الهدف: ${F.price(d.target)}` : null, 'اقتراح فقط، لم يُنفذ شيء.', PAPER);
     case 'DECISION_CHANGED': return say(`🔄 تغيّر الرأي في ${s} إلى: ${F.label('action', d.to)}`);
     case 'RISK_LIMIT': return say('⚠️ بلغت أحد حدود المخاطر، وتوقف الشراء لحمايتك', PAPER);
-    case 'SHARIA_STATUS': return say(`${d.status === 'PASS' ? '✅' : '⚠️'} حالة ${s} الشرعية الآن: ${SHARIA[d.status] || F.NA}`, d.status !== 'PASS' ? 'لن يُشترى حتى تتغيّر حالته.' : null, d.held && d.status !== 'PASS' ? 'تملكه الآن. لم يُبع شيء، والقرار لك.' : null, 'فحص آلي أولي وليس فتوى.');
+    case 'SHARIA_STATUS': return say(`${d.status === 'PASS' ? '✅' : '⚠️'} حالة ${s} الشرعية الآن: ${SHARIA[d.status] || F.NA}`, d.status !== 'PASS' ? 'لن يُشترى حتى تتغيّر حالته.' : null, d.held && d.status !== 'PASS' ? 'تملكه الآن. لم يُبع شيء، والقرار لك.' : null, 'فحص آلي أولي.');
     case 'NEWS_MATERIAL': return say(`📰 خبر مؤثر في ${s}`, /^https?:\/\//i.test(d.url || '') ? `<a href="${esc(d.url)}">${esc(F.clip(d.title || '', 300))}</a>` : esc(F.clip(d.title || '', 300)));
     case 'MARKET_SESSION': return say(`🕒 السوق الآن ${SESSION[d.to] || F.NA}`);
     case 'SYMBOL_ADDED': return say(`➕ أُضيف ${s} إلى المتابعة`);

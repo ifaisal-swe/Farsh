@@ -46,7 +46,7 @@ const COLS = computed(() => [
         </div>
       </div>
       <div class="mx-auto flex max-w-7xl flex-wrap justify-between gap-x-10 gap-y-3 px-4 py-10 text-sm sm:px-6" :class="full ? 'text-panel-muted' : 'text-muted-foreground'">
-        <p class="max-w-[80ch]">{{ L('تداول ورقي (محاكاة) فقط، ولا تُرسل أي أوامر حقيقية إلى وسيط. لا تقدم المنصة نصيحة استثمارية. الفحص الشرعي فحص آلي أولي وليس فتوى.', 'Paper trading (simulation) only. No real orders are sent to any broker. The platform gives no investment advice. The Sharia screen is an automated pre-screen, not a fatwa.') }}</p><p><bdi>© 2026</bdi> {{ t('brand') }}</p>
+        <p class="max-w-[80ch]">{{ L('تداول ورقي (محاكاة) فقط، ولا تُرسل أي أوامر حقيقية إلى وسيط. لا تقدم المنصة نصيحة استثمارية. الفحص الشرعي فحص آلي أولي.', 'Paper trading (simulation) only. No real orders are sent to any broker. The platform gives no investment advice. The Sharia screen is an automated pre-screen.') }}</p><p><bdi>© 2026</bdi> {{ t('brand') }}</p>
       </div>
     </footer>
   </div>
