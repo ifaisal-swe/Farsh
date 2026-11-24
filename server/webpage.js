@@ -27,4 +27,7 @@ function sendWebPage(req, res) {
 /** File names contain a content hash, so browsers may keep them. They hold only interface code and fonts. */
 const webAssets = () => [express.static(path.join(WEB, 'app', '_nuxt'), { index: false, setHeaders: (res) => res.set('Cache-Control', 'public, max-age=31536000, immutable') }), (req, res) => res.status(404).type('text').send('Not found')];
 
-module.exports = { webPage, sendWebPage, webAssets, ASSETS };
+/** The public brand kit (logos, guidelines). Names carry no hash, so browsers re-check daily. */
+const brandAssets = () => [express.static(path.join(WEB, 'brand'), { index: false, setHeaders: (res) => res.set('Cache-Control', 'public, max-age=86400') }), (req, res) => res.status(404).type('text').send('Not found')];
+
+module.exports = { webPage, sendWebPage, webAssets, brandAssets, ASSETS };

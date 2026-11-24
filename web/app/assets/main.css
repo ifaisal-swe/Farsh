@@ -76,6 +76,12 @@
   @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } .marquee, .pop, .ripple::after { animation: none !important; } .lift:hover { transform: none; } }
   .soft { opacity: 0.62; } /* fades the word as a whole: transparent color shows seams where Arabic letters overlap */
 
+  /* landing page: night (hero), dawn (statement), day (products), night (tools) */
+  .night { background: radial-gradient(60% 62% at 50% 92%, #6a78ff 0, rgb(66 84 245 / 0.85) 34%, transparent 100%), linear-gradient(#0d0f26 18%, #2c3bd0); }
+  .sunrise { background: radial-gradient(46% 46% at 50% -6%, #fff 0, #ffedb0 20%, rgb(196 186 255 / 0.8) 52%, transparent 100%), linear-gradient(#6cbcff, rgb(108 188 255 / 0) 48%), #4254f5; }
+  .dusk { background: linear-gradient(#4254f5, #0d0f26 46%); }
+  .track { height: 0.5rem; background: radial-gradient(circle, currentColor 0.17rem, transparent 0.19rem) 0 50% / 1.1rem 100% repeat-x; }
+
   .num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
   .small { font-size: 0.8rem; } .muted { color: var(--muted-foreground); } .up { color: var(--up); } .down { color: var(--down); } .grow { flex: 1; }
   .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }

@@ -21,7 +21,7 @@ const { PlatformServices } = require('./services');
 const { TelegramHub } = require('./telegramHub');
 
 const COOKIE = 'dt_account';
-const { sendWebPage, webAssets, ASSETS } = require('../webpage');
+const { sendWebPage, webAssets, brandAssets, ASSETS } = require('../webpage');
 const HOP = ['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'expect'];
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
 
@@ -85,6 +85,8 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
 
   // public site (the page itself holds no data)
   app.use(ASSETS, ...webAssets());
+  app.get('/brand', sendWebPage); // the page; files are below it
+  app.use('/brand', ...brandAssets());
   app.get('/login', async (req, res, next) => ((await userOf(req)) ? res.redirect(302, '/app') : next()));
   app.get(['/', '/login', '/invite', '/reset'], sendWebPage);
 

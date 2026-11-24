@@ -22,3 +22,4 @@ web/dist
 
 deploy/secrets/
 deploy/.env
+.playwright-mcp/
