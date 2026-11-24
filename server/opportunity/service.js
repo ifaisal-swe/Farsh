@@ -58,8 +58,9 @@ class OpportunityService {
     if (live) { try { status = this.sharia.effective(a.symbol).status; } catch { status = 'UNKNOWN'; } }
     const lens = facts && this.investors.lensOf ? this.investors.lensOf(facts, daily) : null;
     const now = this.now();
-    const call = decide({ symbol: a.symbol, price, bars: daily, tech, lens, facts, lab: live ? fresh : null, sharia: status, position: held, account, events: await this.ahead(a.symbol), live, fresh: a.market && a.market.freshness ? !a.market.freshness(now).stale : true, crypto: this.isCrypto(a.symbol), now });
-    const news = facts && facts.news ? facts.news.items.slice(0, 4).map((n) => ({ title: n.title, url: n.url, at: n.at, tone: n.tone })) : [];
+    const call = decide({ symbol: a.symbol, price, bars: daily, tech, lens, facts, lab: live ? fresh : null, position: held, account, events: await this.ahead(a.symbol), live, fresh: a.market && a.market.freshness ? !a.market.freshness(now).stale : true, crypto: this.isCrypto(a.symbol), now });
+    const own = live && !(facts && facts.news && facts.news.items.length) && a.news && a.news.list ? a.news.list(8).filter((n) => n.title).map((n) => ({ title: n.title, url: n.url, at: n.publishedAt, tone: 0 })) : null;
+    const news = own ? own.slice(0, 4) : facts && facts.news ? facts.news.items.slice(0, 4).map((n) => ({ title: n.title, url: n.url, at: n.at, tone: n.tone })) : [];
     const rv = this.reviews[a.symbol];
     const review = rv && rv.mode === this.mode() && now - rv.at < DAY && rv.action === call.action ? rv : null;
     return { ...temper(call, review), raw: call.action, sharia: status, name: live && a.asset ? a.asset.name : null, news, review: review ? { stance: review.stance, why: review.why, risks: review.risks, scenarios: review.scenarios, at: review.at } : null, at: now };
@@ -84,7 +85,7 @@ class OpportunityService {
 
   notify(c) {
     const key = `${this.mode()}|${this.sid()}|${c.symbol}`; const was = this.told[key];
-    const kind = BUYS.has(c.action) && !c.blocked ? 'BUY' : SELLS.has(c.action) ? c.action : null;
+    const kind = BUYS.has(c.action) ? 'BUY' : SELLS.has(c.action) ? c.action : null;
     if (kind === (was && was.kind) || (!kind && !was)) return;
     // an old opportunity is announced again only after a quiet day, so a call that flickers does not flood anyone
     if (kind && was && was.lastKind === kind && this.now() - was.at < DAY) { this.told[key] = { ...was, kind }; this.put('opportunity.told', this.told); return; }

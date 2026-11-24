@@ -74,8 +74,8 @@ test('lab: headline tone handles negation and repeats', () => {
 test('lab: the committee is careful: cautions hold back, agents can lower but never raise', () => {
   const facts = { health: { piotroski: { score: 8, of: 8 }, revenueGrowth: 0.3, freeCashMargin: 0.3, pricedInGrowth: 0.02 }, surprises: { count: 4, beats: 4 }, estimates: { up: 9, down: 0 }, institutions: { increased: 9, decreased: 1 }, news: { tone: 0.6, count: 9 } };
   const quant = { available: true, price: 120, trend: { ma50: 110, ma200: 100, r60: 0.2 }, forecast: { available: true, edge: false, tested: 100 }, risk: { volNextYear: 0.2, drawdown: { current: 0.02 } }, regime: { turbulentProb: 0.1 }, anomaly: { returnZ: 0.5, lastReturn: 0.01 } };
-  const good = C.decide({ quant, facts, sharia: 'UNKNOWN' });
-  assert.equal(good.verdict, 'SUPPORT'); assert.equal(good.blocked, 'UNKNOWN', 'Sharia is shown apart and never traded off'); assert.equal(good.views.model.score, 0);
+  const good = C.decide({ quant, facts });
+  assert.equal(good.verdict, 'SUPPORT'); assert.equal(good.blocked, undefined); assert.equal(good.views.model.score, 0);
   assert.equal(C.decide({ quant: { ...quant, regime: { turbulentProb: 0.95 } }, facts }).verdict, 'NEUTRAL');
   assert.equal(C.decide({ quant: { ...quant, regime: { turbulentProb: 0.95 }, anomaly: { returnZ: 9, lastReturn: 0.3 }, risk: { volNextYear: 1.2, drawdown: { current: 0.5 } } }, facts }).verdict, 'AVOID');
   assert.equal(C.decide({ quant: null, facts: null }).verdict, 'UNKNOWN');

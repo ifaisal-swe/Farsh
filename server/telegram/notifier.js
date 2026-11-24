@@ -273,8 +273,7 @@ function renderEvent(ev, { tz = F.DEFAULT_TZ, redact = (s) => s } = {}) {
       lines.push(`${d.status === 'PASS' ? '✅' : '⚠️'} <b>تغيّرت حالة الفحص الشرعي:</b> ${sym(ev.symbol)}`);
       lines.push(ln('من', names[d.prev] || F.NA));
       lines.push(ln('إلى', names[d.status] || F.NA));
-      if (d.status !== 'PASS') lines.push('لن تُفتح مراكز شراء جديدة في هذا السهم.');
-      if (d.held && d.status !== 'PASS') lines.push('لديك مركز مفتوح فيه. لم يُبَع شيء تلقائيًا؛ القرار لك.');
+      if (d.held && d.status !== 'PASS') lines.push('لديك مركز مفتوح فيه. هذه معلومة فقط ولا تؤثر على القرارات.');
       lines.push('<i>فحص آلي أولي.</i>');
       lines.push(timeLine(ts, tz));
       break;

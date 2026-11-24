@@ -222,7 +222,7 @@ class TradingAgent extends EventEmitter {
   decider() {
     if (this.deciderOverride) return this.deciderOverride;
     if (this.book.aiManager.anyConfigured()) return this.managedDecider();
-    // real prices without keys: the fixed rules suggest (still paper only, still behind the Sharia and risk checks)
+    // real prices without keys: the fixed rules suggest (still paper only, still behind the risk checks)
     if (this.dataMode !== 'LIVE' || this.book.publicData) return new RulesDecider();
     return null;
   }
@@ -1919,9 +1919,7 @@ class TradingAgent extends EventEmitter {
   planCheck({ own = false } = {}) {
     if (this.book.shuttingDown || !this.session || !this.market || !this.storageReady()) return { ok: false, code: 'MARKET' };
     if (this.dataMode === 'LIVE') {
-      const sharia = this.book.sharia && this.book.sharia.gate(this.symbol);
       const lab = this.book.lab && this.book.lab.gate(this.symbol);
-      if (sharia && !sharia.pass) return { ok: false, code: 'SHARIA' };
       if (lab && !lab.pass && !own) return { ok: false, code: 'ANALYSIS' };
     }
     if (this.risk.entryBlocks(this.now()).length) return { ok: false, code: 'LIMITS' };
@@ -1935,7 +1933,7 @@ class TradingAgent extends EventEmitter {
     return { ok: true };
   }
 
-  /** The person's own order: an exact quantity, at market or not above `limit`. The person decided, so only Sharia, loss limits and price quality apply. */
+  /** The person's own order: an exact quantity, at market or not above `limit`. The person decided, so only loss limits and price quality apply. */
   ownBuy(qty, limit, ref) {
     const c = this.planCheck({ own: true });
     if (!c.ok) return c;
@@ -2041,7 +2039,6 @@ class TradingAgent extends EventEmitter {
     const res = this.risk.evaluateEntry({
       proposal: p, quote: this.market.quote(), market: this.marketForRisk(), account: this.riskAccount(), ipo: this.ipoContext(), exec, ai: this.cfg().ai, nowMs: this.now(), skipFreshness,
       // real securities only: DEMO prices are synthetic
-      sharia: this.book.sharia && this.dataMode === 'LIVE' ? this.book.sharia.gate(this.symbol) : null,
       lab: this.book.lab && this.dataMode === 'LIVE' ? this.book.lab.gate(this.symbol) : null,
     });
     const riskRecord = { approved: res.approved, qty: res.qty, checks: res.checks, sizing: res.sizing, rr: res.rr, fillEstimate: res.fillEstimate };

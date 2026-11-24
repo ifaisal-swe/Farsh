@@ -73,22 +73,22 @@ test('sharia: live screening from SEC responses; a failed fetch keeps the dated 
   assert.match(s.gate('ABC').detail, /expired/);
 });
 
-test('sharia: the risk engine rejects the entry; exits have no Sharia check', () => {
+test('sharia: the risk engine ignores the screen', () => {
   const r = new RiskManager(DEFAULTS.risk);
   const quote = { bid: 99.99, ask: 100.01, askSize: 100 };
   const market = { realtime: true, connected: true, stale: false, halted: false, session: 'REGULAR', quoteAgeMs: 1, feedLabel: 'x' };
   const ctx = { proposal: { stopLoss: 98, takeProfit: 106, orderType: 'MARKET', snapshotPrice: 100, createdAt: NOW }, quote, market, account: { equity: 100000, cash: 100000, positionQty: 0, positionMark: 0, openPositions: 0 }, exec: DEFAULTS.execution, ai: DEFAULTS.ai, nowMs: NOW };
   assert.equal(r.evaluateEntry({ ...ctx, sharia: { pass: true, detail: 'ok' } }).approved, true);
   const no = r.evaluateEntry({ ...ctx, sharia: { pass: false, detail: 'blocked' } });
-  assert.equal(no.approved, false);
-  assert.deepEqual(no.failed, ['sharia: blocked']);
+  assert.equal(no.approved, true);
+  assert.deepEqual(no.failed || [], []);
   assert.equal(r.evaluateExit({ quote, market, positionQty: 5, exec: DEFAULTS.execution }).approved, true);
 });
 
-test('sharia: Telegram alert says a held position was not sold', () => {
+test('sharia: Telegram alert says the screen is information only', () => {
   const { text } = renderEvent({ type: 'SHARIA_STATUS', symbol: 'ABC', ts: NOW, data: { status: 'FAIL', prev: 'PASS', held: true } });
   assert.match(text, /ABC/);
-  assert.match(text, /لم يُبَع شيء تلقائيًا/);
+  assert.match(text, /معلومة فقط/);
 });
 
 test('sharia: service is attached to the book and its API needs the client header', async () => {

@@ -96,9 +96,10 @@ test('commands: real conditions: shown size fills in parts, a closed market and 
   const e = await setup(); e.at(100); await e.cmd.add(buy()); e.clock.t += 8 * 3600000; e.price({ TEST: 94 }); e.cmd.tick(); assert.equal(e.held(), null); assert.equal(e.one().wait, 'CLOSED');
 });
 
-test('commands: Sharia and cash are respected, automation stays away, changes, cancels, and storage', async () => {
-  const c = await setup(); c.at(100); c.sharia.status.TEST = 'NO';
-  await c.cmd.add(buy()); c.at(94); assert.equal(c.held(), null); assert.equal(c.one().wait, 'SHARIA');
+test('commands: cash is respected, the Sharia screen is not a condition, automation stays away, changes, cancels, and storage', async () => {
+  const s = await setup(); s.at(100); s.sharia.status.TEST = 'NO'; await s.cmd.add(buy()); s.at(94); assert.ok(s.held(), 'the screen does not block');
+  const c = await setup(); c.at(100);
+  await c.cmd.add(buy()); assert.equal(c.held(), null);
   assert.equal(c.desk.agent('TEST').planned(), true);
   c.decider.push((s) => buyProposal(s)); assert.equal((await c.desk.agent('TEST').runAnalysis({ reasons: [{ type: 'MANUAL' }] })).status, 'NO_ACTION');
   await assert.rejects(c.cmd.add(buy({ qty: 200 })), /Not enough cash/); await assert.rejects(c.cmd.add(buy({ qty: 0 })), /quantity/); await assert.rejects(c.cmd.add(buy({ price: null })), /price/); await assert.rejects(c.cmd.add(buy({ stop: 99 })), /stop must be below/); await assert.rejects(c.cmd.add(buy({ type: 'TRAIL' })), /Choose/); await assert.rejects(c.cmd.add(buy({ qty: null, dollars: 20 })), /less than one share/);

@@ -20,7 +20,7 @@ process.on('message', async (m) => {
     send({ type: 'progress', step: 'numbers', state: 'start' });
     const quant = analyze(m.bars, m.bench, m.options);
     send({ type: 'progress', step: 'numbers', state: 'done' });
-    const rules = decide({ quant, facts: m.facts, sharia: m.sharia });
+    const rules = decide({ quant, facts: m.facts });
     let agents = null; let agentError = null;
     if (m.model && quant.available) {
       try {

@@ -30,11 +30,11 @@ class HelperService {
     if (this.busy) throw bad('An answer is already being prepared', 409);
     this.busy = true;
     try {
-      const bundle = await this.getBundle(); const rules = answer(text, bundle, lang); const model = bundle.session ? this.model() : null;
+      const bundle = await this.getBundle(text); const rules = answer(text, bundle, lang); const model = bundle.session ? this.model() : null;
       let out = { text: rules.text, links: rules.links, symbols: rules.symbols || [], growth: rules.growth || null, by: 'rules' };
       if (model) {
         this.used.push(this.now());
-        try { const r = await this.lab.work({ task: 'chat', ask: { text, history: this.messages, bundle }, model, lang }, { steps: {} }); if (r.text) out = { text: r.text, links: rules.links, symbols: r.symbols, growth: rules.growth || null, by: 'agent' }; } catch (e) { if (this.activity) this.activity.warn(`The helper answered from rules: ${e.message}`, { source: 'helper' }); }
+        try { const r = await this.lab.work({ task: 'chat', ask: { text, history: this.messages, bundle }, model, lang }, { steps: {} }); if (r.text) out = { text: r.text, links: rules.links, symbols: r.symbols, sources: r.sources || [], growth: rules.growth || null, by: 'agent' }; } catch (e) { if (this.activity) this.activity.warn(`The helper answered from rules: ${e.message}`, { source: 'helper' }); }
       }
       this.messages.push({ role: 'user', text, at: this.now() }, { role: 'helper', ...out, at: this.now() });
       this.messages = this.messages.slice(-KEEP);

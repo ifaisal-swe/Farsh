@@ -2,7 +2,7 @@
 /**
  * Investments and goals of one account. An investment has an amount, a start price, a stop, a target and an end date.
  * Prices are checked on every quote: reaching the start buys, reaching (or passing) the stop or the target sells.
- * Starting one is the person's own approval; the Sharia check, analysis gate, loss limits and price checks still apply.
+ * Starting one is the person's own approval; the analysis gate, loss limits and price checks still apply.
  */
 const { newId } = require('../util/misc');
 const { isCrypto } = require('../market/crypto');

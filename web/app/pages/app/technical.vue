@@ -80,7 +80,7 @@ const CHOICES = computed(() => [['BUY', L('أشتري', 'Buy')], ['WAIT', L('أ�
             <UiButton :variant="ex ? undefined : 'default'" class="mt-2" @click="next">{{ ex ? L('لحظة أخرى', 'Another moment') : L('ابدأ التدريب', 'Start practising') }}</UiButton></UiCard>
         </div>
       </div>
-      <p class="small muted">{{ L('قراءة للرسم وليست نصيحة. الفحص الشرعي يبقى قبل أي شراء.', 'A reading of the chart, not advice. The Sharia check still comes before any purchase.') }}</p>
+      <p class="small muted">{{ L('قراءة للرسم وليست نصيحة.', 'A reading of the chart, not advice.') }}</p>
     </template>
   </div>
 </template>

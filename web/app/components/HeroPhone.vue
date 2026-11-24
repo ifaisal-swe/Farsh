@@ -30,7 +30,7 @@ onBeforeUnmount(stop)
         </template>
       </UiTabs>
     </div>
-    <div class="pop absolute -top-7 -start-20 hidden items-center gap-3 rounded-2xl bg-card px-4 py-3 text-card-foreground shadow-xl xl:flex" style="--x: 4rem; --y: 3.5rem; --d: 700ms" aria-hidden="true"><ShieldCheck class="size-6 text-up" /><span class="text-sm font-semibold">{{ L('اجتاز الفحص الشرعي', 'Passed the Sharia screen') }}</span></div>
+    <div class="pop absolute -top-7 -start-20 hidden items-center gap-3 rounded-2xl bg-card px-4 py-3 text-card-foreground shadow-xl xl:flex" style="--x: 4rem; --y: 3.5rem; --d: 700ms" aria-hidden="true"><ShieldCheck class="size-6 text-up" /><span class="text-sm font-semibold">{{ L('تحليل من المصادر', 'Analysis from sources') }}</span></div>
     <div class="pop absolute top-[24%] -end-24 hidden items-center gap-3 rounded-2xl bg-card px-4 py-3 text-card-foreground shadow-xl xl:flex" style="--x: -80px; --y: 0px; --d: 900ms" aria-hidden="true"><Bell class="size-6 text-primary" /><span class="text-sm font-semibold">{{ L('وصلك تنبيه', 'New alert') }}</span></div>
     <div class="pop absolute -bottom-6 -start-16 hidden rounded-2xl bg-sun px-5 py-3 text-sun-foreground shadow-xl xl:block" style="--x: 60px; --y: -50px; --d: 1100ms" aria-hidden="true"><span class="text-sm font-semibold">{{ L('المخاطرة', 'Risk') }} <bdi dir="ltr">0.5%</bdi></span></div>
   </div>

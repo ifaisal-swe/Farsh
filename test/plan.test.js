@@ -92,14 +92,15 @@ const two = { targets: { stocks: 40, funds: 30 }, symbols: { stocks: ['TEST'], f
 test('plan: builds by itself, keeps out refused symbols, records real orders, blocks the other decision-maker', async () => {
   const c = await make();
   await c.plan.set(two);
-  c.sharia.status.FUND = 'NO';
+  c.sharia.status.TEST = 'NO'; // information only
+  let pass = false; c.desk.book.lab = { reports: {}, gate: (s) => ({ pass: pass || s !== 'FUND', detail: '' }) };
   await c.pass(1000, { TEST: 100, FUND: 50 });
   assert.equal(c.desk.book.portfolio.position('TEST'), null, 'saved but not started');
   c.plan.toggle(true);
   await c.pass(1000, { TEST: 100, FUND: 50 });
   assert.equal(c.desk.book.portfolio.position('TEST').qty, 39);
   assert.equal(c.desk.book.portfolio.position('FUND'), null);
-  assert.equal(c.plan.status().rows.find((r) => r.symbol === 'FUND').wait, 'SHARIA');
+  assert.equal(c.plan.status().rows.find((r) => r.symbol === 'FUND').wait, 'ANALYSIS');
   const orders = c.store.listOrders(c.desk.book.session.id);
   assert.equal(orders.filter((o) => o.side === 'BUY' && o.source === 'PLAN' && o.status === 'FILLED').length, 1);
   assert.equal(c.store.listFills(c.desk.book.session.id)[0].kind, 'PLAN');
@@ -108,7 +109,7 @@ test('plan: builds by itself, keeps out refused symbols, records real orders, bl
   c.decider.push((s) => buyProposal(s));
   const d = await c.desk.agent('TEST').runAnalysis({ reasons: [{ type: 'MANUAL' }] });
   assert.equal(d && d.status, 'NO_ACTION', JSON.stringify(c.store.listActivity(c.desk.book.session.id, 5)));
-  c.sharia.status.FUND = 'YES';
+  pass = true;
   await c.pass(60000, { TEST: 100, FUND: 50 });
   assert.equal(c.desk.book.portfolio.position('FUND').qty, 59);
   // a new service over the same storage remembers everything

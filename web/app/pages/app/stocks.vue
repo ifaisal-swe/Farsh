@@ -60,7 +60,7 @@ const SOURCES = [['Piotroski F-score', 'https://en.wikipedia.org/wiki/Piotroski_
 
       <UiCard><h2>{{ L('كيف يختار كبار المستثمرين', 'How great investors choose') }}</h2><div class="grid gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-4"><div v-for="[h, p] in LESSONS" :key="h"><h3 class="text-lg">{{ h }}</h3><p class="!mt-1 !mb-0 text-muted-foreground">{{ p }}</p></div></div>
         <p class="small !mt-6 flex flex-wrap gap-x-4 gap-y-1"><span class="muted">{{ L('المصادر', 'Sources') }}:</span><a v-for="[n, u] in SOURCES" :key="n" :href="u" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 underline"><bdi>{{ n }}</bdi><ExternalLink class="size-3" aria-hidden="true" /></a></p>
-        <p class="small muted !m-0">{{ L('أداة دراسة للتداول الورقي وليست نصيحة استثمارية. ما لا نعرفه يبقى «غير معروف» ولا نقدّره. ولا شراء قبل الفحص الشرعي مهما كانت النتيجة هنا.', 'A study tool for paper trading, not investment advice. What we do not know stays unknown and is never estimated. Nothing is bought before the Sharia check, whatever this page says.') }}</p></UiCard>
+        <p class="small muted !m-0">{{ L('أداة دراسة للتداول الورقي وليست نصيحة استثمارية. ما لا نعرفه يبقى «غير معروف» ولا نقدّره.', 'A study tool for paper trading, not investment advice. What we do not know stays unknown and is never estimated.') }}</p></UiCard>
     </template>
   </div>
 </template>

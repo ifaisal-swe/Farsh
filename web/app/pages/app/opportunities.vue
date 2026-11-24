@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // what to buy, what to sell and why, with the losing side beside the gain
-import { CalendarDays, CircleAlert, ExternalLink, Newspaper, RefreshCw, ShieldAlert, Users } from '@lucide/vue'
+import { CalendarDays, CircleAlert, ExternalLink, Newspaper, RefreshCw, Users } from '@lucide/vue'
 import { ACTIONS, isSell, isBuy } from '~/lib/calls'
 import { plain } from '~/lib/plain'
 const { lang, num } = useLang()
@@ -32,7 +32,7 @@ const day = (ms: number) => new Date(ms).toLocaleDateString(ar.value ? 'ar-u-nu-
 // the plan on one line: stop, entry, price and target in their true distances
 const at = (x: any, p: number) => { const v = [x.plan.stop, x.plan.target, x.plan.entry, x.price]; const lo = Math.min(...v); const hi = Math.max(...v); return `${hi > lo ? ((p - lo) / (hi - lo)) * 100 : 50}%` }
 const order = (x: any) => ({ path: '/app/orders', query: isSell(x) ? { symbol: x.symbol, side: 'SELL', type: 'MARKET' } : { symbol: x.symbol, side: 'BUY', type: x.plan.type, ...(x.plan.type === 'MARKET' ? {} : { price: x.plan.entry }), stop: x.plan.stop, target: x.plan.target } })
-const ready = (x: any) => isSell(x) || (isBuy(x) && x.plan && !x.blocked)
+const ready = (x: any) => isSell(x) || (isBuy(x) && x.plan)
 const record = computed(() => d.value?.record)
 </script>
 
@@ -56,7 +56,6 @@ const record = computed(() => d.value?.record)
           <article v-for="x in items" :key="x.symbol" class="min-w-0 rounded-3xl border bg-card p-5 sm:p-7">
             <header class="flex flex-wrap items-center gap-x-4 gap-y-3"><SymbolIcon :symbol="x.symbol" class="!size-12" /><div class="min-w-0 flex-1"><h3 class="!m-0 text-2xl leading-tight"><bdi>{{ x.symbol }}</bdi></h3><span class="small muted"><span class="num">{{ money(x.price) }}</span><template v-if="!x.live"> · {{ L('سعر تجريبي', 'demo price') }}</template></span></div><span class="rounded-full px-5 py-2 font-display text-lg font-semibold" :class="ACTIONS[x.action]!.c">{{ L(...ACTIONS[x.action]!.n) }}</span></header>
             <p class="!mt-4 !mb-0 text-lg">{{ say(x.why) }}</p>
-            <p v-if="x.blocked" class="!mt-4 !mb-0 flex items-center gap-3 rounded-2xl bg-brass-soft px-4 py-3 text-brass"><ShieldAlert class="size-5 shrink-0" aria-hidden="true" /><span>{{ L('لم يجتز الفحص الشرعي بعد، فلا يُشترى.', 'It has not passed the Sharia check, so it is not bought.') }} <NuxtLink to="/app/sharia" class="underline">{{ L('افتح الفحص', 'Open the check') }}</NuxtLink></span></p>
             <p v-if="x.position" class="!mt-4 !mb-0 rounded-2xl bg-secondary px-4 py-3 text-secondary-foreground">{{ L('تملك', 'You hold') }} <bdi class="font-semibold">{{ x.position.qty }}</bdi> · {{ L('النتيجة', 'Result') }} <b class="num">{{ x.position.value > 0 ? '+' : x.position.value < 0 ? '−' : '' }}${{ num(Math.abs(x.position.value)) }} ({{ pct(x.position.gain, 1) }})</b></p>
 
             <template v-if="x.plan?.entry">
@@ -85,7 +84,7 @@ const record = computed(() => d.value?.record)
           <p v-if="!record.done" class="muted !mb-0">{{ L('لم تنتهِ أي فرصة بعد. كل فرصة شراء تُسجَّل هنا بنتيجتها، ربحت أو خسرت.', 'None has finished yet. Every buy call is kept here with its result, won or lost.') }}</p>
           <p v-else class="!mb-0">{{ L('انتهت', 'Finished') }} <b class="num">{{ record.done }}</b> · {{ L('ربحت', 'gained') }} <b class="num up">{{ record.won }}</b> · {{ L('خسرت', 'lost') }} <b class="num down">{{ record.lost }}</b> · {{ L('المتوسط', 'average') }} <b class="num">{{ pct(record.average, 1) }}</b><template v-if="record.done < 20"> · <span class="muted">{{ L('العدد قليل، فلا يُبنى عليه', 'Too few to rely on') }}</span></template></p>
           <div v-if="record.list.length" class="relative mt-4 overflow-x-auto"><table class="w-full min-w-[34rem] text-sm"><thead><tr class="text-muted-foreground"><th scope="col" class="py-2 text-start">{{ L('السوق', 'Market') }}</th><th scope="col" class="py-2 text-start">{{ L('التاريخ', 'Date') }}</th><th scope="col" class="py-2 text-start">{{ L('الدخول', 'Entry') }}</th><th scope="col" class="py-2 text-start">{{ L('الحالة', 'State') }}</th><th scope="col" class="py-2 text-start">{{ L('النتيجة', 'Result') }}</th></tr></thead><tbody><tr v-for="t in record.list" :key="t.id" class="border-t"><th scope="row" class="py-2.5 text-start"><bdi>{{ t.symbol }}</bdi></th><td>{{ day(t.at) }}</td><td><span class="num">{{ money(t.entry) }}</span></td><td>{{ END[t.status] }}</td><td><span class="num" :class="t.result > 0 ? 'up' : t.result < 0 ? 'down' : ''">{{ pct(t.result, 1) }}</span></td></tr></tbody></table></div>
-          <p class="small muted !mt-4 !mb-0">{{ L('محاكاة ورقية وليست نصيحة استثمارية، ولا ربح مضمون. لا يُشترى سهم حقيقي قبل الفحص الشرعي.', 'Paper simulation, not investment advice, and no profit is guaranteed. No real stock is bought before the Sharia check.') }}</p>
+          <p class="small muted !mt-4 !mb-0">{{ L('محاكاة ورقية وليست نصيحة استثمارية، ولا ربح مضمون.', 'Paper simulation, not investment advice, and no profit is guaranteed.') }}</p>
         </UiCard>
       </template>
     </template>

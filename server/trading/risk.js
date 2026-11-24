@@ -188,7 +188,6 @@ class RiskManager {
     const { proposal: p, quote, market, account, ipo = {}, exec, ai, nowMs } = ctx;
     const checks = RiskManager.marketChecks(market, quote, exec.extendedHours);
     const add = (name, pass, detail) => checks.push({ name, pass: !!pass, detail });
-    if (ctx.sharia) add('sharia', ctx.sharia.pass, ctx.sharia.detail);
     if (ctx.lab) add('analysis', ctx.lab.pass, ctx.lab.detail);
     for (const b of this.entryBlocks(nowMs)) add('account_limits', false, b);
     if (!this.entryBlocks(nowMs).length) add('account_limits', true, 'No daily-loss / drawdown / cooldown block');

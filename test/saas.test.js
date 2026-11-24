@@ -193,7 +193,7 @@ test('saas: a hanging customer process is killed and replaced while others keep 
   const t0 = Date.now();
   assert.equal((await call('/api/state', { cookie: b.cookie })).status, 200);
   assert.ok(Date.now() - t0 < 2000);
-  assert.ok(await until(() => x.child.pid !== pid && x.state === 'RUNNING'));
+  assert.ok(await until(() => x.child && x.child.pid !== pid && x.state === 'RUNNING'));
   assert.equal((await call('/api/state', { cookie: a.cookie })).status, 200);
 }, {}, { pingMs: 300, misses: 3, script: path.join(__dirname, 'helpers', 'hang-tenant.js') }));
 

@@ -1,7 +1,7 @@
 'use strict';
 /**
  * Keeps one account's portfolio on its plan: adds the symbols, reads the state every few seconds, and buys or sells
- * towards the targets. Every buy passes the same market-data, Sharia, analysis and account-limit checks as any other.
+ * towards the targets. Every buy passes the same market-data, analysis and account-limit checks as any other.
  * In approval mode it asks first; in suggestion mode it only shows.
  */
 const A = require('./allocator');

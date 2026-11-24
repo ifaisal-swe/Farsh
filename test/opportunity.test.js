@@ -23,7 +23,7 @@ test('opportunity: strength leads to a buy plan whose stop is under and target o
   assert.ok(c.plan.stop < c.plan.entry && c.plan.entry < c.plan.target && c.plan.ratio >= 1.4);
   assert.ok(c.plan.size.loss > 0 && c.plan.size.gain > 0, 'both sides are shown');
   assert.ok(c.plan.size.loss <= 50.01 && c.plan.size.cost <= 2000.01, 'inside the risk limits');
-  assert.equal(c.blocked, null);
+ 
 });
 
 test('opportunity: no evidence watches, bad evidence avoids, no history is unknown', () => {
@@ -40,10 +40,8 @@ test('opportunity: a price far away or a target already passed is not offered; a
   const b = decide(input(0.3, { tech: { setups: [BREAK] } })); assert.equal(b.plan.type, 'STOP'); assert.match(b.change.en, /before it passes 108/);
 });
 
-test('opportunity: Sharia is checked for real prices and never for invented ones', () => {
-  for (const s of ['UNKNOWN', 'FAIL']) assert.equal(decide(input(0.8, { in: { sharia: s } })).blocked, 'SHARIA');
-  assert.equal(decide(input(0.8, { in: { sharia: null, live: false } })).blocked, null);
-  assert.equal(decide(input(0.8, { in: { ...held(), sharia: 'FAIL' } })).action, 'SELL');
+test('opportunity: the Sharia screen never changes a call', () => {
+  for (const s of ['UNKNOWN', 'FAIL', 'PASS']) { assert.deepEqual(decide(input(0.8, { in: { sharia: s } })), decide(input(0.8, { in: { sharia: null } }))); assert.deepEqual(decide(input(0.8, { in: { ...held(), sharia: s } })), decide(input(0.8, { in: { ...held(), sharia: null } }))); }
 });
 
 test('opportunity: its own event within two days turns a buy into waiting; an old price too', () => {
@@ -73,8 +71,8 @@ test('opportunity: size never spends more than the cash, and an empty wallet giv
 test('opportunity: the agents can only make a call more careful', () => {
   const rank = { BUY: 3, BUY_AT: 3, WAIT: 2, WATCH: 1, AVOID: 0 };
   for (const action of Object.keys(rank)) for (const stance of ['CONFIRM', 'CAREFUL', 'REJECT', 'BUY EVERYTHING', undefined]) {
-    const r = temper({ action, plan: {}, cautions: [], blocked: 'SHARIA' }, stance && { stance });
-    assert.ok(rank[r.action] <= rank[action]); assert.equal(r.blocked, 'SHARIA');
+    const r = temper({ action, plan: {}, cautions: [] }, stance && { stance });
+    assert.ok(rank[r.action] <= rank[action]);
   }
   assert.equal(temper({ action: 'SELL', cautions: [] }, { stance: 'REJECT' }).action, 'SELL', 'a reason to sell is never silenced');
 });
@@ -201,6 +199,35 @@ test('helper: the Mastra agent only reads, drops invented numbers and unknown sy
     const x = (await h.ask({ text: 'how is my wallet', lang: 'en' })).messages.at(-1);
     assert.equal(x.by, 'agent'); assert.match(x.text, /4000/); assert.doesNotMatch(x.text, /98765/); assert.deepEqual(x.symbols, ['ACME']);
     const names = new Set(m.seen.flatMap((q) => (q.tools || []).map((t) => t.function.name)));
-    assert.deepEqual([...names].sort(), ['get_goals', 'get_market_hours', 'get_opportunities', 'get_symbol', 'get_wallet', 'project_growth']);
+    assert.deepEqual([...names].sort(), ['get_company', 'get_goals', 'get_market_hours', 'get_news', 'get_opportunities', 'get_symbol', 'get_wallet', 'project_growth']);
   } finally { m.close(); }
+});
+
+test('helper: knows which company a question is about', () => {
+  const { subjects } = require('../server/helper/research');
+  assert.deepEqual(subjects('ما رأيك في إنفيديا؟'), ['NVDA']);
+  assert.deepEqual(subjects('what did the CEO of Tesla say'), ['TSLA']);
+  assert.deepEqual(subjects('هل أشتري AMD أو PLTR'), ['AMD', 'PLTR']);
+  assert.deepEqual(subjects('is $F a buy'), ['F']);
+  assert.deepEqual(subjects('ما الفرص اليوم', ['NVDA', 'AAPL']), ['NVDA', 'AAPL']);
+});
+
+test('helper: company facts and dated headlines are gathered, merged and survive a failing source', async () => {
+  const { CompanyResearch } = require('../server/helper/research'); const t = Date.parse('2026-11-25T00:00:00Z');
+  const r = new CompanyResearch({ now: () => t, gather: async () => { throw new Error('down'); }, feed: async () => [{ headline: 'CEO returns to work', created_at: '2026-11-24T10:00:00Z', source: 'wire', summary: '<b>Back</b>' }, { headline: 'Ancient', created_at: '2020-01-01T00:00:00Z' }], saved: () => [{ title: 'CEO returns to work!', publishedAt: t - 1000 }, { title: 'New chip', publishedAt: t - 5000, source: 'x' }] });
+  const c = (await r.about('NVDA')).NVDA;
+  assert.equal(c.company, null);
+  assert.deepEqual(c.news.map((n) => n.quoted), ['New chip', 'CEO returns to work']); assert.equal(c.news[1].summary, 'Back');
+  const slow = new CompanyResearch({ now: () => t, waitMs: 20, gather: () => new Promise(() => {}), feed: () => new Promise(() => {}), saved: () => [] });
+  assert.deepEqual((await slow.about('NVDA')).NVDA.news, []);
+});
+
+test('helper: web search is limited, needs sources and fails quietly', async () => {
+  const { webSearch } = require('../server/helper/web'); const seen = [];
+  const ok = (annotations) => async (u, o) => { seen.push(JSON.parse(o.body)); return new Response(JSON.stringify({ choices: [{ message: { content: 'On 24 Nov the CEO said x', annotations } }] })); };
+  const s = webSearch({ modelId: 'm', apiKey: 'k' }, { fetchImpl: ok([{ type: 'url_citation', url_citation: { url: 'https://a.example/x', title: 'A' } }, { type: 'url_citation', url_citation: { url: 'javascript:1', title: 'B' } }]), limit: 1 });
+  assert.deepEqual((await s('nvidia ceo')).sources, [{ title: 'A', url: 'https://a.example/x' }]); assert.equal(seen[0].plugins[0].id, 'web');
+  assert.equal((await s('again')).available, false); assert.equal(seen.length, 1);
+  assert.equal((await webSearch({}, { fetchImpl: ok([]) })('q')).available, false, 'no sources, no claim');
+  assert.equal((await webSearch({}, { fetchImpl: async () => new Response('', { status: 402 }) })('q')).available, false);
 });

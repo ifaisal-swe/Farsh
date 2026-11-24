@@ -1,7 +1,7 @@
 'use strict';
 /**
  * The committee's rules: seven views, each -1..1 with its reasons, combined with fixed weights. It also decides what
- * the AI agents may change: they can lower the result, never raise it, and never touch the Sharia or risk limits.
+ * the AI agents may change: they can lower the result, never raise it, and never touch the risk limits.
  */
 const clamp = (x) => Math.max(-1, Math.min(1, x));
 const pct = (x, d = 0) => `${(x * 100).toFixed(d)}%`;
@@ -76,14 +76,14 @@ function cautions(q) {
   return { list: out, veto };
 }
 
-function decide({ quant, facts, sharia }) {
+function decide({ quant, facts }) {
   const q = quant && quant.available ? quant : null; const views = {}; let sum = 0; let weight = 0;
   for (const [k, fn] of Object.entries(VIEWS)) { const v = fn(q, facts); if (!v) continue; views[k] = { score: +v.score.toFixed(3), reasons: v.reasons }; sum += v.score * WEIGHT[k]; weight += WEIGHT[k]; }
   const score = weight ? sum / weight : 0; const c = cautions(q); const coverage = weight / Object.values(WEIGHT).reduce((a, b) => a + b, 0);
   let verdict = coverage < 0.3 ? 'UNKNOWN' : score >= 0.22 ? 'SUPPORT' : score <= -0.18 ? 'AVOID' : 'NEUTRAL';
   if (c.veto && verdict !== 'UNKNOWN') verdict = 'AVOID';
   else if (c.list.length && verdict === 'SUPPORT') verdict = 'NEUTRAL';
-  return { verdict, score: +score.toFixed(3), coverage: +coverage.toFixed(2), views, cautions: c.list, blocked: sharia && sharia !== 'PASS' ? sharia : null };
+  return { verdict, score: +score.toFixed(3), coverage: +coverage.toFixed(2), views, cautions: c.list };
 }
 
 const RANK = { AVOID: 0, UNKNOWN: 1, NEUTRAL: 1, SUPPORT: 2 };

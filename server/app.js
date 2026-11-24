@@ -27,6 +27,7 @@ const chartbook = require('./analysis/chartbook');
 const { InvestorService } = require('./lab/investors');
 const { OpportunityService, parseEarningsDate } = require('./opportunity/service');
 const { HelperService } = require('./helper/service');
+const { CompanyResearch } = require('./helper/research');
 const { sendWebPage, webAssets, ASSETS } = require('./webpage');
 const { ShariaService } = require('./sharia/screener');
 const { TerminalService } = require('./services/terminalService');
@@ -320,12 +321,14 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   let catalysts = [];
   try { catalysts = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'research-snapshot.json'), 'utf8')).catalysts || []; } catch { /* no dated events */ }
   opportunities = new OpportunityService({ store, desk, lab, investors, sharia, getBars: techBars, technical, catalysts, earningsDate, isCrypto, activity });
-  const helper = new HelperService({ store, lab, activity, getBundle: async () => {
+  const research = new CompanyResearch({ isCrypto, gather: (s) => (publicData ? require('./lab/facts').gather(s, { fetchImpl }) : null), saved: (s) => store.listNews(s, 20), feed: (s) => { const p = (desk.stockAgent() || {}).provider; return p && p.fetchNews ? p.fetchNews(s, { limit: 15, start: new Date(Date.now() - 14 * 86400000).toISOString() }) : null; } });
+  const helper = new HelperService({ store, lab, activity, getBundle: async (text) => {
     if (!opportunities.scannedAt || Date.now() - opportunities.scannedAt > 120000) await opportunities.scan();
     const st = desk.primary.publicState(); const s = opportunities.status(); const h = marketHours((desk.stockAgent() || {}).calendar, Date.now());
     const now = Date.now(); const today = h.days.find((d) => d.open && now >= d.open && now < d.close); const next = h.days.find((d) => d.open && d.open > now); const open = !!today && !h.closedUntil;
     const inv = invest.status();
-    return { session: s.session, live: s.live, wallet: st.portfolio || {}, positions: desk.positions().map((p) => ({ symbol: p.symbol, qty: p.qty, avgPrice: p.avgPrice, price: p.mark, unrealizedPnl: p.unrealizedPnl })), calls: s.items, record: s.record, hours: { open, closesAt: open ? today.close : null, opensAt: open ? null : h.closedUntil || (next && next.open) || null }, goals: ((inv && inv.goals) || []).map((g) => ({ name: g.name, target: g.amount, date: g.by })) };
+    const companies = s.live && lab.getModel() ? await research.about(text, (s.items || []).map((x) => x.symbol)) : {};
+    return { companies, session: s.session, live: s.live, wallet: st.portfolio || {}, positions: desk.positions().map((p) => ({ symbol: p.symbol, qty: p.qty, avgPrice: p.avgPrice, price: p.mark, unrealizedPnl: p.unrealizedPnl })), calls: s.items, record: s.record, hours: { open, closesAt: open ? today.close : null, opensAt: open ? null : h.closedUntil || (next && next.open) || null }, goals: ((inv && inv.goals) || []).map((g) => ({ name: g.name, target: g.amount, date: g.by })) };
   } });
   app.get('/api/opportunities', wrap(async () => { if (!opportunities.scannedAt) await opportunities.scan(); return opportunities.status(); }));
   app.post('/api/opportunities/scan', wrap(async () => { await opportunities.scan(); return opportunities.status(); }));

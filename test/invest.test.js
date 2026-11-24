@@ -93,11 +93,11 @@ test('invest: the stop works with automation paused; buying does not', async () 
   assert.equal(c.first().end, 'STOP'); assert.ok(c.first().result < 0);
 });
 
-test('invest: Sharia refusal waits, a price through the stop cancels, dates end it, hand sale and changes work', async () => {
+test('invest: an analysis refusal waits, a price through the stop cancels, dates end it, hand sale and changes work', async () => {
   const c = await setup();
-  c.at(71); c.sharia.status.TEST = 'NO'; c.inv.create(base); c.at(71);
-  assert.equal(c.held(), null); assert.equal(c.first().wait, 'SHARIA');
-  c.sharia.status.TEST = 'YES'; c.at(69); assert.equal(c.first().end, 'PASSED');
+  c.at(71); c.sharia.status.TEST = 'NO'; let pass = false; c.desk.book.lab = { reports: {}, gate: () => ({ pass, detail: '' }) }; c.inv.create(base); c.at(71);
+  assert.equal(c.held(), null); assert.equal(c.first().wait, 'ANALYSIS');
+  pass = true; c.at(69); assert.equal(c.first().end, 'PASSED');
   c.inv.create({ ...base, entry: 60, stop: 55 }); c.at(69, 11 * 86400000); assert.equal(c.first().status, 'EXPIRED');
   const d = await setup();
   d.at(71); d.inv.create(base); assert.ok(d.held());

@@ -30,7 +30,7 @@ const h = computed(() => r.value?.facts?.health || null)
 const p = (x: any, n = 0) => (typeof x === 'number' ? `${(x * 100).toFixed(n)}%` : '—')
 const big = (x: any) => (typeof x !== 'number' ? '—' : Math.abs(x) >= 1e12 ? `$${(x / 1e12).toFixed(2)}T` : Math.abs(x) >= 1e9 ? `$${(x / 1e9).toFixed(1)}B` : `$${(x / 1e6).toFixed(0)}M`)
 const VERDICT = computed<Record<string, { t: string, s: string, c: string, i: any }>>(() => ({
-  SUPPORT: { t: L('يميل إلى التأييد', 'Leans in favour'), s: L('الأدلة تميل إلى التأييد، وتبقى حدودك والفحص الشرعي قبل أي شراء.', 'The evidence leans in favour; your limits and the Sharia check still come first.'), c: 'bg-brand text-white', i: TrendingUp },
+  SUPPORT: { t: L('يميل إلى التأييد', 'Leans in favour'), s: L('الأدلة تميل إلى التأييد، وتبقى حدودك.', 'The evidence leans in favour; your limits still come first.'), c: 'bg-brand text-white', i: TrendingUp },
   NEUTRAL: { t: L('غير حاسم', 'Not decisive'), s: L('الأدلة متعارضة أو ضعيفة.', 'The evidence is mixed or thin.'), c: 'bg-sun text-sun-foreground', i: Minus },
   AVOID: { t: L('يميل إلى التجنب', 'Leans against'), s: L('المخاطر أو الأدلة السلبية غالبة الآن.', 'Risks or negative evidence dominate now.'), c: 'bg-[#0d0f26] text-white', i: TrendingDown },
   UNKNOWN: { t: L('معلومات غير كافية', 'Not enough information'), s: L('لا تكفي المعلومات المتاحة لرأي.', 'There is too little information for a view.'), c: 'bg-secondary text-secondary-foreground', i: CircleAlert },
@@ -63,7 +63,7 @@ const when = (x: number) => new Date(x).toLocaleString('en-GB')
 
     <template v-if="r">
       <section class="rise mb-4 rounded-3xl p-6 sm:p-8" :class="VERDICT[r.verdict]?.c"><div class="flex flex-wrap items-center gap-5"><component :is="VERDICT[r.verdict]?.i" class="size-12 shrink-0" aria-hidden="true" /><div class="min-w-0 flex-1"><h2 class="!m-0 !text-3xl"><bdi>{{ r.symbol }}</bdi>: {{ VERDICT[r.verdict]?.t }}</h2><p class="!m-0 mt-1">{{ VERDICT[r.verdict]?.s }}</p></div><div v-if="r.agents" class="text-center"><b class="num block font-display text-4xl">{{ r.agents.confidence }}%</b><span class="text-sm">{{ L('ثقة اللجنة', 'Committee confidence') }}</span></div></div>
-        <p v-if="d.sharia !== 'PASS'" class="!m-0 mt-5 rounded-2xl bg-black/15 px-4 py-3 font-medium">{{ L('لا شراء قبل حسم الفحص الشرعي، مهما كانت نتيجة التحليل.', 'Nothing is bought before the Sharia check is settled, whatever the analysis says.') }}</p></section>
+</section>
 
       <div class="cols">
         <div>

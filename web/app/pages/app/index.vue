@@ -23,7 +23,7 @@ const side = ref('BUY')
 const curve = ref<number[]>([])
 const lines = ref<Record<string, number[]>>({})
 const calls = ref<any[]>([])
-async function loadCalls() { try { calls.value = ((await api('opportunities')).items || []).filter((x: any) => (isBuy(x) && !x.blocked) || isSell(x)).slice(0, 3) } catch { /* the page has them */ } }
+async function loadCalls() { try { calls.value = ((await api('opportunities')).items || []).filter((x: any) => isBuy(x) || isSell(x)).slice(0, 3) } catch { /* the page has them */ } }
 
 async function run(path: string, body: unknown = {}) {
   busy.value = true
@@ -70,8 +70,6 @@ const signed = (x: any) => (typeof x === 'number' && Number.isFinite(x) ? `${x >
 const tone = (x: any) => (x > 0 ? 'up' : x < 0 ? 'down' : '')
 const blocks = computed(() => {
   const out = [...new Set<string>(((s.value.risk && s.value.risk.blocks) || []).map((b: string) => plain.block(b, ar.value)))]
-  const x = sharia.value[symbol.value]
-  if (s.value.dataMode === 'LIVE' && symbol.value && (!x || x.status !== 'PASS')) out.push(`${t('sharia')} (${symbol.value}): ${t(x ? x.status : 'UNKNOWN')}`)
   if (stale.value) out.push(t('offline'))
   return out
 })

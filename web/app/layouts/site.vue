@@ -41,12 +41,12 @@ const COLS = computed(() => [
     <footer :class="full ? 'bg-[#0d0f26] text-panel-foreground [--ring:#ffd32e]' : 'border-t'">
       <div v-if="full" class="mx-auto max-w-7xl px-4 pt-16 sm:px-6 sm:pt-20">
         <div class="grid gap-10 border-b border-white/15 pb-12 sm:grid-cols-3 lg:grid-cols-[1.6fr_repeat(3,1fr)]">
-          <div class="sm:col-span-3 lg:col-span-1"><img :src="`/brand/forsah-${lang}-white.svg`" :alt="t('brand')" width="136" height="40" class="h-10 w-auto"><p class="mt-5 max-w-[40ch] text-sm text-panel-muted">{{ L('منصة عربية للتداول الورقي الآلي للأسهم الأمريكية والعملات الرقمية بضوابط شرعية.', 'An Arabic-first platform for automated paper trading of US stocks and crypto under Sharia rules.') }}</p></div>
+          <div class="sm:col-span-3 lg:col-span-1"><img :src="`/brand/forsah-${lang}-white.svg`" :alt="t('brand')" width="136" height="40" class="h-10 w-auto"><p class="mt-5 max-w-[40ch] text-sm text-panel-muted">{{ L('منصة عربية للتداول الورقي الآلي للأسهم الأمريكية والعملات الرقمية.', 'An Arabic-first platform for automated paper trading of US stocks and crypto.') }}</p></div>
           <nav v-for="[title, items] in COLS" :key="title" :aria-label="title"><h3 class="text-base">{{ title }}</h3><ul class="mt-4 grid gap-2.5 text-sm text-panel-muted"><li v-for="[h, n] in items" :key="n"><a v-if="home && h.startsWith('#')" :href="h" class="hover:text-white">{{ n }}</a><NuxtLink v-else :to="h.startsWith('#') ? `/${h}` : h" class="hover:text-white">{{ n }}</NuxtLink></li></ul></nav>
         </div>
       </div>
       <div class="mx-auto flex max-w-7xl flex-wrap justify-between gap-x-10 gap-y-3 px-4 py-10 text-sm sm:px-6" :class="full ? 'text-panel-muted' : 'text-muted-foreground'">
-        <p class="max-w-[80ch]">{{ L('تداول ورقي (محاكاة) فقط، ولا تُرسل أي أوامر حقيقية إلى وسيط. لا تقدم المنصة نصيحة استثمارية. الفحص الشرعي فحص آلي أولي.', 'Paper trading (simulation) only. No real orders are sent to any broker. The platform gives no investment advice. The Sharia screen is an automated pre-screen.') }}</p><p><bdi>© 2026</bdi> {{ t('brand') }}</p>
+        <p class="max-w-[80ch]">{{ L('تداول ورقي (محاكاة) فقط، ولا تُرسل أي أوامر حقيقية إلى وسيط. لا تقدم المنصة نصيحة استثمارية.', 'Paper trading (simulation) only. No real orders are sent to any broker. The platform gives no investment advice.') }}</p><p><bdi>© 2026</bdi> {{ t('brand') }}</p>
       </div>
     </footer>
   </div>

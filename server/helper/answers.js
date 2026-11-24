@@ -33,7 +33,7 @@ function answer(text, b, lang = 'ar') {
   const act = (a) => (ACTION[a] || ACTION.UNKNOWN)[ar ? 0 : 1];
   const links = []; const go = (label, to) => links.push({ label, to });
   const paper = L('هذه محاكاة ورقية وليست نصيحة، ولا ربح مضمون.', 'This is a paper simulation, not advice, and no profit is guaranteed.');
-  const line = (c) => { const p = c.plan; return `• ${c.symbol}: ${act(c.action)}${p && ok(p.entry) ? ` ${L('عند', 'at')} ${money(p.entry)}، ${L('وقف', 'stop')} ${money(p.stop)}، ${L('هدف', 'target')} ${money(p.target)}` : ''}${c.blocked ? ` (${L('ينتظر الفحص الشرعي', 'waits for the Sharia check')})` : ''}`; };
+  const line = (c) => { const p = c.plan; return `• ${c.symbol}: ${act(c.action)}${p && ok(p.entry) ? ` ${L('عند', 'at')} ${money(p.entry)}، ${L('وقف', 'stop')} ${money(p.stop)}، ${L('هدف', 'target')} ${money(p.target)}` : ''}`; };
   const sym = (parse(text).symbol || '').toUpperCase(); const found = (b.calls || []).find((c) => c.symbol === sym || c.symbol === `${sym}/USD`);
 
   if (!b.session) { go(L('ابدأ محاكاة', 'Start a simulation'), '/app'); return { topic: 'start', text: L('ابدأ محاكاة أولًا، ثم أراقب لك الأسواق وأخبرك بالفرص.', 'Start a simulation first; then I can watch the markets and tell you about opportunities.'), links }; }
@@ -74,7 +74,7 @@ function answer(text, b, lang = 'ar') {
     const r = b.record || {}; go(L('افتح السجل', 'Open the record'), '/app/opportunities');
     return { topic: 'record', text: r.done ? L(`من ${r.done} فرصة انتهت: ربحت ${r.won} وخسرت ${r.lost}، والمتوسط ${pct(r.average)}.`, `Of ${r.done} finished opportunities: ${r.won} gained and ${r.lost} lost, averaging ${pct(r.average)}.`) : L('لم تنتهِ أي فرصة بعد، فلا سجل حتى الآن.', 'No opportunity has finished yet, so there is no record.'), links };
   }
-  if (has(/شرع|حلال|حرام|sharia|halal/)) { go(L('الفحص الشرعي', 'Sharia screen'), '/app/sharia'); return { topic: 'sharia', text: L('كل سهم حقيقي يمر بفحص شرعي آلي أولي قبل الشراء. ما لم يُحسم لا يُشترى، والبيع مسموح دائمًا.', 'Every real stock passes an automated first Sharia check before buying. Unresolved stocks are not bought, and selling is always allowed.'), links }; }
+  if (has(/شرع|حلال|حرام|sharia|halal/)) { go(L('الفحص الشرعي', 'Sharia screen'), '/app/sharia'); return { topic: 'sharia', text: L('الفحص الشرعي معلومة تجدها في صفحته، ولا يؤثر على الآراء أو القرارات هنا.', 'The Sharia screen is information on its own page; it does not affect the views or decisions here.'), links }; }
   if (has(/هدف|اهداف|goal/)) { go(L('أهدافك', 'Your goals'), '/app/invest'); const g = b.goals || []; return { topic: 'goals', text: g.length ? g.map((x) => `• ${x.name}: ${money(x.target)}`).join('\n') : L('لا أهداف بعد. أنشئ هدفًا وسأتابعه معك.', 'No goals yet. Create one and I will follow it with you.'), links }; }
   return { topic: 'help', text: L('أستطيع أن أخبرك: ما الفرص الآن؟ متى أبيع؟ ما رأيك في NVDA؟ كم في محفظتي؟ متى يفتح السوق؟ كم يصبح 500 دولار شهريًا بعد 10 سنوات؟', 'I can tell you: what are the opportunities now? When should I sell? What about NVDA? How much is in my wallet? When does the market open? What would $500 a month become in 10 years?'), links };
 }

@@ -3,7 +3,7 @@
  * One symbol, one clear call: buy now, buy at a price, wait, avoid, hold, sell part or sell, with its prices, its
  * reasons, what comes next and what would change the call. Pure function of the evidence.
  *
- * What it never does: promise a result, hide the losing side, skip the Sharia check, or let one strong reading stand
+ * What it never does: promise a result, hide the losing side, or let one strong reading stand
  * alone. Chances come from replayed past days with their average removed, so on their own they favour nobody.
  */
 const { VIEWS } = require('../lab/committee');
@@ -54,8 +54,8 @@ function size(e, account, crypto) {
 }
 
 /**
- * input: { symbol, price, bars, tech, lens, facts, lab, sharia, position, account, events, live, fresh, crypto, now }
- * sharia: PASS | FAIL | UNKNOWN, or null when prices are invented. lab: verdict of a fresh analysis, or null.
+ * input: { symbol, price, bars, tech, lens, facts, lab, position, account, events, live, fresh, crypto, now }
+ * lab: verdict of a fresh analysis, or null.
  */
 function decide(i) {
   if (!i.tech || !(i.price > 0)) return { symbol: i.symbol, action: 'UNKNOWN', price: i.price || null, reasons: [], evidence: [], events: [], cautions: [T('لا توجد أسعار سابقة كافية', 'Too little price history')] };
@@ -82,8 +82,7 @@ function decide(i) {
     const protect = tech.setups.find((s) => s.id === 'PROTECT');
     const guard = Math.max(pos.stop || 0, protect ? protect.price : 0) || null;
     let action = 'HOLD'; let why = T('لا سبب للبيع الآن. احمِ ما تملكه بوقف.', 'No reason to sell now. Protect it with a stop.');
-    if (i.sharia === 'FAIL') { action = 'SELL'; why = T('لم يعد السهم متوافقًا شرعيًا', 'The stock no longer passes the Sharia check'); }
-    else if (pos.stop && price <= pos.stop) { action = 'SELL'; why = T('بلغ السعر وقف الخسارة', 'The price reached the stop'); }
+    if (pos.stop && price <= pos.stop) { action = 'SELL'; why = T('بلغ السعر وقف الخسارة', 'The price reached the stop'); }
     else if (score <= -0.3 && (!ok(s50) || price < s50)) { action = 'SELL'; why = T('انقلبت الأدلة ضده، والسعر تحت متوسط 50 يومًا', 'The evidence turned against it and the price is under its 50-day average'); }
     else if (pos.takeProfit && price >= pos.takeProfit) { action = 'SELL_PART'; why = T('بلغ السعر الهدف. بِع جزءًا وارفع وقف الباقي.', 'The price reached the target. Sell part and raise the stop on the rest.'); }
     else if (gain > 0 && score < 0 && i.lab === 'AVOID') { action = 'SELL_PART'; why = T('أنت رابح والأدلة تضعف. احفظ جزءًا من الربح.', 'You are in profit and the evidence is weakening. Keep part of the gain.'); }
@@ -102,8 +101,7 @@ function decide(i) {
   if (action === 'BUY' && (risky || (i.live && i.fresh === false))) { action = 'WAIT'; why = risky ? T('انتظر حتى يمر الحدث القريب', 'Wait until the nearby event passes') : T('السعر غير حديث الآن', 'The price is not current now'); }
   if (action === 'BUY_AT' && risky) action = 'WAIT';
   const plan = pick ? { way: pick.way, type: pick.type, entry: tidy(pick.entry), stop: tidy(pick.stop), target: tidy(pick.target), ratio: pick.ratio, odds: pick.odds, days: 20, size: size(pick, i.account, i.crypto), gainPct: pick.target / pick.entry - 1, lossPct: pick.entry / pick.entry - pick.stop / pick.entry, until: i.now + 7 * DAY } : null;
-  const blocked = i.live && plan && i.sharia !== 'PASS' ? 'SHARIA' : null;
-  return { ...base, action, confidence, why, reasons: action === 'AVOID' ? top(-1) : top(1), against: action === 'AVOID' ? top(1) : top(-1), plan, blocked, change: plan && plan.type === 'STOP' ? T(`لا تشترِ قبل أن يتجاوز ${plan.entry}. وبعدها تبطل الفكرة إذا نزل تحت ${plan.stop}`, `Do not buy before it passes ${plan.entry}. After that, the idea is wrong if it falls under ${plan.stop}`) : plan ? T(`تبطل الفكرة إذا نزل السعر تحت ${plan.stop}`, `The idea is wrong if the price falls under ${plan.stop}`) : action === 'AVOID' ? T('يتغير الرأي إذا عاد السعر فوق متوسط 50 يومًا', 'This changes if the price returns above its 50-day average') : T('يتغير الرأي إذا ظهر اتجاه واضح', 'This changes if a clear direction appears') };
+  return { ...base, action, confidence, why, reasons: action === 'AVOID' ? top(-1) : top(1), against: action === 'AVOID' ? top(1) : top(-1), plan, change: plan && plan.type === 'STOP' ? T(`لا تشترِ قبل أن يتجاوز ${plan.entry}. وبعدها تبطل الفكرة إذا نزل تحت ${plan.stop}`, `Do not buy before it passes ${plan.entry}. After that, the idea is wrong if it falls under ${plan.stop}`) : plan ? T(`تبطل الفكرة إذا نزل السعر تحت ${plan.stop}`, `The idea is wrong if the price falls under ${plan.stop}`) : action === 'AVOID' ? T('يتغير الرأي إذا عاد السعر فوق متوسط 50 يومًا', 'This changes if the price returns above its 50-day average') : T('يتغير الرأي إذا ظهر اتجاه واضح', 'This changes if a clear direction appears') };
 }
 
 /** The agents' review can only make a call more careful. */

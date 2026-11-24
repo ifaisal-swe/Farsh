@@ -5,7 +5,7 @@
  *   SELL LIMIT  at this price or better       SELL STOP  when it falls to this price      SELL TRAIL  follows a rise
  *   MARKET      at the next real price (waits for the market to open)
  * Fills use real bid/ask and displayed size, so an order can fill in parts, and cost fees. Cash and shares are held
- * back. Orders work while automation is paused. Every purchase passes the Sharia check and the account's loss limits.
+ * back. Orders work while automation is paused. Every purchase passes the account's loss limits.
  */
 const { newId } = require('../util/misc');
 const { isCrypto } = require('../market/crypto');
