@@ -36,17 +36,22 @@ const SCHEMA = [...TABLES,
     'CREATE OR REPLACE TRIGGER audit_append_only BEFORE UPDATE OR DELETE OR TRUNCATE ON audit FOR EACH STATEMENT EXECUTE FUNCTION audit_append_only()'];
 
 class Accounts {
-  constructor({ url, schema = 'control', keyDir = null, now = Date.now, idleMs = DAY / 2, maxMs = 7 * DAY, inviteMs = 7 * DAY }) {
+  constructor({ url, schema = 'control', keyDir = null, key = null, now = Date.now, idleMs = DAY / 2, maxMs = 7 * DAY, inviteMs = 7 * DAY }) {
     if (!url) throw Object.assign(new Error('DATABASE_URL must be set (PostgreSQL)'), { code: 'CONFIG' });
     this.db = new PostgresDatabase(url, { schema });
     Object.assign(this, { now, idleMs, maxMs, inviteMs });
     this.limiter = new LoginLimiter({ now });
     this.requests = new LoginLimiter({ now, global: 200 }); // separate, so a flood of requests can never lock anyone out of login
-    this.key = this.loadKey(keyDir);
+    this.key = key || this.loadKey(keyDir);
     this.auth = new AuthEngine({ db: this.db, key: this.key, rules: this }); // Better Auth: sign-in and sessions
   }
 
-  async init() { await this.db.migrate(SCHEMA); await this.auth.load(); }
+  async init() {
+    await this.db.migrate(SCHEMA);
+    const t = (await this.db.q('SELECT secret FROM totp LIMIT 1')).rows[0];
+    if (t) { try { this.open(t.secret); } catch { throw Object.assign(new Error('two-factor secrets in the database were saved with another key: restore the earlier accounts.key or TERMINAL_MASTER_KEY'), { status: 503, code: 'CONFIG' }); } }
+    await this.auth.load();
+  }
 
   /** Two-factor secrets are encrypted at rest; the key is a file, never in the database. */
   loadKey(dir) {

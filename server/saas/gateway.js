@@ -10,6 +10,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
+const os = require('node:os');
 const path = require('node:path');
 const express = require('express');
 const { parseCookies } = require('../auth');
@@ -21,6 +22,7 @@ const { PlatformServices } = require('./services');
 const { TelegramHub } = require('./telegramHub');
 const { Demos, COOKIE: DEMO } = require('./demo');
 const { explain } = require('./dbLog');
+const { masterKey, derive } = require('./masterKey');
 
 const COOKIE = 'dt_account';
 const { sendWebPage, webAssets, brandAssets, ASSETS } = require('../webpage');
@@ -34,26 +36,28 @@ function refuseOldData(file) {
 
 function createGateway({ env = process.env, port, dataDir, supervisor = {}, now = Date.now, telegramFetch } = {}) {
   const rt = resolveRuntime(env);
-  const root = path.resolve(dataDir || env.SAAS_DATA_DIR || path.join(rt.dataDir, 'saas'));
+  const master = masterKey(env); // no data folder: all keys come from the environment
+  const root = master ? (dataDir || path.join(os.tmpdir(), 'forsah')) : path.resolve(dataDir || env.SAAS_DATA_DIR || path.join(rt.dataDir, 'saas'));
+  const keyOf = (label) => (master ? { key: derive(master, label) } : { keyDir: root });
   if (!env.SAAS_ADMIN_EMAIL || !env.SAAS_ADMIN_PASSWORD) throw Object.assign(new Error('SAAS_ADMIN_EMAIL and SAAS_ADMIN_PASSWORD must be set'), { code: 'CONFIG' });
   if (rt.remote && !rt.publicHosts.length) throw Object.assign(new Error('APP_BASE_URL must be set for the hosted platform'), { code: 'CONFIG' });
   const maxTenants = Math.max(1, Number(env.SAAS_MAX_TENANTS) || 25);
   const databaseUrl = env.SAAS_DATABASE_URL || env.DATABASE_URL;
   if (!databaseUrl) throw Object.assign(new Error('DATABASE_URL must be set (PostgreSQL)'), { code: 'CONFIG' });
   const sessionMs = Math.min(90, Math.max(1, Number(env.SAAS_SESSION_DAYS) || 30)) * 86400000; // people stay signed in on their device
-  const accounts = new Accounts({ url: databaseUrl, schema: env.SAAS_DATABASE_SCHEMA || 'control', keyDir: root, now, idleMs: sessionMs, maxMs: sessionMs });
+  const accounts = new Accounts({ url: databaseUrl, schema: env.SAAS_DATABASE_SCHEMA || 'control', ...keyOf('accounts'), now, idleMs: sessionMs, maxMs: sessionMs });
 
   // ------------------------------------------------------------------ tenants
   const prefix = env.SAAS_TENANT_PREFIX || 't';
-  const provisioner = new Provisioner({ url: databaseUrl, keyDir: root, prefix });
-  const demoSpace = new Provisioner({ url: databaseUrl, keyDir: root, prefix: `${prefix}demo` });
+  const provisioner = new Provisioner({ url: databaseUrl, ...keyOf('tenant-db'), prefix });
+  const demoSpace = new Provisioner({ url: databaseUrl, ...keyOf('tenant-db'), prefix: `${prefix}demo` });
   // prices read from public pages without keys are for personal use: off unless the operator turns them on
   const PUBLIC = ['operator', 'everyone'].includes(env.SAAS_PUBLIC_DATA) ? env.SAAS_PUBLIC_DATA : 'off';
   const services = new PlatformServices({ dir: root, env });
   const botToken = services.values().TELEGRAM_BOT_TOKEN || null;
   const options = async (id) => {
     const u = await accounts.byId(id);
-    return { labModel: { url: env.LAB_MODEL_URL || null, modelId: env.LAB_MODEL_NAME || null, openrouter: env.OPENROUTER_MODEL || null }, publicData: PUBLIC === 'everyone' || (PUBLIC === 'operator' && !!u && u.role === 'ADMIN'), services: services.forAccount(u && u.role, u && u.email), telegram: botToken ? { chatId: await accounts.telegramChat(id) } : null };
+    return { labModel: { url: env.LAB_MODEL_URL || null, modelId: env.LAB_MODEL_NAME || null, openrouter: env.OPENROUTER_MODEL || null }, publicData: PUBLIC === 'everyone' || (PUBLIC === 'operator' && !!u && u.role === 'ADMIN'), services: { ...services.forAccount(u && u.role, u && u.email), ...(master ? { TERMINAL_MASTER_KEY: derive(master, `account-${id}`).toString('hex') } : {}) }, telegram: botToken ? { chatId: await accounts.telegramChat(id) } : null };
   };
   const tenants = new Supervisor({ options, prepare: async (id) => { refuseOldData(path.join(root, 'tenants', id, 'terminal.db')); return provisioner.ensure(id); }, root: path.join(root, 'tenants'), max: maxTenants, memoryMb: Math.max(128, Number(env.SAAS_TENANT_MEMORY_MB) || 384), ...supervisor });
   const sockets = new Map(); // user id -> Set<socket>
@@ -225,14 +229,14 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
     async start() {
       refuseOldData(path.join(root, 'accounts.db'));
       const step = async (name, fn) => { try { return await fn(); } catch (e) { console.error(`[startup] FAILED at: ${name}: ${explain(e, databaseUrl)}`); throw e; } };
-      console.log(`[startup] address ${env.APP_BASE_URL || '(none)'}, data folder ${root}, service keys set: ${Object.keys(services.values()).join(', ') || 'none'}`);
+      console.log(`[startup] address ${env.APP_BASE_URL || '(none)'}, ${master ? 'keys from TERMINAL_MASTER_KEY (no data folder)' : `key files in ${root}`}, service keys set: ${Object.keys(services.values()).join(', ') || 'none'}`);
       await step('connect to the database', async () => { await accounts.db.check(); });
       await step('prepare the account tables', async () => { await accounts.init(); });
       await step('clear old demos', () => demos.init());
       await step('operator account', async () => { await accounts.ensureAdmin(env.SAAS_ADMIN_EMAIL, env.SAAS_ADMIN_PASSWORD); });
       await new Promise((res, rej) => { server.once('error', rej); server.listen(port != null ? port : rt.port, rt.host, res); });
       // monitoring and alerts must survive a restart without anyone opening a browser
-      for (const u of await accounts.active()) if (fs.existsSync(path.join(root, 'tenants', u.id))) { try { await tenant(u.id); } catch (e) { console.error(`[gateway] account ${u.id} did not start: ${e.message}`); } }
+      for (const u of await accounts.active()) if (await provisioner.exists(u.id)) { try { await tenant(u.id); } catch (e) { console.error(`[gateway] account ${u.id} did not start: ${e.message}`); } }
       if (hub) hub.start();
       return server.address().port;
     },

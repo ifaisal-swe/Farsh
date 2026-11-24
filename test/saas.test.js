@@ -208,3 +208,24 @@ test('saas: customer processes get no operator secrets, and stop with the gatewa
   });
   assert.ok(child.exitCode !== null || child.signalCode !== null);
 });
+
+test('saas: with TERMINAL_MASTER_KEY nothing is kept on disk and a fresh container opens the same accounts', async () => {
+  const os2 = require('node:os'); const key = crypto.randomBytes(32).toString('hex'); const plat = platformEnv(); const password = pw();
+  const make = (k = key) => { const dir = fs.mkdtempSync(path.join(os2.tmpdir(), 'dt-mk-')); return { dir, g: createGateway({ port: 0, dataDir: dir, supervisor: { log: () => {} }, env: { ...plat, SAAS_DEMO_MAX: '0', SAAS_ADMIN_EMAIL: 'admin@example.com', SAAS_ADMIN_PASSWORD: password, TERMINAL_MASTER_KEY: k } }) }; };
+  const files = (d) => fs.readdirSync(d, { recursive: true }).filter((x) => fs.statSync(path.join(d, String(x))).isFile());
+  const a = make(); await a.g.start();
+  const id = (await a.g.accounts.byEmail('admin@example.com')).id;
+  await a.g.tenant(id);
+  const secret = a.g.accounts.seal('x');
+  assert.deepEqual(files(a.dir), []);
+  await a.g.stop(); fs.rmSync(a.dir, { recursive: true, force: true });
+  const b = make(); await b.g.start();
+  assert.equal(b.g.accounts.open(secret), 'x');
+  assert.ok(b.g.tenants.has(id), 'an opened account starts again without files');
+  await b.g.accounts.db.q('INSERT INTO totp VALUES (?,?,?,?)', [id, secret, 0, 0]);
+  await b.g.stop(); fs.rmSync(b.dir, { recursive: true, force: true });
+  const c = make(crypto.randomBytes(32).toString('hex'));
+  await assert.rejects(c.g.start(), /another key/);
+  await c.g.stop(); fs.rmSync(c.dir, { recursive: true, force: true });
+  assert.throws(() => make('short'), /64 hex/);
+});

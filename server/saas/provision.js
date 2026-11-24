@@ -11,19 +11,27 @@ const path = require('node:path');
 const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 
 class Provisioner {
-  constructor({ url, keyDir, prefix = 't' }) {
+  constructor({ url, keyDir, key = null, prefix = 't' }) {
     const { Pool } = require('pg');
     if (!/^[a-z][a-z0-9_]{0,15}$/.test(prefix)) throw new Error('Invalid prefix');
     this.url = url;
     this.prefix = prefix;
     this.pool = new Pool({ connectionString: url, max: 2, connectionTimeoutMillis: 5000, statement_timeout: 10000 });
     this.pool.on('error', () => {});
+    this.key = key || this.loadKey(keyDir);
+  }
+
+  loadKey(keyDir) {
     fs.mkdirSync(keyDir, { recursive: true });
     const f = path.join(keyDir, 'tenant-db.key');
     if (!fs.existsSync(f)) fs.writeFileSync(f, crypto.randomBytes(32).toString('hex'), { mode: 0o600, flag: 'wx' });
-    this.key = Buffer.from(fs.readFileSync(f, 'utf8').trim(), 'hex');
-    if (this.key.length !== 32) throw new Error('tenant-db.key is damaged');
+    const k = Buffer.from(fs.readFileSync(f, 'utf8').trim(), 'hex');
+    if (k.length !== 32) throw new Error('tenant-db.key is damaged');
+    return k;
   }
+
+  /** Has this account ever been opened? */
+  async exists(id) { return (await this.pool.query('SELECT 1 FROM pg_namespace WHERE nspname = $1', [this.name(id)])).rowCount === 1; }
 
   name(id) {
     if (!UUID.test(String(id))) throw new Error('Invalid account id');
