@@ -24,6 +24,8 @@ const { ActivityLog } = require('./activity');
 const { Desk } = require('./engine/desk');
 const { isCrypto } = require('./market/crypto');
 const { marketHours } = require('./market/hours');
+const chartbook = require('./analysis/chartbook');
+const { InvestorService } = require('./lab/investors');
 const { sendWebPage, webAssets, ASSETS } = require('./webpage');
 const { ShariaService } = require('./sharia/screener');
 const { TerminalService } = require('./services/terminalService');
@@ -302,6 +304,18 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   app.post('/api/invest/cancel', wrap((req) => invest.cancel(String((req.body && req.body.id) || ''))));
   app.post('/api/invest/goal', wrap((req) => invest.addGoal(req.body)));
   app.post('/api/invest/goal/remove', wrap((req) => invest.removeGoal(String((req.body && req.body.id) || ''))));
+  const investors = new InvestorService({ desk, lab, publicData, isCrypto, getBars: techBars, gatherImpl: (s) => require('./lab/facts').gather(s, { fetchImpl }) });
+  app.get('/api/investors', wrap(() => investors.status()));
+  app.get('/api/chart', wrap(async (req) => {
+    const tf = String(req.query.tf || '1d');
+    const symbol = symQ(req) || (desk.primary && desk.primary.symbol);
+    if (!isValidTf(tf) && tf !== '1w') throw Object.assign(new Error('Invalid timeframe'), { status: 400 });
+    const a = desk.agent(symbol);
+    const price = a && a.market ? a.market.mark() : null;
+    if (tf === '1d' || tf === '1w') { const { daily } = await techBars(symbol); return { symbol, live: a.dataMode === 'LIVE', ...chartbook.build(tf === '1w' ? technical.weekly(daily) : daily, { tf }) }; }
+    if (!a) throw Object.assign(new Error('Add the symbol to your list first'), { status: 400 });
+    return { symbol, live: a.dataMode === 'LIVE', ...chartbook.build((await desk.bars(symbol, tf)).bars, { tf, price }) };
+  }));
   app.get('/api/technical', wrap(async (req) => {
     const { a, daily, hourly } = await techBars(symQ(req) || (desk.primary && desk.primary.symbol));
     const p = desk.book.portfolio && desk.book.portfolio.position(a.symbol);

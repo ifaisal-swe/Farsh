@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bell, BrainCircuit, ChartCandlestick, Ellipsis, History, LogOut, Newspaper, ChartPie, Settings, SlidersHorizontal, Target, Zap, ShieldCheck, Users } from '@lucide/vue'
+import { Bell, BrainCircuit, ChartCandlestick, Ellipsis, History, LogOut, Newspaper, ChartPie, Scale, Settings, SlidersHorizontal, Target, Zap, ShieldCheck, Users } from '@lucide/vue'
 const { t, lang } = useLang()
 const { state, stale, lastAt, now } = useTerminal()
 // invented prices under a real symbol must never pass for the market
@@ -9,10 +9,10 @@ const { view: market, count, PHASE } = useMarketHours()
 const route = useRoute()
 const open = ref(false)
 const me = ref<any>(null)
-const NAV = [['/app', 'nav_dash', ChartCandlestick], ['/app/orders', 'nav_orders', Zap], ['/app/technical', 'nav_tech', SlidersHorizontal], ['/app/plan', 'nav_plan', ChartPie], ['/app/invest', 'nav_invest', Target], ['/app/analysis', 'nav_analysis', BrainCircuit], ['/app/research', 'nav_research', Newspaper], ['/app/history', 'nav_history', History], ['/app/sharia', 'nav_sharia', ShieldCheck], ['/app/alerts', 'nav_alerts', Bell], ['/app/settings', 'nav_settings', Settings]] as const
-const TABS = computed(() => [NAV[0], NAV[1], NAV[2], NAV[4]])
-const MORE = computed(() => [NAV[3], NAV[5], NAV[6], NAV[7], NAV[8], NAV[9], NAV[10]])
-const SHORT: Record<string, [string, string]> = { nav_dash: ['التداول', 'Trading'], nav_analysis: ['التحليل', 'Analysis'], nav_plan: ['الخطة', 'Plan'], nav_tech: ['الفني', 'Technical'], nav_orders: ['الأوامر', 'Orders'], nav_invest: ['الأهداف', 'Goals'], nav_sharia: ['الشرعي', 'Sharia'], nav_alerts: ['التنبيهات', 'Alerts'] }
+const NAV = [['/app', 'nav_dash', ChartCandlestick], ['/app/orders', 'nav_orders', Zap], ['/app/technical', 'nav_tech', SlidersHorizontal], ['/app/stocks', 'nav_pick', Scale], ['/app/plan', 'nav_plan', ChartPie], ['/app/invest', 'nav_invest', Target], ['/app/analysis', 'nav_analysis', BrainCircuit], ['/app/research', 'nav_research', Newspaper], ['/app/history', 'nav_history', History], ['/app/sharia', 'nav_sharia', ShieldCheck], ['/app/alerts', 'nav_alerts', Bell], ['/app/settings', 'nav_settings', Settings]] as const
+const TABS = computed(() => [NAV[0], NAV[1], NAV[2], NAV[3]])
+const MORE = computed(() => [NAV[4], NAV[5], NAV[6], NAV[7], NAV[8], NAV[9], NAV[10], NAV[11]])
+const SHORT: Record<string, [string, string]> = { nav_dash: ['التداول', 'Trading'], nav_analysis: ['التحليل', 'Analysis'], nav_plan: ['الخطة', 'Plan'], nav_tech: ['الفني', 'Technical'], nav_pick: ['الاختيار', 'Picking'], nav_orders: ['الأوامر', 'Orders'], nav_invest: ['الأهداف', 'Goals'], nav_sharia: ['الشرعي', 'Sharia'], nav_alerts: ['التنبيهات', 'Alerts'] }
 const canLive = ref(false)
 onMounted(async () => { try { const c = await api('connections'); canLive.value = c.prices && (c.assistant || c.rules) } catch { /* stays hidden */ } })
 const active = (to: string) => route.path.replace(/\/$/, '') === to
@@ -22,7 +22,7 @@ async function signOut() { try { await fetch(me.value ? '/account/logout' : '/ap
 const item = 'flex items-center gap-3 rounded-full px-3.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground'
 const night = 'flex min-h-11 items-center gap-3 rounded-full px-4 text-[0.9375rem] text-panel-muted transition-colors hover:bg-white/10 hover:text-white'
 const here = computed(() => NAV.find(([to]) => active(to)))
-const ABOUT: Record<string, [string, string]> = { nav_orders: ['اكتب أمرك، وراجعه قبل أن يُنفّذ ورقيًا.', 'Write an order and review it before it is placed on paper.'], nav_tech: ['ما يقوله الرسم، بخطوات ومستويات واضحة.', 'What the chart says, in clear steps and levels.'], nav_plan: ['نسب لمحفظتك الورقية، وكيف تُبنى وتُوازن.', 'Percentages for your paper portfolio, and how it is built and balanced.'], nav_invest: ['أهدافك، والاستثمارات الورقية التي تتبعها.', 'Your goals, and the paper investments that follow them.'], nav_analysis: ['رأي المحللين والأرقام وراءه.', 'What the analysts say and the numbers behind it.'], nav_research: ['أخبار وبحوث مؤرخة ومسندة إلى مصادرها.', 'Dated news and research with its sources.'], nav_history: ['صفقاتك الورقية ونتائجها.', 'Your paper trades and their results.'], nav_sharia: ['ما اجتاز الفحص وما ينتظر حكمك.', 'What passed the screen and what waits for your ruling.'], nav_alerts: ['ما يصلك على تيليجرام، ومتى.', 'What reaches you on Telegram, and when.'], nav_settings: ['المحاكاة والمخاطر وطريقة العمل.', 'The simulation, its risk and how it runs.'] }
+const ABOUT: Record<string, [string, string]> = { nav_orders: ['اكتب أمرك، وراجعه قبل أن يُنفّذ ورقيًا.', 'Write an order and review it before it is placed on paper.'], nav_tech: ['ما يقوله الرسم، بخطوات ومستويات واضحة.', 'What the chart says, in clear steps and levels.'], nav_pick: ['أسهمك بقواعد كبار المستثمرين، مع ما تحقق وما لم يتحقق.', 'Your stocks under great investors’ rules: what is met and what is not.'], nav_plan: ['نسب لمحفظتك الورقية، وكيف تُبنى وتُوازن.', 'Percentages for your paper portfolio, and how it is built and balanced.'], nav_invest: ['أهدافك، والاستثمارات الورقية التي تتبعها.', 'Your goals, and the paper investments that follow them.'], nav_analysis: ['رأي المحللين والأرقام وراءه.', 'What the analysts say and the numbers behind it.'], nav_research: ['أخبار وبحوث مؤرخة ومسندة إلى مصادرها.', 'Dated news and research with its sources.'], nav_history: ['صفقاتك الورقية ونتائجها.', 'Your paper trades and their results.'], nav_sharia: ['ما اجتاز الفحص وما ينتظر حكمك.', 'What passed the screen and what waits for your ruling.'], nav_alerts: ['ما يصلك على تيليجرام، ومتى.', 'What reaches you on Telegram, and when.'], nav_settings: ['المحاكاة والمخاطر وطريقة العمل.', 'The simulation, its risk and how it runs.'] }
 </script>
 
 <template>

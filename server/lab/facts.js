@@ -25,12 +25,12 @@ function statements(d) {
   const I = table(d.incomeStatementTable); const B = table(d.balanceSheetTable); const C = table(d.cashFlowTable);
   const pick = (m, ...names) => { for (const n of names) { if (m.has(n)) return m.get(n); } return [null, null, null, null]; };
   const revenue = pick(I, 'total revenue'); const gross = pick(I, 'gross profit'); const op = pick(I, 'operating income'); const net = pick(I, 'net income', 'net income-cont. operations'); const ebit = pick(I, 'earnings before interest and tax'); const interest = pick(I, 'interest expense');
-  const ca = pick(B, 'total current assets'); const ta = pick(B, 'total assets'); const cl = pick(B, 'total current liabilities'); const tl = pick(B, 'total liabilities'); const ltd = pick(B, 'long-term debt'); const std = pick(B, 'short-term debt / current portion of long-term debt'); const eq = pick(B, 'total equity'); const re = pick(B, 'retained earnings'); const cash = pick(B, 'cash and cash equivalents'); const sti = pick(B, 'short-term investments');
+  const ca = pick(B, 'total current assets'); const ta = pick(B, 'total assets'); const cl = pick(B, 'total current liabilities'); const tl = pick(B, 'total liabilities'); const ltd = pick(B, 'long-term debt'); const std = pick(B, 'short-term debt / current portion of long-term debt'); const eq = pick(B, 'total equity'); const re = pick(B, 'retained earnings'); const cash = pick(B, 'cash and cash equivalents'); const sti = pick(B, 'short-term investments'); const fixed = pick(B, 'fixed assets');
   const cfo = pick(C, 'net cash flow-operating'); const capex = pick(C, 'capital expenditures');
   const fcf = cfo.map((x, i) => (x != null && capex[i] != null ? x - Math.abs(capex[i]) : null));
   const debt = ltd.map((x, i) => (x == null && std[i] == null ? null : (x || 0) + (std[i] || 0)));
   if (revenue[0] == null) return null;
-  return { period: d.incomeStatementTable.headers && d.incomeStatementTable.headers.value2, revenue, gross, op, net, ebit, interest, ca, ta, cl, tl, ltd, eq, re, cash, sti, cfo, fcf, debt };
+  return { period: d.incomeStatementTable.headers && d.incomeStatementTable.headers.value2, revenue, gross, op, net, ebit, interest, ca, ta, cl, tl, ltd, eq, re, cash, sti, cfo, fcf, debt, fixed };
 }
 
 /** Piotroski: how many of the testable signs of improving health are present. */
@@ -105,7 +105,7 @@ async function gather(symbol, { fetchImpl, now = Date.now } = {}) {
   const eRow = est && est.quarterlyForecast && est.quarterlyForecast.rows && est.quarterlyForecast.rows[0]; const sRows = (sur && sur.earningsSurpriseTable && sur.earningsSurpriseTable.rows) || [];
   const rowOf = (t, re, key, field) => { const r = ((t && t.rows) || []).find((x) => re.test(String(x[key] || ''))); return r ? num(r[field]) : null; };
   return {
-    sector: val('Sector'), industry: val('Industry'), analystTarget: num(val('OneYrTarget')), health: health(st, cap),
+    sector: val('Sector'), industry: val('Industry'), analystTarget: num(val('OneYrTarget')), health: health(st, cap), statements: st,
     estimates: eRow ? { quarter: eRow.fiscalEnd, eps: num(eRow.consensusEPSForecast), up: num(eRow.up), down: num(eRow.down), analysts: num(eRow.noOfEstimates) } : null,
     surprises: sRows.length ? { count: sRows.length, beats: sRows.filter((r) => num(r.percentageSurprise) > 0).length, average: sRows.reduce((a, r) => a + (num(r.percentageSurprise) || 0), 0) / sRows.length, last: sRows[0].dateReported } : null,
     insiders: ins ? { buys3m: rowOf(ins.numberOfTrades, /buys/i, 'insiderTrade', 'months3'), sells3m: rowOf(ins.numberOfTrades, /sells/i, 'insiderTrade', 'months3'), net3m: rowOf(ins.numberOfSharesTraded, /net/i, 'insiderTrade', 'months3') } : null,

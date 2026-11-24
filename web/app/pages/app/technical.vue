@@ -48,10 +48,11 @@ const CHOICES = computed(() => [['BUY', L('أشتري', 'Buy')], ['WAIT', L('أ�
 
 <template>
   <div>
-    <div class="row"><UiNativeSelect v-model="pick" :aria-label="t('symbol')"><option v-for="x in list" :key="x" :value="x">{{ x }}</option></UiNativeSelect><span v-if="busy && !r" class="muted" role="status">{{ L('يحلل…', 'Analysing…') }}</span></div>
+    <div class="row"><button v-for="x in list" :key="x" type="button" :aria-pressed="pick === x" class="inline-flex min-h-11 items-center gap-2 rounded-full border py-1 ps-1.5 pe-4 font-semibold transition-colors" :class="pick === x ? 'border-primary bg-primary text-primary-foreground' : 'bg-card hover:bg-accent'" @click="pick = x"><SymbolIcon :symbol="x" class="!size-8" /><bdi>{{ x }}</bdi></button><span v-if="busy && !r" class="muted" role="status">{{ L('يحلل…', 'Analysing…') }}</span></div>
     <p v-if="error" class="err" role="alert">{{ error }}</p>
     <p v-if="d && !d.live" class="muted">{{ L('الأسعار تجريبية، فالتحليل للتدريب فقط.', 'Demo prices, so this is for practice only.') }}</p>
     <p v-if="d && !r" class="muted">{{ L('لا توجد أسعار سابقة كافية لهذا الرمز.', 'There is too little price history for this symbol.') }}</p>
+    <ChartDesk v-if="pick" :symbol="pick" />
     <template v-if="r">
       <section class="rise mb-4 rounded-3xl p-6 sm:p-8" :class="BG[r.view]"><div class="flex flex-wrap items-center gap-4"><component :is="r.view.includes('UP') ? ArrowUp : r.view === 'SIDE' ? Minus : ArrowDown" class="size-10 shrink-0" aria-hidden="true" /><h2 class="!m-0 min-w-0 flex-1 !text-2xl sm:!text-3xl"><bdi>{{ pick }}</bdi>: {{ VIEW[r.view] }}</h2><span class="num text-2xl">{{ money(r.price) }}</span></div>
         <div class="mt-5 grid gap-2 sm:grid-cols-3"><div v-for="[k, n] in TABS" :key="k" class="rounded-2xl bg-black/15 px-4 py-3"><span class="small block opacity-80">{{ n }}</span><b>{{ r.horizons[k] ? VIEW[r.horizons[k].view] : '—' }}</b></div></div></section>
