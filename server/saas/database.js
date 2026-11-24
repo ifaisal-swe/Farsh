@@ -3,6 +3,8 @@
  * Small asynchronous PostgreSQL interface for the control plane (accounts, invitations, audit). SQL uses `?` placeholders. q() resolves to { rows, count }; tx(fn) runs fn(handle) in one
  * transaction. Database errors carry a status (409 for a uniqueness conflict, otherwise 503) and never SQL details.
  */
+const { explain, target } = require('./dbLog');
+
 function dbError(e, conflict) {
   if (e && e.status) return e;
   return Object.assign(new Error(conflict ? 'This already exists' : 'The account service is unavailable. Try again shortly'), { status: conflict ? 409 : 503, cause: e });
@@ -17,18 +19,36 @@ class PostgresDatabase {
     this.schema = schema;
     const parsers = { getTypeParser: (oid, f) => (oid === 20 ? (v) => { const x = Number(v); if (!Number.isSafeInteger(x)) throw new Error('integer out of range'); return x; } : types.getTypeParser(oid, f)) };
     this.pool = new Pool({ connectionString: url, max, types: parsers, connectionTimeoutMillis: timeoutMs, statement_timeout: timeoutMs, query_timeout: timeoutMs + 1000, idle_in_transaction_session_timeout: timeoutMs * 2, options: `-c search_path=${schema}` });
-    this.pool.on('error', () => { /* a lost idle connection is replaced on the next query */ });
+    this.url = url;
+    this.pool.on('error', (e) => this.log('idle connection lost', e)); // replaced on the next query
+  }
+
+  /** The real cause goes to the server log; the same line at most every 30 seconds. */
+  log(what, e) {
+    const line = `[database] ${what}: ${explain(e, this.url)}`;
+    const t = Date.now();
+    if (this.lastLine === line && t - this.lastAt < 30000) return;
+    Object.assign(this, { lastLine: line, lastAt: t });
+    console.error(line);
+  }
+
+  /** Says where it connects and proves that it can. */
+  async check() {
+    console.log(`[database] connecting to ${target(this.url)}`);
+    const t = Date.now();
+    const r = (await this.q('SELECT version() AS v, current_user AS u')).rows[0];
+    console.log(`[database] connected in ${Date.now() - t} ms: ${String(r.v).split(' on ')[0]}, user ${r.u}, schema ${this.schema}`);
   }
 
   async on(c, sql, params) {
-    try { const r = await c.query(numbered(sql), params); return { rows: r.rows, count: r.rowCount }; } catch (e) { throw dbError(e, e.code === '23505'); }
+    try { const r = await c.query(numbered(sql), params); return { rows: r.rows, count: r.rowCount }; } catch (e) { if (e.code !== '23505') this.log(`failed at ${sql.trim().split(/\s+/).slice(0, 3).join(' ')}`, e); throw dbError(e, e.code === '23505'); }
   }
 
   q(sql, params = []) { return this.on(this.pool, sql, params); }
 
   async tx(fn) {
     let c;
-    try { c = await this.pool.connect(); } catch (e) { throw dbError(e); }
+    try { c = await this.pool.connect(); } catch (e) { this.log('cannot connect', e); throw dbError(e); }
     let broken = null;
     try {
       await this.on(c, 'BEGIN', []);

@@ -20,6 +20,7 @@ const { Provisioner } = require('./provision');
 const { PlatformServices } = require('./services');
 const { TelegramHub } = require('./telegramHub');
 const { Demos, COOKIE: DEMO } = require('./demo');
+const { explain } = require('./dbLog');
 
 const COOKIE = 'dt_account';
 const { sendWebPage, webAssets, brandAssets, ASSETS } = require('../webpage');
@@ -223,9 +224,12 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
     accounts, tenant, tenants, demos, server,
     async start() {
       refuseOldData(path.join(root, 'accounts.db'));
-      await accounts.init();
-      await demos.init();
-      await accounts.ensureAdmin(env.SAAS_ADMIN_EMAIL, env.SAAS_ADMIN_PASSWORD);
+      const step = async (name, fn) => { try { return await fn(); } catch (e) { console.error(`[startup] FAILED at: ${name}: ${explain(e, databaseUrl)}`); throw e; } };
+      console.log(`[startup] address ${env.APP_BASE_URL || '(none)'}, data folder ${root}, service keys set: ${Object.keys(services.values()).join(', ') || 'none'}`);
+      await step('connect to the database', async () => { await accounts.db.check(); });
+      await step('prepare the account tables', async () => { await accounts.init(); });
+      await step('clear old demos', () => demos.init());
+      await step('operator account', async () => { await accounts.ensureAdmin(env.SAAS_ADMIN_EMAIL, env.SAAS_ADMIN_PASSWORD); });
       await new Promise((res, rej) => { server.once('error', rej); server.listen(port != null ? port : rt.port, rt.host, res); });
       // monitoring and alerts must survive a restart without anyone opening a browser
       for (const u of await accounts.active()) if (fs.existsSync(path.join(root, 'tenants', u.id))) { try { await tenant(u.id); } catch (e) { console.error(`[gateway] account ${u.id} did not start: ${e.message}`); } }
