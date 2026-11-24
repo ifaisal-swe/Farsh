@@ -199,7 +199,7 @@ test('helper: the Mastra agent only reads, drops invented numbers and unknown sy
     const x = (await h.ask({ text: 'how is my wallet', lang: 'en' })).messages.at(-1);
     assert.equal(x.by, 'agent'); assert.match(x.text, /4000/); assert.doesNotMatch(x.text, /98765/); assert.deepEqual(x.symbols, ['ACME']);
     const names = new Set(m.seen.flatMap((q) => (q.tools || []).map((t) => t.function.name)));
-    assert.deepEqual([...names].sort(), ['get_company', 'get_goals', 'get_market_hours', 'get_news', 'get_opportunities', 'get_symbol', 'get_wallet', 'project_growth']);
+    assert.deepEqual([...names].sort(), ['get_company', 'get_goals', 'get_market_hours', 'get_news', 'get_opportunities', 'get_symbol', 'get_team_report', 'get_wallet', 'project_growth']);
   } finally { m.close(); }
 });
 

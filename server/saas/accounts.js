@@ -12,6 +12,7 @@ const { hashPassword, verifyPassword, LoginLimiter } = require('../auth');
 const { PostgresDatabase } = require('./database');
 const totp = require('./totp');
 const { AuthEngine } = require('./authEngine');
+const { TABLES: CONNECTIONS } = require('./oauth');
 
 const DAY = 86400000;
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -31,7 +32,7 @@ const TABLES = [
   'CREATE TABLE IF NOT EXISTS audit (id TEXT PRIMARY KEY, ts BIGINT NOT NULL, actor TEXT, action TEXT NOT NULL, target TEXT, ip TEXT)',
 ];
 // the audit trail can only grow
-const SCHEMA = [...TABLES,
+const SCHEMA = [...TABLES, ...CONNECTIONS,
     "CREATE OR REPLACE FUNCTION audit_append_only() RETURNS trigger LANGUAGE plpgsql AS 'BEGIN RAISE EXCEPTION ''audit is append-only''; END'",
     'CREATE OR REPLACE TRIGGER audit_append_only BEFORE UPDATE OR DELETE OR TRUNCATE ON audit FOR EACH STATEMENT EXECUTE FUNCTION audit_append_only()'];
 

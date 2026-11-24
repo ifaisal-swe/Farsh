@@ -22,6 +22,8 @@ const { PlatformServices } = require('./services');
 const { TelegramHub } = require('./telegramHub');
 const { Demos, COOKIE: DEMO } = require('./demo');
 const { explain } = require('./dbLog');
+const { OAuth } = require('./oauth');
+const { createMcp } = require('./mcp');
 const { masterKey, derive } = require('./masterKey');
 
 const COOKIE = 'dt_account';
@@ -90,6 +92,46 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
 
   app.get('/health/live', (req, res) => res.set('Cache-Control', 'no-store').json({ status: 'ok' }));
   app.get('/health/ready', (req, res) => res.set('Cache-Control', 'no-store').status(stopping ? 503 : 200).json({ status: stopping ? 'stopping' : 'ready' }));
+  // ---------- an assistant the operator connects: no cookies here, only its own access
+  const issuer = String(rt.baseUrl || '').replace(/\/$/, '');
+  const oauth = issuer ? new OAuth({ accounts, issuer, now }) : null;
+  let mcp = null;
+  /** One request to the account's own terminal. */
+  const inside = async (id, method, target, body) => {
+    const t = await tenant(id);
+    const r = await fetch(`http://127.0.0.1:${t.port}${target}`, { method, redirect: 'error', signal: AbortSignal.timeout(60000), headers: { 'x-gateway-token': t.token, 'X-Terminal-Client': '1', ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Forsah could not answer');
+    return d;
+  };
+  if (oauth) {
+    const machine = (req, res, next) => { if (!hostOk(req)) return res.status(403).type('text').send('Forbidden host'); res.set({ 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'none'" }); return next(); };
+    const answer = (fn) => async (req, res) => { try { res.json((await fn(req, res)) || {}); } catch (e) { if (!e.oauth) console.error(`[oauth] ${e.message}`); res.status(e.oauth ? e.status : 500).json({ error: e.oauth || 'server_error', ...(e.oauth && e.message !== e.oauth ? { error_description: e.message } : {}) }); } };
+    const form = [express.urlencoded({ extended: false, limit: '10kb' }), express.json({ limit: '10kb' })];
+    app.get(['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp'], machine, answer(() => oauth.resourceMetadata()));
+    app.get(['/.well-known/oauth-authorization-server', '/.well-known/oauth-authorization-server/mcp'], machine, answer(() => oauth.serverMetadata()));
+    app.post('/oauth/register', machine, form, answer(async (req, res) => { const c = await oauth.register(req.body, req.ip); res.status(201); return c; }));
+    app.post('/oauth/token', machine, form, answer((req) => oauth.exchange(req.body || {}, req.ip)));
+    app.post('/oauth/revoke', machine, form, answer((req) => oauth.revoke(req.body || {})));
+    app.all('/mcp', machine, async (req, res) => {
+      try {
+        // a browser page has no business here
+        if (req.headers.origin && !originOk(req)) return res.status(403).json({ error: 'Request rejected' });
+        const m = /^Bearer ([A-Za-z0-9_-]{20,200})$/.exec(String(req.headers.authorization || ''));
+        const u = m ? await oauth.user(m[1]) : null;
+        if (!u) { oauth.limit(`mcp:${req.ip}`, 600); return res.status(401).set('WWW-Authenticate', `Bearer resource_metadata="${issuer}/.well-known/oauth-protected-resource/mcp", scope="team"`).json({ error: 'invalid_token' }); }
+        oauth.limit(`use:${u.grant}`, 600);
+        if (stopping) return res.status(503).json({ error: 'Shutting down' });
+        if (Number(req.headers['content-length'] || 0) > 200000) return res.status(413).json({ error: 'Too large' });
+        delete req.headers.authorization; delete req.headers.cookie;
+        req.auth = { token: 'verified', clientId: u.grant, scopes: ['team'], extra: { userId: u.id, name: u.name } };
+        if (!mcp) mcp = createMcp({ call: inside }).catch((e) => { mcp = null; throw e; });
+        await (await mcp).handle(req, res, new URL(req.originalUrl, issuer));
+      } catch (e) { if (!e.oauth) console.error(`[mcp] ${e.message}`); if (!res.headersSent) res.status(e.oauth ? e.status : 500).json({ error: e.oauth ? e.message : 'Unexpected error' }); }
+      return undefined;
+    });
+  }
+
   app.use((req, res, next) => {
     if (!hostOk(req)) return res.status(403).type('text').send('Forbidden host');
     res.set({ 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer', 'Cache-Control': 'no-store', 'Content-Security-Policy': CSP, ...(rt.production ? { 'Strict-Transport-Security': 'max-age=15552000' } : {}) });
@@ -101,8 +143,8 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   app.use(ASSETS, ...webAssets());
   app.get('/brand', sendWebPage); // the page; files are below it
   app.use('/brand', ...brandAssets());
-  app.get('/login', async (req, res, next) => ((await userOf(req)) ? res.redirect(302, '/app') : next()));
-  app.get(['/', '/login', '/invite', '/reset', '/demo'], sendWebPage);
+  app.get('/login', async (req, res, next) => { if (!(await userOf(req))) return next(); const to = String(req.query.next || ''); return res.redirect(302, to.startsWith('/connect?') ? to : '/app'); });
+  app.get(['/', '/login', '/invite', '/reset', '/demo', '/connect'], sendWebPage);
 
   const json = express.json({ limit: '10kb' });
   const wrap = (fn) => async (req, res) => {
@@ -139,6 +181,17 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
   app.post('/account/totp/begin', json, wrap(async (req) => accounts.totpBegin((await me(req)).id, (req.body || {}).password)));
   app.post('/account/totp/confirm', json, wrap(async (req) => accounts.totpConfirm((await me(req)).id, (req.body || {}).code)));
   app.post('/account/totp/disable', json, wrap(async (req) => accounts.totpDisable((await me(req)).id, (req.body || {}).password, (req.body || {}).code)));
+
+  // ---------- assistants the operator connected
+  const boss = async (req) => { const u = await me(req); if (u.role !== 'ADMIN' || !oauth) throw Object.assign(new Error('Not found'), { status: 404 }); return u; };
+  const ask = (fn) => wrap(async (req) => { try { return await fn(req); } catch (e) { if (e.oauth) e.status = e.status || 400; throw e; } });
+  app.post('/account/connect/check', json, ask(async (req) => { await boss(req); const x = await oauth.request(req.body || {}); return { name: x.client.name, host: x.host }; }));
+  app.post('/account/connect/approve', json, ask(async (req) => ({ url: await oauth.approve(await boss(req), req.body || {}, req.ip) })));
+  app.post('/account/connect/deny', json, ask(async (req) => { await boss(req); return { url: await oauth.deny(req.body || {}) }; }));
+  app.get('/account/connections', wrap(async (req) => ({ items: await oauth.list(await boss(req)) })));
+  app.post('/account/connections/key', json, wrap(async (req) => oauth.personal(await boss(req), (req.body || {}).name, req.ip)));
+  app.post('/account/connections/remove', json, wrap(async (req) => oauth.remove(await boss(req), (req.body || {}).id, req.ip)));
+  app.get('/account/templates', wrap(async (req) => { await boss(req); return require('../team/templates').templates(issuer); }));
 
   // ---------- operator
   const admin = async (req, res, next) => { const u = await userOf(req); if (!u || u.role !== 'ADMIN') return res.status(404).json({ error: 'Not found' }); req.by = { actor: u.id, ip: req.ip }; return next(); };
@@ -244,6 +297,7 @@ function createGateway({ env = process.env, port, dataDir, supervisor = {}, now 
       stopping = true;
       clearInterval(sweep);
       if (hub) await hub.stop();
+      if (mcp) await (await mcp.catch(() => null))?.close();
       for (const set of sockets.values()) for (const s of set) s.destroy();
       await Promise.all([tenants.stopAll(), demos.stopAll()]);
       await new Promise((r) => { server.close(r); server.closeAllConnections(); });

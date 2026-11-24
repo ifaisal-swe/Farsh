@@ -15,7 +15,7 @@ async function send() {
   error.value = ''
   try {
     const r = await fetch('/account/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Terminal-Client': '1' }, body: JSON.stringify({ email: email.value, password: password.value, ...(step.value === 'code' ? { code: code.value } : {}) }) })
-    if (r.ok) { location.href = '/app'; return }
+    if (r.ok) { const next = new URLSearchParams(location.search).get('next') || ''; location.href = next.startsWith('/connect?') ? next : '/app'; return }
     const { error: m } = await r.json().catch(() => ({ error: '' }))
     if (m === 'Two-factor code required' && step.value === 'password') { step.value = 'code'; code.value = ''; await nextTick(); document.getElementById('f-code')?.focus(); return }
     error.value = plain.error(m, lang.value === 'ar')
