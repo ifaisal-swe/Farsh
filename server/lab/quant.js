@@ -3,6 +3,8 @@
  * Quantitative techniques on daily closes. Pure functions, seeded randomness, no look-ahead: every figure about skill
  * is measured out of sample, and a model that does not beat its own naive baseline is reported as having no edge.
  */
+const { compare } = require('../analysis/honest');
+
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const sd = (a) => { const m = mean(a); return a.length > 1 ? Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)) : 0; };
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
@@ -118,9 +120,15 @@ function boosted(X, y, { rounds = 40, lr = 0.08 } = {}) {
 function nearest(X, y, { k = 40 } = {}) { const base = mean(y); return (r) => { const d = X.map((x, i) => [x.reduce((a, v, j) => a + (v - r[j]) ** 2, 0), y[i]]).sort((a, b) => a[0] - b[0]).slice(0, Math.min(k, X.length)); return (d.reduce((a, x) => a + x[1], 0) + base * 20) / (d.length + 20); }; }
 
 /** Chance that the price is higher after `horizon` days: three models, judged only on days they never saw. */
-function forecast(bars, bench, { horizon = 5, block = 42, seed = 11 } = {}) {
+/** 1 when the target is touched before the stop within the horizon. Both on one day counts as the stop. */
+function barrier(bars, { horizon = 20, up = 2, down = 1.5 } = {}) {
+  let a = null; const atr = bars.map((b, i) => { const t = i ? Math.max(b.high - b.low, Math.abs(b.high - bars[i - 1].close), Math.abs(b.low - bars[i - 1].close)) : b.high - b.low; a = a === null ? t : a + (t - a) / 14; return a; });
+  return (i) => { const e = bars[i].close; const t = e + up * atr[i]; const s = e - down * atr[i]; for (let k = i + 1; k <= i + horizon; k++) { if (bars[k].low <= s) return 0; if (bars[k].high >= t) return 1; } return 0; };
+}
+
+function forecast(bars, bench, { horizon = 5, block = 42, seed = 11, label = null } = {}) {
   const start = 200; const X = []; const y = []; const idx = [];
-  for (let i = start; i + horizon < bars.length; i++) { X.push(features(bars, i, bench)); y.push(bars[i + horizon].close > bars[i].close ? 1 : 0); idx.push(i); }
+  for (let i = start; i + horizon < bars.length; i++) { X.push(features(bars, i, bench)); y.push(label ? label(i) : bars[i + horizon].close > bars[i].close ? 1 : 0); idx.push(i); }
   if (X.length < 180) return { available: false, reason: 'HISTORY', samples: X.length };
   const fit = (A, b) => { const s = scaler(A); const Z = A.map(s); const ms = [logistic(Z, b), boosted(Z, b), nearest(Z, b)]; return (r) => { const z = s(r); return ms.map((m) => m(z)); }; };
   const scored = [];
@@ -136,6 +144,13 @@ function forecast(bars, bench, { horizon = 5, block = 42, seed = 11 } = {}) {
   const skill = 1 - own / naive; const trust = 1 - notBetter / B; const edge = skill > 0.002 && trust >= 0.9;
   const now = fit(X.slice(0, X.length), y)(features(bars, bars.length - 1, bench)); const base = mean(y); const raw = mean(now);
   return { available: true, horizon, samples: X.length, tested: scored.length, accuracy: mean(scored.map((s) => ((s.p > 0.5 ? 1 : 0) === s.y ? 1 : 0))), baseRate: base, naiveAccuracy: mean(scored.map((s) => ((s.base > 0.5 ? 1 : 0) === s.y ? 1 : 0))), skill, trust, edge, models: now, probUp: edge ? raw : base, rawProbUp: raw, agreement: now.every((p) => p > 0.5) || now.every((p) => p < 0.5) };
+}
+
+/** Chance that a target of 2 usual moves comes before a stop of 1.5, the way a plan really ends. */
+function targetFirst(bars, bench) {
+  const o = { horizon: 20, up: 2, down: 1.5 }; if (bars.some((b) => !(b.high > 0) || !(b.low > 0))) return null;
+  const f = forecast(bars, bench, { horizon: o.horizon, label: barrier(bars, o), seed: 23 });
+  return f.available ? { available: true, ...o, chance: f.probUp, usual: f.baseRate, edge: f.edge, tested: f.tested, skill: f.skill } : { available: false };
 }
 
 /** Past stretches whose shape looks most like the last `len` days, and what followed. */
@@ -184,9 +199,9 @@ function analyze(bars, benchBars, { price, stop, target, riskCapPct = 20, target
     trend: { ma20: ma(20), ma50: ma(50), ma200: ma(200), r20: c.length > 20 ? c[c.length - 1] / c[c.length - 21] - 1 : null, r60: c.length > 60 ? c[c.length - 1] / c[c.length - 61] - 1 : null, r250: c.length > 250 ? c[c.length - 1] / c[c.length - 251] - 1 : null },
     risk: { volYear: sd(r.slice(-60)) * Math.sqrt(YEAR), volNext: dailyVol, volNextYear: dailyVol * Math.sqrt(YEAR), var95: 1 - Math.exp(var95), cvar95: 1 - Math.exp(mean(tail)), drawdown: drawdown(c) },
     regime: regimes(r.slice(-750)), market: pair.length > 130 ? market(closes(pair), pair.map((b) => bench.get(b.time))) : null,
-    monteCarlo: monteCarlo(r.slice(-500), px, { vol: dailyVol, stop, target }), forecast: forecast(clean, bench), analogues: analogues(c.slice(-1500)), anomaly: anomaly(clean), backtest: backtest(c),
+    monteCarlo: monteCarlo(r.slice(-500), px, { vol: dailyVol, stop, target }), forecast: forecast(clean, bench), plan: targetFirst(clean, bench), analogues: analogues(c.slice(-1500)), anomaly: anomaly(clean), backtest: backtest(c), tested: compare(c),
     sizing: { pct: Math.max(0, Math.min(riskCapPct, (targetVol / (dailyVol * Math.sqrt(YEAR))) * 100)), capPct: riskCapPct, targetVol },
   };
 }
 
-module.exports = { analyze, garch, regimes, monteCarlo, forecast, analogues, anomaly, backtest, market, drawdown, quantile, rng, mean, sd, logReturns };
+module.exports = { barrier, targetFirst, analyze, garch, regimes, monteCarlo, forecast, analogues, anomaly, backtest, market, drawdown, quantile, rng, mean, sd, logReturns };

@@ -5,6 +5,7 @@
  */
 const { decide, temper } = require('./decide');
 const { newId } = require('../util/misc');
+const { calibrate } = require('../analysis/honest');
 
 const DAY = 86400000;
 const KEEP = 200;
@@ -14,8 +15,8 @@ const SELLS = new Set(['SELL', 'SELL_PART']);
 const bad = (m, status = 400) => Object.assign(new Error(m), { status });
 
 class OpportunityService {
-  constructor({ store, desk, lab, investors, sharia, getBars, technical, catalysts = [], earningsDate = null, isCrypto, activity, now = Date.now }) {
-    Object.assign(this, { store, desk, lab, investors, sharia, getBars, technical, catalysts, earningsDate, isCrypto, activity, now });
+  constructor({ store, desk, lab, investors, sharia, getBars, technical, catalysts = [], earningsDate = null, isCrypto, activity, strength = null, crowd = null, now = Date.now }) {
+    Object.assign(this, { strength, crowd, store, desk, lab, investors, sharia, getBars, technical, catalysts, earningsDate, isCrypto, activity, now });
     this.calls = new Map(); this.scannedAt = null; this.busy = false; this.reviewing = null; this.dates = new Map();
     this.tracked = this.get('opportunity.tracked', []);
     this.reviews = this.get('opportunity.reviews', {});
@@ -58,8 +59,9 @@ class OpportunityService {
     if (live) { try { status = this.sharia.effective(a.symbol).status; } catch { status = 'UNKNOWN'; } }
     const lens = facts && this.investors.lensOf ? this.investors.lensOf(facts, daily) : null;
     const now = this.now();
-    const call = decide({ symbol: a.symbol, price, bars: daily, tech, lens, facts, lab: live ? fresh : null, position: held, account, events: await this.ahead(a.symbol), live, fresh: a.market && a.market.freshness ? !a.market.freshness(now).stale : true, crypto: this.isCrypto(a.symbol), now });
+    const call = decide({ symbol: a.symbol, price, bars: daily, tech, lens, facts, strength: live && this.strength && !this.isCrypto(a.symbol) ? this.strength.of(a.symbol) : null, market: live && this.strength ? this.strength.market : null, crowd: live && this.crowd && !held ? this.crowd(a.symbol) : null, lab: live ? fresh : null, position: held, account, events: await this.ahead(a.symbol), live, fresh: a.market && a.market.freshness ? !a.market.freshness(now).stale : true, crypto: this.isCrypto(a.symbol), now });
     const own = live && !(facts && facts.news && facts.news.items.length) && a.news && a.news.list ? a.news.list(8).filter((n) => n.title).map((n) => ({ title: n.title, url: n.url, at: n.publishedAt, tone: 0 })) : null;
+    if (call.plan && call.plan.odds && call.plan.odds.target + call.plan.odds.stop > 0) { const k = this.sure(); const said = call.plan.odds.target / (call.plan.odds.target + call.plan.odds.stop); call.plan.sure = { said, real: k.ready ? k.at(said) : null, from: k.n, need: k.need || null }; }
     const news = own ? own.slice(0, 4) : facts && facts.news ? facts.news.items.slice(0, 4).map((n) => ({ title: n.title, url: n.url, at: n.at, tone: n.tone })) : [];
     const rv = this.reviews[a.symbol];
     const review = rv && rv.mode === this.mode() && now - rv.at < DAY && rv.action === call.action ? rv : null;
@@ -99,7 +101,7 @@ class OpportunityService {
   // ------------------------------------------------------------------ its own record
   track(c) {
     if (this.tracked.some((t) => t.symbol === c.symbol && t.session === this.sid() && ['WAITING', 'ACTIVE'].includes(t.status))) return;
-    this.tracked.push({ id: newId('opp'), symbol: c.symbol, mode: this.mode(), session: this.sid(), at: this.now(), type: c.plan.type, entry: c.plan.entry, stop: c.plan.stop, target: c.plan.target, confidence: c.confidence, status: c.plan.type === 'MARKET' ? 'ACTIVE' : 'WAITING', startedAt: c.plan.type === 'MARKET' ? this.now() : null });
+    this.tracked.push({ id: newId('opp'), symbol: c.symbol, mode: this.mode(), session: this.sid(), at: this.now(), type: c.plan.type, entry: c.plan.entry, stop: c.plan.stop, target: c.plan.target, confidence: c.confidence, said: c.plan.sure ? c.plan.sure.said : null, status: c.plan.type === 'MARKET' ? 'ACTIVE' : 'WAITING', startedAt: c.plan.type === 'MARKET' ? this.now() : null });
     this.tracked = this.tracked.slice(-KEEP);
     this.put('opportunity.tracked', this.tracked);
   }
@@ -120,6 +122,9 @@ class OpportunityService {
     }
     if (changed) this.put('opportunity.tracked', this.tracked);
   }
+
+  /** How often plans that said a chance really reached the target before the stop. */
+  sure() { return calibrate(this.tracked.filter((t) => t.mode === this.mode() && typeof t.said === 'number' && ['REACHED', 'STOPPED'].includes(t.status)).map((t) => ({ p: t.said, hit: t.status === 'REACHED' }))); }
 
   record() {
     const mine = this.tracked.filter((t) => t.mode === this.mode()); const done = mine.filter((t) => typeof t.result === 'number');
@@ -153,7 +158,7 @@ class OpportunityService {
   status() {
     const order = { SELL: 0, SELL_PART: 1, BUY: 2, BUY_AT: 3, WAIT: 4, HOLD: 5, WATCH: 6, AVOID: 7, UNKNOWN: 8 };
     const items = [...this.calls.values()].sort((a, b) => (order[a.action] - order[b.action]) || b.score - a.score);
-    return { session: !!this.sid(), live: this.mode() === 'LIVE', scannedAt: this.scannedAt, items, record: this.record(), agentsReady: !!(this.lab && this.lab.getModel()), reviewsLeft: this.left(), reviewing: this.reviewing ? { symbol: this.reviewing.symbol, steps: this.reviewing.steps } : null };
+    return { session: !!this.sid(), live: this.mode() === 'LIVE', scannedAt: this.scannedAt, items, market: this.mode() === 'LIVE' && this.strength ? this.strength.market : null, strongest: this.mode() === 'LIVE' && this.strength ? this.strength.list().slice(0, 8) : [], record: this.record(), agentsReady: !!(this.lab && this.lab.getModel()), reviewsLeft: this.left(), reviewing: this.reviewing ? { symbol: this.reviewing.symbol, steps: this.reviewing.steps } : null };
   }
 }
 

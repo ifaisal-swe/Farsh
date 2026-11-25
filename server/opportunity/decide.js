@@ -14,15 +14,16 @@ const ok = (x) => typeof x === 'number' && Number.isFinite(x);
 const T = (ar, en) => ({ ar, en });
 const clamp = (x, a = -1, b = 1) => Math.min(b, Math.max(a, x));
 const DAY = 86400000;
-const WEIGHT = { chart: 0.36, company: 0.2, news: 0.14, earnings: 0.12, signals: 0.08, flow: 0.06, people: 0.04 };
-const NAME = { chart: T('الرسم والاتجاه', 'Chart and trend'), company: T('الشركة', 'The company'), news: T('الأخبار', 'News'), earnings: T('الأرباح والتوقعات', 'Earnings and estimates'), signals: T('إشارات نجحت هنا من قبل', 'Signals that worked here before'), flow: T('السيولة', 'Money flow'), people: T('الصناديق والمطلعون', 'Funds and insiders') };
+const WEIGHT = { chart: 0.3, strength: 0.2, company: 0.18, news: 0.14, earnings: 0.1, signals: 0.06, flow: 0.04, people: 0.04 };
+const NAME = { chart: T('الرسم والاتجاه', 'Chart and trend'), strength: T('القوة مقارنة بغيره', 'Strength against other stocks'), company: T('الشركة', 'The company'), news: T('الأخبار', 'News'), earnings: T('الأرباح والتوقعات', 'Earnings and estimates'), signals: T('إشارات نجحت هنا من قبل', 'Signals that worked here before'), flow: T('السيولة', 'Money flow'), people: T('الصناديق والمطلعون', 'Funds and insiders') };
 const COMPANY = new Set(['graham', 'buffett', 'lynch', 'greenblatt', 'piotroski', 'oneil']);
 
-function evidence({ tech, lens, facts, bars }) {
+function evidence({ tech, lens, facts, bars, strength }) {
   const out = [];
   const add = (kind, score, text) => { if (ok(score)) out.push({ kind, name: NAME[kind], score: Math.round(clamp(score) * 100) / 100, text }); };
   const d = tech.horizons.days;
   add('chart', tech.score, tech.score > 0.45 ? T('صاعد بوضوح', 'Clearly rising') : tech.score > 0.15 ? T('يميل إلى الصعود', 'Leans up') : tech.score < -0.45 ? T('هابط بوضوح', 'Clearly falling') : tech.score < -0.15 ? T('يميل إلى الهبوط', 'Leans down') : T('بلا اتجاه واضح', 'No clear direction'));
+  if (strength && ok(strength.place)) { const n = Math.round(strength.place * 100); add('strength', (strength.place - 0.5) * 2 * (strength.above200 === false ? 0.6 : 1), T(`أقوى من ${n}% من ${strength.among} سهمًا وصندوقًا${strength.above200 === false ? '، لكنه تحت متوسطه الطويل' : ''}`, `Stronger than ${n}% of ${strength.among} stocks and funds${strength.above200 === false ? ', but under its long average' : ''}`)); }
   const now = tech.record.filter((r) => r.now && r.useful);
   if (now.length) add('signals', Math.min(1, 0.5 + now.length * 0.2), T(`ظهرت: ${now.map((r) => r.name.ar).join('، ')}`, `Appeared: ${now.map((r) => r.name.en).join(', ')}`));
   const share = inflowShare(bars);
@@ -45,9 +46,9 @@ function entries({ tech, bars, price }) {
   return out.map((e) => ({ ...e, ratio: Math.round(((e.target - e.entry) / (e.entry - e.stop)) * 10) / 10 })).filter((e) => e.stop > 0 && e.stop < e.entry && e.entry < e.target && e.ratio >= 1.4 && e.odds && e.odds.target >= 0.15 && near(e));
 }
 
-function size(e, account, crypto) {
+function size(e, account, crypto, factor = 1) {
   if (!account || !(account.equity > 0)) return null;
-  const risk = (account.equity * (account.riskPct || 0.5)) / 100; const cap = (account.equity * (account.maxPositionPct || 20)) / 100;
+  const risk = ((account.equity * (account.riskPct || 0.5)) / 100) * factor; const cap = (account.equity * (account.maxPositionPct || 20)) / 100;
   const raw = Math.min(risk / (e.entry - e.stop), cap / e.entry, Math.max(0, account.cash || 0) / e.entry);
   const qty = crypto ? Math.floor(raw * 1e6) / 1e6 : Math.floor(raw);
   return qty > 0 ? { qty, cost: Math.round(qty * e.entry * 100) / 100, gain: Math.round(qty * (e.target - e.entry) * 100) / 100, loss: Math.round(qty * (e.entry - e.stop) * 100) / 100 } : null;
@@ -70,8 +71,13 @@ function decide(i) {
   if (coverage < 0.5) cautions.push(T('الحكم من السعر أساسًا، فالمعلومات عن الشركة ناقصة', 'Mostly judged from price; company information is missing'));
   if (i.lab === 'AVOID') cautions.push(T('التحليل الأخير يميل ضد الشراء', 'The latest analysis leans against buying'));
   if (risky) cautions.push(T(`حدث قريب قد يحرّك السعر بقوة: ${risky.label.ar}`, `An event close by may move the price sharply: ${risky.label.en}`));
+  // smaller when the market, or the stock itself, is under its long average; never larger
+  const weak = !!(i.strength && i.strength.above200 === false); const factor = i.crypto ? 1 : ((i.market && i.market.factor) || 1) * (weak ? 0.5 : 1);
+  if (!i.crypto && i.market && i.market.above === false) cautions.push(T('السوق تحت متوسطه الطويل، فنقلّل الحجم', 'The market is under its long average, so the size is smaller'));
+  if (weak) cautions.push(T('السهم تحت متوسطه الطويل، فنقلّل الحجم', 'The stock is under its long average, so the size is smaller'));
+  if (i.crowd && i.crowd.pass === false) cautions.push(T('تملك ما يشبهه كثيرًا، فالشراء يزيد الرهان نفسه', 'You already hold much that behaves like it; buying adds to the same bet'));
   const lead = ev.list.find((e) => e.kind === 'news'); if (lead && lead.score < -0.4) cautions.push(T('نبرة الأخبار سلبية', 'The tone of the news is negative'));
-  const base = { symbol: i.symbol, price, score: Math.round(score * 100) / 100, coverage: Math.round(coverage * 100) / 100, evidence: ev.list, events: soon, cautions, live: !!i.live, atr: tidy(atr) };
+  const base = { symbol: i.symbol, price, score: Math.round(score * 100) / 100, coverage: Math.round(coverage * 100) / 100, evidence: ev.list, events: soon, cautions, live: !!i.live, atr: tidy(atr), strength: i.strength || null };
   const confidence = Math.abs(score) >= 0.4 && coverage >= 0.5 && tech.agree && !cautions.length ? 'HIGH' : Math.abs(score) >= 0.25 && cautions.length <= 1 ? 'MEDIUM' : 'LOW';
   const top = (sign) => ev.list.filter((e) => Math.sign(e.score) === sign && Math.abs(e.score) >= 0.15 && e.text).slice(0, 3).map((e) => e.text);
 
@@ -100,7 +106,7 @@ function decide(i) {
   } else if (score >= 0.12) { pick = of('BREAK') || of('DIP') || null; if (pick) { action = 'WAIT'; why = T('الميل إيجابي لكنه غير كافٍ. اشترِ فقط إذا تحقق السعر المطلوب.', 'It leans positive but not enough. Buy only if the price condition is met.'); } }
   if (action === 'BUY' && (risky || (i.live && i.fresh === false))) { action = 'WAIT'; why = risky ? T('انتظر حتى يمر الحدث القريب', 'Wait until the nearby event passes') : T('السعر غير حديث الآن', 'The price is not current now'); }
   if (action === 'BUY_AT' && risky) action = 'WAIT';
-  const plan = pick ? { way: pick.way, type: pick.type, entry: tidy(pick.entry), stop: tidy(pick.stop), target: tidy(pick.target), ratio: pick.ratio, odds: pick.odds, days: 20, size: size(pick, i.account, i.crypto), gainPct: pick.target / pick.entry - 1, lossPct: pick.entry / pick.entry - pick.stop / pick.entry, until: i.now + 7 * DAY } : null;
+  const plan = pick ? { way: pick.way, type: pick.type, entry: tidy(pick.entry), stop: tidy(pick.stop), target: tidy(pick.target), ratio: pick.ratio, odds: pick.odds, days: 20, size: size(pick, i.account, i.crypto, factor), gainPct: pick.target / pick.entry - 1, lossPct: pick.entry / pick.entry - pick.stop / pick.entry, until: i.now + 7 * DAY } : null;
   return { ...base, action, confidence, why, reasons: action === 'AVOID' ? top(-1) : top(1), against: action === 'AVOID' ? top(1) : top(-1), plan, change: plan && plan.type === 'STOP' ? T(`لا تشترِ قبل أن يتجاوز ${plan.entry}. وبعدها تبطل الفكرة إذا نزل تحت ${plan.stop}`, `Do not buy before it passes ${plan.entry}. After that, the idea is wrong if it falls under ${plan.stop}`) : plan ? T(`تبطل الفكرة إذا نزل السعر تحت ${plan.stop}`, `The idea is wrong if the price falls under ${plan.stop}`) : action === 'AVOID' ? T('يتغير الرأي إذا عاد السعر فوق متوسط 50 يومًا', 'This changes if the price returns above its 50-day average') : T('يتغير الرأي إذا ظهر اتجاه واضح', 'This changes if a clear direction appears') };
 }
 

@@ -14,7 +14,7 @@ const DEFAULTS = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config',
 
 const BOUNDS = {
   'risk.maxRiskPerTradePct': [0.05, 5], 'risk.maxDailyLossPct': [0.5, 20], 'risk.maxDrawdownPct': [1, 50],
-  'risk.maxPositionPct': [1, 100], 'risk.maxConsecutiveLosses': [1, 20], 'risk.lossCooldownMin': [0, 1440],
+  'risk.maxPositionPct': [1, 100], 'risk.maxSectorPct': [10, 100], 'risk.maxAlikePct': [10, 100], 'risk.maxConsecutiveLosses': [1, 20], 'risk.lossCooldownMin': [0, 1440],
   'risk.maxOpenPositions': [1, 4], 'risk.maxSpreadPct': [0.01, 5], 'risk.maxSlippagePct': [0.01, 5],
   'risk.minRewardRisk': [0.5, 10], 'risk.maxTradesPerDay': [1, 200], 'risk.minStopDistancePct': [0, 10],
   'risk.maxStopDistancePct': [0.5, 50],

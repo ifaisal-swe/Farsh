@@ -2040,6 +2040,8 @@ class TradingAgent extends EventEmitter {
       proposal: p, quote: this.market.quote(), market: this.marketForRisk(), account: this.riskAccount(), ipo: this.ipoContext(), exec, ai: this.cfg().ai, nowMs: this.now(), skipFreshness,
       // real securities only: DEMO prices are synthetic
       lab: this.book.lab && this.dataMode === 'LIVE' ? this.book.lab.gate(this.symbol) : null,
+      riskFactor: this.book.riskFactor && this.dataMode === 'LIVE' ? this.book.riskFactor(this.symbol) : 1,
+      crowd: this.book.crowd && this.dataMode === 'LIVE' ? this.book.crowd(this.symbol) : null,
     });
     const riskRecord = { approved: res.approved, qty: res.qty, checks: res.checks, sizing: res.sizing, rr: res.rr, fillEstimate: res.fillEstimate };
     if (!res.approved) {

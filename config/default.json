@@ -123,6 +123,8 @@
     "maxDailyLossPct": 2,
     "maxDrawdownPct": 8,
     "maxPositionPct": 20,
+    "maxSectorPct": 50,
+    "maxAlikePct": 40,
     "maxConsecutiveLosses": 3,
     "lossCooldownMin": 30,
     "maxOpenPositions": 2,

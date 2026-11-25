@@ -189,6 +189,7 @@ class RiskManager {
     const checks = RiskManager.marketChecks(market, quote, exec.extendedHours);
     const add = (name, pass, detail) => checks.push({ name, pass: !!pass, detail });
     if (ctx.lab) add('analysis', ctx.lab.pass, ctx.lab.detail);
+    if (ctx.crowd) add('same_bet', ctx.crowd.pass, ctx.crowd.detail);
     for (const b of this.entryBlocks(nowMs)) add('account_limits', false, b);
     if (!this.entryBlocks(nowMs).length) add('account_limits', true, 'No daily-loss / drawdown / cooldown block');
     if (market.session !== 'REGULAR' && p.orderType !== 'LIMIT') add('extended_hours_limit_only', false, 'Outside regular hours only LIMIT orders are simulated');
@@ -250,7 +251,7 @@ class RiskManager {
     const sizing = {};
     if (levelsOk) {
       const perShareRisk = fillEst - stop + costs.stopSlipPerShare + costs.entryPerShare + costs.exitAtStopPerShare;
-      const riskBudget = account.equity * (L.maxRiskPerTradePct / 100);
+      const riskBudget = account.equity * (L.maxRiskPerTradePct / 100) * (ctx.riskFactor > 0 && ctx.riskFactor < 1 ? ctx.riskFactor : 1); // lowered in a weak market, never raised
       const existingRisk = hasPos ? account.positionQty * Math.max(0, account.positionMark - stop) : 0;
       const allocFactor = ipo.active ? L.ipoMode.allocationFactor : 1;
       const allocCap = account.equity * (L.maxPositionPct / 100) * allocFactor;

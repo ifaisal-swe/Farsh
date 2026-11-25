@@ -103,7 +103,7 @@ test('team: says what needs a look, cleans saved text and scores finished views'
   s.saveReport(base); const r = s.reports[0];
   assert.equal(r.symbol, 'NVDA'); assert.equal(r.summaryAr, 'x y'); assert.deepEqual(r.drivers, ['a']); assert.equal(r.sources.length, 1); assert.equal(r.catalysts.length, 1); assert.deepEqual(s.status().stocks[0].needs, []);
   px = 106; t += 3600000; assert.deepEqual(s.status().stocks[0].needs, ['price moved 6.0% since the report', '3 new headlines']);
-  t += 5 * 86400000; assert.deepEqual(s.status().record, { finished: 1, right: 1, rightPercent: 100, open: 0 });
+  t += 5 * 86400000; assert.deepEqual(s.status().record, { calibration: { n: 1, need: 20 }, finished: 1, right: 1, rightPercent: 100, open: 0 });
   assert.equal(make().reports[0].result.right, true, 'kept');
   for (const bad of [{ view: 'BUY' }, { confidence: 101 }, { horizonDays: 0 }, { sources: [] }, { summaryAr: '' }, { risks: [] }]) assert.throws(() => s.saveReport({ ...base, ...bad }));
   assert.throws(() => s.saveNote({ symbol: 'NVDA', role: 'trader', text: 'x' }));

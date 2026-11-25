@@ -32,7 +32,7 @@ class CompanyResearch {
     for (const n of saved) add(n.title, n.publishedAt || n.retrievedAt, n.source, n.summary);
     news.sort((a, b) => (a.date < b.date ? 1 : -1));
     const h = f && f.health;
-    const value = { symbol, company: f ? { sector: f.sector, industry: f.industry, analystsTargetPrice: f.analystTarget, financials: h || null, nextQuarter: f.estimates, pastResults: f.surprises, insiders: f.insiders && { buysLast3Months: f.insiders.buys3m, salesLast3Months: f.insiders.sells3m }, institutions: f.institutions } : null, news: news.slice(0, 15) };
+    const value = { symbol, company: f ? { sector: f.sector, industry: f.industry, analystsTargetPrice: f.analystTarget, financials: h || null, nextQuarter: f.estimates, pastResults: f.surprises, shortSellers: f.short || null, insiders: f.insiders && { buysLast3Months: f.insiders.buys3m, salesLast3Months: f.insiders.sells3m }, institutions: f.institutions } : null, news: news.slice(0, 15) };
     if (value.company || news.length) this.cache.set(symbol, { at: this.now(), value });
     return value;
   }

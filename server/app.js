@@ -28,6 +28,7 @@ const { InvestorService } = require('./lab/investors');
 const { OpportunityService, parseEarningsDate } = require('./opportunity/service');
 const { HelperService } = require('./helper/service');
 const { CompanyResearch } = require('./helper/research');
+const { StrengthService } = require('./analysis/strength');
 const { TeamService } = require('./team/service');
 const { sendWebPage, webAssets, ASSETS } = require('./webpage');
 const { ShariaService } = require('./sharia/screener');
@@ -321,7 +322,18 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   const earningsDate = publicData ? async (s) => { const { data } = await fetchJson(`https://api.nasdaq.com/api/analyst/${encodeURIComponent(s)}/earnings-date`, { headers: { 'User-Agent': 'market-data-client/1.0' }, timeoutMs: 15000, fetchImpl }); return parseEarningsDate(data && data.data && data.data.announcement); } : null;
   let catalysts = [];
   try { catalysts = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'research-snapshot.json'), 'utf8')).catalysts || []; } catch { /* no dated events */ }
-  opportunities = new OpportunityService({ store, desk, lab, investors, sharia, getBars: techBars, technical, catalysts, earningsDate, isCrypto, activity });
+  const liveStock = () => desk.all().find((a) => a.dataMode === 'LIVE' && a.provider && !isCrypto(a.symbol));
+  const strength = new StrengthService({ followed: () => desk.all().filter((a) => a.dataMode === 'LIVE' && a.symbol && !isCrypto(a.symbol)).map((a) => a.symbol), fetchBars: (s) => { const a = liveStock(); if (!a) throw new Error('no prices'); return a.provider.fetchBars(s, '1d', { limit: 330 }); } });
+  const crowd = (symbol) => {
+    if (isCrypto(symbol)) return null;
+    const p = desk.primary.publicState().portfolio; const l = desk.primary.cfg().risk || {};
+    return strength.check(symbol, desk.positions().map((x) => ({ symbol: x.symbol, value: x.qty * (x.mark || x.avgPrice || 0) })), p && p.equity, { maxSectorPct: l.maxSectorPct || 50, maxAlikePct: l.maxAlikePct || 40 });
+  };
+  desk.book.crowd = crowd;
+  desk.book.riskFactor = (symbol) => { if (isCrypto(symbol)) return 1; const s = strength.of(symbol); return strength.market.factor * (s && s.above200 === false ? 0.5 : 1); };
+  const strengthTimer = setInterval(() => { if (liveStock()) strength.refresh().catch(() => {}); }, 60000);
+  strengthTimer.unref();
+  opportunities = new OpportunityService({ strength, crowd, store, desk, lab, investors, sharia, getBars: techBars, technical, catalysts, earningsDate, isCrypto, activity });
   const research = new CompanyResearch({ isCrypto, gather: (s) => (publicData ? require('./lab/facts').gather(s, { fetchImpl }) : null), saved: (s) => store.listNews(s, 20), feed: (s) => { const p = (desk.stockAgent() || {}).provider; return p && p.fetchNews ? p.fetchNews(s, { limit: 15, start: new Date(Date.now() - 14 * 86400000).toISOString() }) : null; } });
   const team = new TeamService({
     store, research: (s) => research.of(s), followed: () => desk.all().map((a) => a.symbol).filter(Boolean), calls: () => (opportunities.status().items || []),

@@ -5,6 +5,7 @@
  */
 const crypto = require('node:crypto');
 const { guide, templates } = require('./templates');
+const { calibrate } = require('../analysis/honest');
 
 const DAY = 86400000;
 const KEEP = 200; const NOTES = 120;
@@ -46,7 +47,8 @@ class TeamService {
   record() {
     const done = this.reports.filter((r) => r.result);
     const right = done.filter((r) => r.result.right).length;
-    return { finished: done.length, right, rightPercent: done.length ? Math.round((right / done.length) * 100) : null, open: this.reports.length - done.length };
+    const k = calibrate(done.filter((r) => r.view !== 'NEUTRAL').map((r) => ({ p: r.confidence / 100, hit: r.result.right })));
+    return { calibration: k.ready ? { n: k.n, bins: k.bins.map((b) => ({ said: Math.round(b.said * 100), real: Math.round(b.real * 100), n: b.n })) } : { n: k.n, need: k.need }, finished: done.length, right, rightPercent: done.length ? Math.round((right / done.length) * 100) : null, open: this.reports.length - done.length };
   }
 
   status() {
