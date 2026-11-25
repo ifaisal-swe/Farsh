@@ -1,7 +1,7 @@
 'use strict';
 const { temp, named, openStore } = require('./helpers/db');
 /**
- * Production / Railway readiness: runtime configuration, login and session security, health endpoints,
+ * Production readiness: runtime configuration, login and session security, health endpoints,
  * browser independence (one engine for any number of dashboards), event catch-up, graceful shutdown,
  * restart recovery (accounting check, offline-expired orders, no auto-resume after failed checks),
  * duplicate-order protection, safe migrations, and the deployment files.
@@ -55,15 +55,15 @@ const wsOpen = (port, headers = {}) => new Promise((resolve) => {
 });
 
 // ---------------------------------------------------------------- runtime
-test('runtime: Railway variables → 0.0.0.0:$PORT, database on the volume, login required', () => {
-  const env = { RAILWAY_ENVIRONMENT_ID: 'x', PORT: '8080', RAILWAY_VOLUME_MOUNT_PATH: '/data', RAILWAY_PUBLIC_DOMAIN: 'dar.up.railway.app' };
+test('runtime: production variables → 0.0.0.0:$PORT, key files on the volume, login required', () => {
+  const env = { NODE_ENV: 'production', PORT: '8080', DATA_DIR: '/data', APP_BASE_URL: 'https://trading.example.com' };
   const rt = resolveRuntime(env, { host: '127.0.0.1', port: 8787 });
   assert.equal(rt.production, true);
   assert.equal(rt.host, '0.0.0.0');
   assert.equal(rt.port, 8080);
   assert.equal(rt.dataDir.replace(/\\/g, '/').endsWith('/data'), true);
   assert.equal(rt.authRequired, true);
-  assert.deepEqual(rt.publicHosts, ['dar.up.railway.app']);
+  assert.deepEqual(rt.publicHosts, ['trading.example.com']);
   assert.equal(rt.secureCookies, true);
   assert.match(validateRuntime(rt).errors.join(), /DASHBOARD_PASSWORD/, 'a public dashboard without a password must not start');
   assert.deepEqual(validateRuntime({ ...rt, password: PW }).errors, []);
@@ -135,19 +135,19 @@ test('login rate limiting locks a client out after repeated failures', async () 
 });
 
 // ---------------------------------------------------------------- health, independence, events
-test('health: /health/live and /health/ready (also for Railway healthcheck host); components without secrets', async () => {
+test('health: /health/live and /health/ready (for any probe Host header); components without secrets', async () => {
   const t = createTerminal({ postgres: temp(), port: 0, env: { DASHBOARD_PASSWORD: PW, DEEPSEEK_API_KEY: 'sk-secret-health-0001' }, fetchImpl: silentFetch });
   const port = await t.start();
   try {
-    const live = await raw(port, { path: '/health/live', headers: { Host: 'healthcheck.railway.app' } });
+    const live = await raw(port, { path: '/health/live', headers: { Host: 'healthcheck.example.net' } });
     assert.equal(live.status, 200);
-    const ready = await raw(port, { path: '/health/ready', headers: { Host: 'healthcheck.railway.app' } });
+    const ready = await raw(port, { path: '/health/ready', headers: { Host: 'healthcheck.example.net' } });
     assert.equal(ready.status, 200, 'ready once the engine restored its state (no login needed, no secrets)');
     const body = ready.json();
     assert.equal(body.status, 'ready');
     assert.deepEqual(Object.keys(body.components).sort(), ['alpaca', 'database', 'deepseek', 'engine', 'gemini', 'news', 'telegram', 'tiingo']);
     assert.equal(ready.body.includes('sk-secret'), false);
-    assert.equal((await raw(port, { path: '/api/state', headers: { Host: 'healthcheck.railway.app' } })).status, 403, 'only health is open to that host');
+    assert.equal((await raw(port, { path: '/api/state', headers: { Host: 'healthcheck.example.net' } })).status, 403, 'only health is open to that host');
     const h = t.health();
     assert.equal(h.components.deepseek.state, 'ok');
     assert.equal(h.components.alpaca.state, 'not_configured');

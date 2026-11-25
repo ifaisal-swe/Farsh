@@ -1,7 +1,7 @@
 'use strict';
 /**
  * HTTP + WebSocket server and the single authoritative backend (market engine, AI, paper trading,
- * Telegram). Locally it binds to 127.0.0.1; in production (Railway) to 0.0.0.0:$PORT with a mandatory
+ * Telegram). Locally it binds to 127.0.0.1; in production to 0.0.0.0:$PORT with a mandatory
  * login. Secrets never leave the backend. Mutating API calls require a custom header (forces a CORS
  * preflight that we never approve); Host/Origin checks block DNS-rebinding and cross-site requests.
  * The browser is only a view: opening or closing it never starts or stops the engine.
@@ -76,7 +76,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   const integrity = (() => { try { return store.quickCheck(); } catch (e) { return [e.message]; } })();
   const dbOk = integrity.length === 1 && integrity[0] === 'ok';
   const redactor = new Redactor();
-  // Railway-style variable names are accepted as aliases of the project's own names
+  // Alternative variable names are accepted as aliases of the project's own names
   const envX = { ...env };
   if (!envX.ALPACA_KEY_ID && env.ALPACA_API_KEY) envX.ALPACA_KEY_ID = env.ALPACA_API_KEY;
   if (!envX.ALPACA_SECRET_KEY && env.ALPACA_API_SECRET) envX.ALPACA_SECRET_KEY = env.ALPACA_API_SECRET;
@@ -164,7 +164,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   shariaTimer.unref();
   const agent = desk.primary; // main symbol (session lifecycle); other symbols are reached through the desk
   const service = new TerminalService({ desk, store, config, secrets });
-  // Telegram ids may also come from Railway variables (merged with the ids saved in Settings)
+  // Telegram ids may also come from environment variables (merged with the ids saved in Settings)
   const envChats = idList(env.TELEGRAM_CHAT_ID || env.TELEGRAM_CHAT_IDS);
   const envUsers = [...idList(env.TELEGRAM_ADMIN_USER_IDS || env.TELEGRAM_USER_IDS), ...envChats.filter((x) => !x.startsWith('-'))]; // private chat id == user id
   let relayChat = telegramRelay ? telegramRelay.chatId : null;
@@ -192,7 +192,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
     return { hosts, origins };
   };
 
-  // ---------- health (before the Host check: Railway probes with Host healthcheck.railway.app; no secrets here)
+  // ---------- health (before the Host check: host probes use their own Host header; no secrets here)
   app.get('/health/live', (req, res) => res.set('Cache-Control', 'no-store').json({ status: 'ok', uptimeSec: Math.round((Date.now() - startedAt) / 1000) }));
   app.get('/health/ready', (req, res) => {
     const h = health();
@@ -743,7 +743,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
       ai: { mode: ai.mode, deepseek: { requestsToday: ai.providers.deepseek.requestsToday, costTodayUsd: ai.providers.deepseek.costTodayUsd }, gemini: { requestsToday: ai.providers.gemini.requestsToday, costTodayUsd: ai.providers.gemini.costTodayUsd } },
       dataProviders: desk.watchlist().map((w) => ({ symbol: w.symbol, provider: w.provider, dataLabel: w.dataLabel, fresh: w.fresh, priceTs: w.priceTs })),
       reference: desk.reference.summary(),
-      note: 'Process metrics measured inside the app. They are not your Railway invoice: hosting, AI and market-data charges are billed separately by each provider.',
+      note: 'Process metrics measured inside the app. They are not your hosting invoice: hosting, AI and market-data charges are billed separately by each provider.',
     };
   }
 

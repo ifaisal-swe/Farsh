@@ -1,4 +1,4 @@
-# Forsah — AI Trading Terminal (PAPER TRADING ONLY) — production image for Railway.
+# Forsah — AI Trading Terminal (PAPER TRADING ONLY) — production image.
 # Stage 1 builds the Nuxt interface; the final image has production dependencies only.
 FROM node:26-trixie-slim AS web
 WORKDIR /web
@@ -11,6 +11,7 @@ FROM node:26-trixie-slim
 
 ENV NODE_ENV=production \
     DATA_DIR=/data \
+    PORT=8080 \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
     NPM_CONFIG_FUND=false
 
@@ -30,7 +31,7 @@ COPY scripts ./scripts
 # Data is in PostgreSQL. /data (a volume at runtime) holds only the encryption key files — never inside the image.
 RUN mkdir -p /data && chown -R node:node /app /data
 
-# Railway injects PORT; the app listens on 0.0.0.0:$PORT in production.
+# The app listens on 0.0.0.0:$PORT in production; a host may set its own PORT.
 EXPOSE 8080
 
 # The process starts as root only to hand the mounted volume (root-owned) to the unprivileged `node`

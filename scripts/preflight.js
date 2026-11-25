@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Pre-deployment check (run with the variables you will set on Railway, or with --production to
+ * Pre-deployment check (run with the variables you will set on your host, or with --production to
  * simulate them). It never prints secret values.
  *
  *   npm run preflight                 checks the current environment / .env
@@ -36,7 +36,7 @@ const fail = (m) => rows.push(['FAIL', m]);
 for (const e of v.errors) fail(e);
 for (const w of v.warnings) warn(w);
 ok(`bind ${rt.host}:${rt.port}, data folder ${rt.dataDir}, login ${rt.authRequired ? 'required' : 'off (local only)'}`);
-if (rt.production && !rt.persistentPath) warn('No RAILWAY_VOLUME_MOUNT_PATH / DATA_DIR: attach a volume (e.g. /data) or the encryption keys are lost on redeploy');
+if (rt.production && !rt.persistentPath) warn('No DATA_DIR: set it to a folder on a persistent volume (e.g. /data) or the encryption keys are lost on redeploy');
 if (!(set('ALPACA_KEY_ID') || set('ALPACA_API_KEY')) || !(set('ALPACA_SECRET_KEY') || set('ALPACA_API_SECRET'))) warn('Alpaca keys not set as variables (they can also be saved in Settings → Credentials, encrypted on the volume)');
 else ok('Alpaca keys present');
 if (!set('DEEPSEEK_API_KEY') && !set('GEMINI_API_KEY')) warn('No AI key variable (DEEPSEEK_API_KEY or GEMINI_API_KEY); can also be saved in Settings');

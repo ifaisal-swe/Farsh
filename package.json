@@ -2,6 +2,7 @@
   "name": "farsh",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Forsah — AI-powered PAPER trading terminal: real market data (Alpaca, Tiingo), DeepSeek + Gemini analysis, deterministic risk & simulated execution, Telegram companion. Never sends real orders.",
   "main": "server/index.js",
   "type": "commonjs",

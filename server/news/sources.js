@@ -16,7 +16,7 @@ const { XMLParser } = require('fast-xml-parser');
 const { fetchJson, fetchText } = require('../util/http');
 const { etWallToUtcMs } = require('../util/time');
 
-const UA = 'ai-trading-terminal/1.0 (local paper-trading research tool)';
+const UA = 'forsah/1.0 (local paper-trading research tool)';
 const parser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true, parseTagValue: false });
 const asArray = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]);
 const text = (x) => (x == null ? '' : typeof x === 'object' ? (x['#text'] || '') : String(x));

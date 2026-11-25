@@ -1,4 +1,4 @@
-# Runs the test suite on every push and pull request. In Railway, enable "Wait for CI" on the service so a
+# Runs the test suite on every push and pull request. If your host can wait for CI, enable it so a
 # deployment of the production branch only starts after this workflow has passed.
 name: tests
 on:

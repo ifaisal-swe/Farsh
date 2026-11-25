@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Entry point: `npm start` locally, or the container command on Railway.
+ * Entry point: `npm start` locally, or the container command in production.
  *
  * Startup order: environment → configuration check → logging → storage (+ optional import, safe
  * migrations, integrity + accounting checks) → engine recovery (portfolio, positions, pending orders,
@@ -31,9 +31,9 @@ for (const name of ['SAAS_ADMIN_PASSWORD', 'SAAS_DATABASE_URL', 'DATABASE_URL', 
 const { resolveRuntime } = require('./runtime');
 
 /**
- * Railway mounts volumes owned by root. The container starts as root only to give the data directory
+ * Many hosts mount volumes owned by root. The container starts as root only to give the data directory
  * to the unprivileged `node` user, then drops privileges before any file or network work.
- * (RUN_AS_USER=root keeps root, e.g. with RAILWAY_RUN_UID=0 setups.)
+ * (RUN_AS_USER=root keeps root.)
  */
 function dropPrivileges() {
   if (typeof process.getuid !== 'function' || process.getuid() !== 0) return null;

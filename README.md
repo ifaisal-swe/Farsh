@@ -72,7 +72,7 @@ npm start
 | `npm run replay` | إعادة تشغيل يوم سابق |
 | `npm run predeploy` | الاختبارات وفحص الإعداد قبل النشر |
 
-للنشر: [Railway](DEPLOYMENT.md) أو [خادمك الخاص](DEPLOYMENT-VPS.md).
+للنشر: [أي استضافة](DEPLOYMENT.md) أو [خادمك الخاص](DEPLOYMENT-VPS.md).
 
 ## بنية المشروع
 
@@ -129,7 +129,7 @@ npm start
 - Arabic Telegram companion that can never place, change or cancel an order
 - Invite-only hosted mode with a separate engine, database and key per account, and two-factor login
 
-**Quick start:** Node.js 26+ and a PostgreSQL database (`DATABASE_URL`), then `npm install`, `npm run web:build`, `npm start`, and open `http://localhost:8787/app/`. Choose DEMO data to try it without keys. In hosted mode, `/demo` lets a visitor try it without an account: a separate temporary terminal with invented prices, no keys and no outside calls, erased within two hours (`SAAS_DEMO_MAX`, default 5 at once, `0` turns it off). Deploy with [Railway](DEPLOYMENT.md) or [your own VPS](DEPLOYMENT-VPS.md). Run `npm test` for the tests.
+**Quick start:** Node.js 26+ and a PostgreSQL database (`DATABASE_URL`), then `npm install`, `npm run web:build`, `npm start`, and open `http://localhost:8787/app/`. Choose DEMO data to try it without keys. In hosted mode, `/demo` lets a visitor try it without an account: a separate temporary terminal with invented prices, no keys and no outside calls, erased within two hours (`SAAS_DEMO_MAX`, default 5 at once, `0` turns it off). Deploy on [any host](DEPLOYMENT.md) or [your own VPS](DEPLOYMENT-VPS.md). Run `npm test` for the tests.
 
 **Brand:** the kit is at `/brand`; source files are in [`web/public/brand`](web/public/brand).
 
@@ -406,7 +406,7 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 
 **Security**
 
-- Locally the server binds to **127.0.0.1**. In production (`NODE_ENV=production` or on Railway) it binds to `0.0.0.0:$PORT` and **requires a login** (section 13). Host and Origin checks block DNS rebinding and cross-site requests.
+- Locally the server binds to **127.0.0.1**. In production (`NODE_ENV=production`) it binds to `0.0.0.0:$PORT` and **requires a login** (section 13). Host and Origin checks block DNS rebinding and cross-site requests.
 - Mutating API calls require a custom header, which forces a CORS preflight that the server never approves.
 - The CSP disallows external scripts.
 - Keys entered in the UI are **encrypted at rest** (AES-256-GCM, key in `data/master.key` or `TERMINAL_MASTER_KEY`). They are never sent back to the browser (masked only) and are redacted from logs. This protects against casual disclosure, not against someone with full access to your Windows account.
@@ -423,7 +423,7 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 <details>
 <summary><b>10. Testing and replay</b></summary>
 
-`npm test` runs the whole suite on the disposable PostgreSQL server in `PG_TEST_URL` (required) (sections 12 and 13 list what the November 2026 upgrades added; `test/production.test.js` and `test/providers.test.js` cover the Railway / dual-AI work). Besides the list below they cover risk levels and their enforcement, the no-auto-liquidation exposure review, look-ahead-free swings and break events, candlestick pattern conditions, AI-level verification, the Arabic prompt rules, and Arabic translation coverage of every activity message produced by the engine scenarios. The original suite covers:
+`npm test` runs the whole suite on the disposable PostgreSQL server in `PG_TEST_URL` (required) (sections 12 and 13 list what the November 2026 upgrades added; `test/production.test.js` and `test/providers.test.js` cover the production / dual-AI work). Besides the list below they cover risk levels and their enforcement, the no-auto-liquidation exposure review, look-ahead-free swings and break events, candlestick pattern conditions, AI-level verification, the Arabic prompt rules, and Arabic translation coverage of every activity message produced by the engine scenarios. The original suite covers:
 
 - Indicators, structure and signals
 - Portfolio accounting identities, and long-only / no-margin enforcement
@@ -546,7 +546,7 @@ The upgrade added these suites:
 </details>
 
 <details>
-<summary><b>13. Production architecture (Railway, always on)</b></summary>
+<summary><b>13. Production architecture (always on)</b></summary>
 
 The browser is **only a view**. One Node.js process is the single authoritative backend. It contains:
 
@@ -653,7 +653,7 @@ Recovery rules:
 - Mutating requests still need the custom header, and the Origin check applies.
 - The Host header must be localhost or the configured public domain.
 - HSTS is sent in production.
-- Secrets come from Railway Variables or the encrypted store. They are never sent to the browser and are
+- Secrets come from environment variables or the encrypted store. They are never sent to the browser and are
   redacted from logs.
 
 #### Health, resources, events
@@ -676,7 +676,7 @@ On SIGTERM or SIGINT the app:
 4. persists the state, closes the market stream, WebSocket, HTTP server and database;
 5. marks the shutdown as clean.
 
-Set `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30` on Railway: Railway's default is 0 seconds before SIGKILL.
+Give the host at least 30 seconds between SIGTERM and SIGKILL.
 
 #### Backups, retention
 
@@ -692,12 +692,8 @@ Set `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30` on Railway: Railway's default is 0 
 | `Dockerfile` | Node 26 slim, production dependencies only, no data in the image. The process starts as root only to take ownership of the volume, then drops to `node`. |
 | `.dockerignore`, `.gitignore` | Exclude data, `.env`, databases and backups. |
 | `.env.example` | Every variable, with its actual name. |
-| `.github/workflows/test.yml` | Runs the tests, for Railway's "Wait for CI". |
-| `DEPLOYMENT.md` | Step-by-step beginner guide. |
-
-There is **no** `railway.json`: Railway deprecated Config as Code (new services cannot use it, and it
-stops on 2026-12-01). The few service settings are set in the Railway dashboard, as DEPLOYMENT.md
-explains.
+| `.github/workflows/test.yml` | Runs the tests on every push and pull request. |
+| `DEPLOYMENT.md` | Deployment guide for any host. |
 
 </details>
 
@@ -733,3 +729,9 @@ PostgreSQL: set `DATABASE_URL` (or `SAAS_DATABASE_URL`) (UTF8 database; a role t
 `web/app/assets/main.css` holds the light and dark tokens; `web/app/components/ui` holds shadcn-style components on Base UI (`base-ui-vue`) and Tailwind CSS. Base UI for Vue has no Select or Dialog yet: those use shadcn's native select pattern and the browser's `<dialog>`. `/` (landing), `/login`, `/invite`, `/reset` and `/admin` are Nuxt pages served by the hosted gateway; `/app/*` is the product.
 
 </details>
+
+---
+
+## License
+
+[MIT](LICENSE). Third-party components and icons keep their own licenses.

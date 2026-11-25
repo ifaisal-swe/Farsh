@@ -3,7 +3,6 @@ node_modules/
 data/
 backups/
 import/
-railway-import/
 *.db
 *.db-wal
 *.db-shm
