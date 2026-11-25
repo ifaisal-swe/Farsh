@@ -6,6 +6,8 @@
 
 <p align="center">منصة عربية للتداول الورقي الآلي. تفحص كل سهم شرعيًا، وتضبط المخاطرة، ثم تنفّذ أو تنتظر موافقتك.</p>
 
+<p align="center"><b>الموقع: <a href="https://farsh.ifaisal.net">farsh.ifaisal.net</a></b></p>
+
 <p align="center"><a href="#ابدأ-الآن">ابدأ الآن</a> · <a href="#كيف-تعمل">كيف تعمل</a> · <a href="#الضوابط">الضوابط</a> · <a href="#الهوية">الهوية</a> · <a href="#english">English</a> · <a href="#technical-reference">المرجع التقني</a></p>
 
 > [!IMPORTANT]
@@ -113,6 +115,8 @@ npm start
 <p align="center"><img src="docs/brand/readme/banner-mark.svg" alt="Forsah mark" width="100%"></p>
 
 ## English
+
+**Website: [farsh.ifaisal.net](https://farsh.ifaisal.net)**
 
 **Forsah** (Arabic for *opportunity*) is an Arabic-first platform for automated **paper trading**. It follows prices and news, asks an AI model for an explained proposal, then puts it through a Sharia screen and fixed risk limits that the model cannot override. What passes becomes a simulated trade, with a stop, a target and a full record of why, or waits for your approval.
 
