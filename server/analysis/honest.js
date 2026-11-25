@@ -4,23 +4,14 @@
  * locked last part that plays no role in choosing; the best result is discounted for how many rules were tried.
  * Confidence is compared with what really happened afterwards.
  */
+const { RULES } = require('./rules');
+
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const sd = (a) => { const m = mean(a); return a.length > 1 ? Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)) : 0; };
 const ok = (x) => typeof x === 'number' && Number.isFinite(x);
 const YEAR = 252;
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-function rolling(c, n) { let s = 0; return c.map((x, i) => { s += x; if (i >= n) s -= c[i - n]; return i >= n - 1 ? s / n : null; }); }
-function rsi2(c) { let u = 0; let d = 0; return c.map((x, i) => { if (!i) return null; const g = x - c[i - 1]; u = (u + Math.max(0, g)) / 2; d = (d + Math.max(0, -g)) / 2; return i > 6 ? 100 - 100 / (1 + u / (d || 1e-9)) : null; }); }
 
-/** Position (0 to 1) decided on each close and held until the next one. */
-const RULES = {
-  hold: (c) => c.map(() => 1),
-  long200: (c) => { const m = rolling(c, 200); return c.map((x, i) => (m[i] && x > m[i] ? 1 : 0)); },
-  half200: (c) => { const m = rolling(c, 200); return c.map((x, i) => (m[i] && x > m[i] ? 1 : 0.5)); },
-  cross: (c) => { const f = rolling(c, 20); const s = rolling(c, 100); return c.map((_, i) => (s[i] && f[i] > s[i] ? 1 : 0)); },
-  momentum: (c) => c.map((_, i) => (i >= 252 && c[i - 21] > c[i - 252] ? 1 : 0)),
-  pullback: (c) => { const m = rolling(c, 200); const r = rsi2(c); const f = rolling(c, 5); let on = 0; return c.map((x, i) => { if (!on && m[i] && x > m[i] && r[i] !== null && r[i] < 10) on = 1; else if (on && f[i] && x > f[i]) on = 0; return on; }); },
-};
 
 function stats(r) {
   let e = 1; let top = 1; let dd = 0; for (const x of r) { e *= 1 + x; top = Math.max(top, e); dd = Math.max(dd, 1 - e / top); }
@@ -52,18 +43,19 @@ function timing(c, p, from, to, cost, { tries = 200, seed = 5 } = {}) {
 }
 
 /** Every rule on one stock. The last 20% is locked: shown, but never used to name the best. */
-function compare(c, { cost = 0.001, seed = 5 } = {}) {
+function compare(bars, { cost = 0.001, seed = 5 } = {}) {
+  const c = bars.map((b) => b.close);
   const start = 252; const last = c.length - 1; if (last - start < 250) return null;
   const lock = start + Math.floor((last - start) * 0.8); const mid = start + Math.floor((lock - start) / 2); const rows = {};
   for (const [id, f] of Object.entries(RULES)) {
-    const p = f(c); const all = returns(c, p, start, lock, cost); let trades = 0; for (let i = start; i < lock; i++) if (p[i] !== p[i - 1]) trades++;
-    rows[id] = { ...stats(all), first: stats(returns(c, p, start, mid, cost)).sharpe, second: stats(returns(c, p, mid, lock, cost)).sharpe, locked: stats(returns(c, p, lock, last, cost)), inMarket: mean(p.slice(start, lock)), trades, timing: timing(c, p, start, lock, cost, { seed }), r: all };
+    const p = f(bars); const all = returns(c, p, start, lock, cost); let trades = 0; for (let i = start; i < lock; i++) if (p[i] !== p[i - 1]) trades++;
+    rows[id] = { ...stats(all), first: stats(returns(c, p, start, mid, cost)).sharpe, second: stats(returns(c, p, mid, lock, cost)).sharpe, locked: stats(returns(c, p, lock, last, cost)), inMarket: mean(p.slice(start, lock)), trades, now: p[last], timing: timing(c, p, start, lock, cost, { seed }), r: all };
   }
   const list = Object.entries(rows).filter(([k]) => k !== 'hold'); const best = list.reduce((a, b) => (b[1].sharpe > a[1].sharpe ? b : a));
   // measured on the gain over holding: a rising stock must not make every rule look clever
   const over = list.map(([, x]) => x.r.map((v, i) => v - rows.hold.r[i])); const k = list.findIndex(([id]) => id === best[0]); const luck = deflated(over[k], over.map((o) => stats(o).sharpe)); const beats = best[1].sharpe > rows.hold.sharpe && best[1].locked.sharpe > rows.hold.locked.sharpe;
   for (const k of Object.keys(rows)) delete rows[k].r;
-  return { days: lock - start, lockedDays: last - lock, rows, best: best[0], tried: list.length, notLuck: luck, proven: !!(beats && luck !== null && luck >= 0.95 && best[1].timing !== null && best[1].timing >= 0.95) };
+  return { days: lock - start, lockedDays: last - lock, rows, best: best[0], tried: list.length, now: best[1].now, notLuck: luck, proven: !!(beats && luck !== null && luck >= 0.95 && best[1].timing !== null && best[1].timing >= 0.95) };
 }
 
 /** How often random days did worse than a signal's days on the same stock (same number of picks, not overlapping). */

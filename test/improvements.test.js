@@ -8,6 +8,7 @@ const { decide } = require('../server/opportunity/decide');
 const { RiskManager } = require('../server/trading/risk');
 const { read } = require('../server/lab/technical');
 const { DEFAULTS } = require('../server/config');
+const { RULES } = require('../server/analysis/rules');
 
 const walk = (seed, n = 1000, drift = 0.0003, vol = 0.015) => { const r = H.rng(seed); let p = 100; return Array.from({ length: n }, () => (p *= 1 + drift + (r() + r() + r() - 1.5) * vol)); };
 const bars = (c) => c.map((x, i) => ({ time: 1500000000 + i * 86400, open: i ? c[i - 1] : x, high: Math.max(x, i ? c[i - 1] : x) * 1.004, low: Math.min(x, i ? c[i - 1] : x) * 0.996, close: x, volume: 1e6 }));
@@ -45,15 +46,15 @@ test('strength: closes are kept, a failing source changes nothing, one refresh a
 });
 
 test('honest: rules on pure noise are never called proven', () => {
-  let proven = 0; for (let i = 1; i <= 40; i++) if (H.compare(walk(i * 31, 1250, 0)).proven) proven++;
-  assert.equal(proven, 0); assert.equal(H.compare(walk(1, 300)), null);
-  const rising = H.compare(walk(77, 1250, 0.0025)); assert.ok(rising.rows.hold.yearly > 0.5); assert.ok(rising.notLuck === null || rising.notLuck < 0.9, 'a rising price is not skill: ' + rising.notLuck); assert.equal(rising.proven, false);
+  let proven = 0; for (let i = 1; i <= 40; i++) if (H.compare(bars(walk(i * 31, 1250, 0))).proven) proven++;
+  assert.equal(proven, 0); assert.equal(H.compare(bars(walk(1, 300))), null);
+  const rising = H.compare(bars(walk(77, 1250, 0.0025))); assert.ok(rising.rows.hold.yearly > 0.5); assert.ok(rising.notLuck === null || rising.notLuck < 0.9, 'a rising price is not skill: ' + rising.notLuck); assert.equal(rising.proven, false);
 });
 
 test('honest: a real effect beats random timing, holding has no timing score, and the locked part is separate', () => {
   const c = []; let p = 100; const r = H.rng(4); let d = 0.005; let left = 0; for (let i = 0; i < 3000; i++) { if (left-- <= 0) { d = d > 0 ? -0.004 : 0.005; left = 90 + Math.floor(r() * 260); } p *= 1 + d + (r() - 0.5) * 0.004; c.push(p); }
-  const x = H.compare(c); assert.ok(x.rows.cross.timing > 0.95 && x.rows.cross.sharpe > x.rows.hold.sharpe); assert.equal(x.rows.hold.timing, null); assert.ok(x.lockedDays > 300); assert.notEqual(x.best, 'hold');
-  const changed = H.compare([...c.slice(0, 252 + x.days + 1), ...c.slice(252 + x.days + 1).map((v) => v * 3)]); assert.equal(changed.best, x.best, 'the locked part does not choose');
+  const x = H.compare(bars(c)); assert.ok(x.rows.cross.timing > 0.95 && x.rows.cross.sharpe > x.rows.hold.sharpe); assert.equal(x.rows.hold.timing, null); assert.ok(x.lockedDays > 300); assert.notEqual(x.best, 'hold');
+  const changed = H.compare(bars([...c.slice(0, 252 + x.days + 1), ...c.slice(252 + x.days + 1).map((v) => v * 3)])); assert.equal(changed.best, x.best, 'the locked part does not choose');
 });
 
 test('honest: more tries make the same result less convincing', () => {
@@ -97,4 +98,22 @@ test('risk: the engine lowers the budget, never raises it, and refuses a second 
   const r = new RiskManager(DEFAULTS.risk); const ctx = { proposal: { stopLoss: 98, takeProfit: 106, orderType: 'MARKET', snapshotPrice: 100, createdAt: 1 }, quote: { bid: 99.99, ask: 100.01, askSize: 100 }, market: { realtime: true, connected: true, stale: false, halted: false, session: 'REGULAR', quoteAgeMs: 1, feedLabel: 'x' }, account: { equity: 1000000, cash: 1000000, positionQty: 0, positionMark: 0, openPositions: 0 }, exec: DEFAULTS.execution, ai: DEFAULTS.ai, nowMs: 1 };
   const b = (f) => r.evaluateEntry({ ...ctx, riskFactor: f }).sizing.riskBudget; assert.equal(b(0.5), b(1) / 2); for (const f of [2, 0, -1, undefined, NaN]) assert.equal(b(f), b(1));
   const no = r.evaluateEntry({ ...ctx, crowd: { pass: false, detail: 'x' } }); assert.equal(no.approved, false); assert.ok(no.failed.some((x) => /same_bet/.test(x)));
+});
+
+test('rules: every surveyed rule stays between 0 and 1, never looks ahead, and reacts to some market', () => {
+  const b = bars(walk(21, 700, 0.0003, 0.02)).map((x, i) => ({ ...x, high: x.high * (1 + (i % 5) * 0.004), low: x.low * (1 - (i % 4) * 0.004), volume: 1e6 + (i % 7) * 2e5 }));
+  const others = [2, 5, 9, 14].map((s) => bars(walk(s, 900, s % 2 ? 0.001 : -0.0004, 0.03)).map((x, i) => ({ ...x, open: x.open * (1 + ((i % 6) - 3) * 0.003), high: x.high * (1 + (i % 5) * 0.005), low: x.low * (1 - (i % 4) * 0.005) })).map((x) => ({ ...x, high: Math.max(x.high, x.open), low: Math.min(x.low, x.open) })));
+  assert.ok(Object.keys(RULES).length >= 30);
+  for (const [id, f] of Object.entries(RULES)) {
+    const p = f(b); assert.equal(p.length, b.length, id); assert.ok(p.every((x) => Number.isFinite(x) && x >= 0 && x <= 1), id);
+    for (const n of [300, 451, 612]) assert.deepEqual(f(b.slice(0, n)), p.slice(0, n), id + ' must not see the future');
+    if (id !== 'hold') assert.ok([b, ...others].some((x) => new Set(f(x)).size > 1), id + ' never changes');
+  }
+});
+
+test('calls: a surveyed rule counts only once proven on that stock', () => {
+  const base = { symbol: 'A', price: 101, bars: bars(walk(1, 260)), tech: { score: 0.2, agree: true, record: [], setups: [], horizons: { days: { atr: 2, s50: 100, resistance: [] } } }, events: [], now: 1 };
+  const e = (rule) => (decide({ ...base, rule }).evidence.find((x) => x.kind === 'rule') || {}).score;
+  assert.equal(e({ proven: false, now: 1 }), undefined); assert.equal(e(null), undefined); assert.equal(e({ proven: true, now: 1 }), 0.6); assert.equal(e({ proven: true, now: 0 }), -0.4);
+  assert.equal(decide({ ...base, rule: null }).coverage, decide({ ...base }).coverage);
 });

@@ -199,7 +199,7 @@ function analyze(bars, benchBars, { price, stop, target, riskCapPct = 20, target
     trend: { ma20: ma(20), ma50: ma(50), ma200: ma(200), r20: c.length > 20 ? c[c.length - 1] / c[c.length - 21] - 1 : null, r60: c.length > 60 ? c[c.length - 1] / c[c.length - 61] - 1 : null, r250: c.length > 250 ? c[c.length - 1] / c[c.length - 251] - 1 : null },
     risk: { volYear: sd(r.slice(-60)) * Math.sqrt(YEAR), volNext: dailyVol, volNextYear: dailyVol * Math.sqrt(YEAR), var95: 1 - Math.exp(var95), cvar95: 1 - Math.exp(mean(tail)), drawdown: drawdown(c) },
     regime: regimes(r.slice(-750)), market: pair.length > 130 ? market(closes(pair), pair.map((b) => bench.get(b.time))) : null,
-    monteCarlo: monteCarlo(r.slice(-500), px, { vol: dailyVol, stop, target }), forecast: forecast(clean, bench), plan: targetFirst(clean, bench), analogues: analogues(c.slice(-1500)), anomaly: anomaly(clean), backtest: backtest(c), tested: compare(c),
+    monteCarlo: monteCarlo(r.slice(-500), px, { vol: dailyVol, stop, target }), forecast: forecast(clean, bench), plan: targetFirst(clean, bench), analogues: analogues(c.slice(-1500)), anomaly: anomaly(clean), backtest: backtest(c), tested: clean.every((b) => b.open > 0 && b.high > 0 && b.low > 0) ? compare(clean) : null,
     sizing: { pct: Math.max(0, Math.min(riskCapPct, (targetVol / (dailyVol * Math.sqrt(YEAR))) * 100)), capPct: riskCapPct, targetVol },
   };
 }

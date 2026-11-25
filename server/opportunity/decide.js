@@ -14,16 +14,18 @@ const ok = (x) => typeof x === 'number' && Number.isFinite(x);
 const T = (ar, en) => ({ ar, en });
 const clamp = (x, a = -1, b = 1) => Math.min(b, Math.max(a, x));
 const DAY = 86400000;
-const WEIGHT = { chart: 0.3, strength: 0.2, company: 0.18, news: 0.14, earnings: 0.1, signals: 0.06, flow: 0.04, people: 0.04 };
-const NAME = { chart: T('الرسم والاتجاه', 'Chart and trend'), strength: T('القوة مقارنة بغيره', 'Strength against other stocks'), company: T('الشركة', 'The company'), news: T('الأخبار', 'News'), earnings: T('الأرباح والتوقعات', 'Earnings and estimates'), signals: T('إشارات نجحت هنا من قبل', 'Signals that worked here before'), flow: T('السيولة', 'Money flow'), people: T('الصناديق والمطلعون', 'Funds and insiders') };
+const WEIGHT = { chart: 0.3, strength: 0.2, company: 0.18, news: 0.14, earnings: 0.1, signals: 0.06, flow: 0.04, people: 0.04, rule: 0.06 };
+const NAME = { chart: T('الرسم والاتجاه', 'Chart and trend'), rule: T('قاعدة أثبتت نفسها هنا', 'A rule that proved itself here'), strength: T('القوة مقارنة بغيره', 'Strength against other stocks'), company: T('الشركة', 'The company'), news: T('الأخبار', 'News'), earnings: T('الأرباح والتوقعات', 'Earnings and estimates'), signals: T('إشارات نجحت هنا من قبل', 'Signals that worked here before'), flow: T('السيولة', 'Money flow'), people: T('الصناديق والمطلعون', 'Funds and insiders') };
 const COMPANY = new Set(['graham', 'buffett', 'lynch', 'greenblatt', 'piotroski', 'oneil']);
 
-function evidence({ tech, lens, facts, bars, strength }) {
+function evidence({ tech, lens, facts, bars, strength, rule }) {
   const out = [];
   const add = (kind, score, text) => { if (ok(score)) out.push({ kind, name: NAME[kind], score: Math.round(clamp(score) * 100) / 100, text }); };
   const d = tech.horizons.days;
   add('chart', tech.score, tech.score > 0.45 ? T('صاعد بوضوح', 'Clearly rising') : tech.score > 0.15 ? T('يميل إلى الصعود', 'Leans up') : tech.score < -0.45 ? T('هابط بوضوح', 'Clearly falling') : tech.score < -0.15 ? T('يميل إلى الهبوط', 'Leans down') : T('بلا اتجاه واضح', 'No clear direction'));
   if (strength && ok(strength.place)) { const n = Math.round(strength.place * 100); add('strength', (strength.place - 0.5) * 2 * (strength.above200 === false ? 0.6 : 1), T(`أقوى من ${n}% من ${strength.among} سهمًا وصندوقًا${strength.above200 === false ? '، لكنه تحت متوسطه الطويل' : ''}`, `Stronger than ${n}% of ${strength.among} stocks and funds${strength.above200 === false ? ', but under its long average' : ''}`)); }
+  // a surveyed rule counts only after it proved itself on this very stock
+  if (rule && rule.proven && ok(rule.now)) add('rule', rule.now >= 0.75 ? 0.6 : rule.now <= 0.25 ? -0.4 : 0, rule.now >= 0.75 ? T('القاعدة المثبتة على هذا السهم داخلة الآن', 'The rule proven on this stock is in now') : T('القاعدة المثبتة على هذا السهم خارجة الآن', 'The rule proven on this stock is out now'));
   const now = tech.record.filter((r) => r.now && r.useful);
   if (now.length) add('signals', Math.min(1, 0.5 + now.length * 0.2), T(`ظهرت: ${now.map((r) => r.name.ar).join('، ')}`, `Appeared: ${now.map((r) => r.name.en).join(', ')}`));
   const share = inflowShare(bars);
@@ -63,7 +65,7 @@ function decide(i) {
   const { tech, price, position: pos } = i; const ev = evidence(i);
   let sum = 0; let weight = 0;
   for (const e of ev.list) { sum += e.score * WEIGHT[e.kind]; weight += WEIGHT[e.kind]; }
-  const score = weight ? sum / weight : 0; const coverage = weight / Object.values(WEIGHT).reduce((a, b) => a + b, 0);
+  const score = weight ? sum / weight : 0; const coverage = weight / Object.entries(WEIGHT).reduce((a, [k, b]) => (k === 'rule' ? a : a + b), 0);
   const atr = ev.atr; const cautions = [];
   const soon = (i.events || []).filter((e) => e.at >= i.now - DAY / 2 && e.at - i.now < 14 * DAY).sort((a, b) => a.at - b.at);
   const risky = soon.find((e) => e.own && e.at - i.now < 2 * DAY);
