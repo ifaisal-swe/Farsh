@@ -19,7 +19,7 @@
   const PROFILE_KEYS = ['maxRiskPerTradePct', 'maxDailyLossPct', 'maxDrawdownPct', 'maxPositionPct', 'minRewardRisk', 'maxOpenPositions', 'maxStopDistancePct', 'maxConsecutiveLosses', 'lossCooldownMin', 'maxTradesPerDay'];
   const PROFILE_BOUNDS = {
     maxRiskPerTradePct: [0.05, 5, 0.05], maxDailyLossPct: [0.5, 20, 0.1], maxDrawdownPct: [1, 50, 0.5], maxPositionPct: [1, 100, 1], minRewardRisk: [0.5, 10, 0.1],
-    maxOpenPositions: [1, 4, 1], maxStopDistancePct: [0.5, 50, 0.5], maxConsecutiveLosses: [1, 20, 1], lossCooldownMin: [0, 1440, 5], maxTradesPerDay: [1, 200, 1],
+    maxOpenPositions: [1, 30, 1], maxStopDistancePct: [0.5, 50, 0.5], maxConsecutiveLosses: [1, 20, 1], lossCooldownMin: [0, 1440, 5], maxTradesPerDay: [1, 200, 1],
   };
 
   // ------------------------------------------------------------ layout state (persisted per browser)
@@ -1081,7 +1081,7 @@
   $('wl-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('wl-add-btn').click(); });
   function renderWatchlist(s) {
     const wl = s.watchlist || [];
-    U.set('wl-count', wl.length ? T('wl_limit', { n: wl.length, m: s.maxSymbols || 10 }) : '');
+    U.set('wl-count', wl.length ? String(wl.length) : '');
     const trendTxt = (t) => { const c = String(t || '').toUpperCase(); return /UP/.test(c) ? '↗' : /DOWN/.test(c) ? '↘' : c ? '→' : ''; };
     const html = wl.map((w) => `<div class="wl-row ${w.symbol === APP.symbol ? 'active' : ''} ${w.status === 'PAUSED' ? 'paused' : ''}" data-sym="${esc(w.symbol)}" role="button" tabindex="0">
         <div class="wl-main"><b dir="ltr">${esc(w.symbol)}</b>${w.primary ? ` <span class="chip">${esc(T('wl_main'))}</span>` : ''}${w.status === 'PAUSED' ? ` <span class="chip">${esc(T('wl_paused'))}</span>` : ''}${w.monitorMode === 'HIGH_VOLATILITY' ? ` <span class="chip unverified" title="${esc(T('mm_hv'))}">⚡</span>` : ''}${w.analyzing ? ' <span class="spinner"></span>' : ''}</div>

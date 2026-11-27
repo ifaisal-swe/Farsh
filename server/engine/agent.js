@@ -1485,7 +1485,7 @@ class TradingAgent extends EventEmitter {
     if (this.book.shuttingDown) return 'Server is shutting down';
     if (!this.session) return 'No active session';
     if (this.book.monitoringPaused && !manual) return 'Market monitoring is paused (system-wide)';
-    if (this.planned() && !manual) return `${this.symbol} is managed by the portfolio plan`;
+    if (this.aiBlocked(false) && !manual) return `${this.symbol}: ${this.aiBlocked(false)}`;
     if (this.monitoringPaused && !manual) return `Monitoring paused for ${this.symbol}`;
     if (!manual && this.book.aiBackoff && this.now() < this.book.aiBackoff.until) return `AI provider recovering from errors — next automatic attempt at ${etTimeStr(this.book.aiBackoff.until, false)} ET`;
     if (this.aiState !== 'RUNNING' && !manual) return `AI is ${this.aiState}`;
@@ -1860,7 +1860,8 @@ class TradingAgent extends EventEmitter {
     const autonomy = this.cfg().ai.autonomy;
     const isEntry = p.action === 'BUY' || p.isLimitEntry;
     const isExit = EXIT_ACTIONS.includes(p.action);
-    if (this.planned()) return this.finishDecision(decision, 'NO_ACTION', { note: 'the plan manages this symbol' });
+    const blocked = this.aiBlocked(isEntry);
+    if (blocked) return this.finishDecision(decision, 'NO_ACTION', { note: blocked });
     if (!isEntry && !isExit) {
       if (p.action === 'HOLD' && pos && (p.stopLoss != null || p.takeProfit != null || p.trailingStopPct != null)) return this.applyAdjust(p, decision);
       this.activity.info('AI', `No trade: ${p.action.replace(/_/g, ' ')}${p.nextAction ? ` — next: ${p.nextAction}` : ''}`, { source: p.decider });
@@ -1913,7 +1914,17 @@ class TradingAgent extends EventEmitter {
   }
 
   // ------------------------------------------------------------------ portfolio plan
-  planned() { return !!((this.book.plan && this.book.plan.manages(this.symbol)) || (this.book.invest && this.book.invest.manages(this.symbol)) || (this.book.commands && this.book.commands.manages(this.symbol))); }
+  /**
+   * Whether the AI must stay out of this symbol. It trades every holding, with two exceptions: while the person's
+   * own order in it is still working, and new buys of a symbol the plan or an investment goal holds (its share is theirs).
+   */
+  aiBlocked(entry) {
+    const b = this.book;
+    if (b.commands && b.commands.busy && b.commands.busy(this.symbol)) return 'your order is working on this symbol';
+    if (entry && ((b.plan && b.plan.manages(this.symbol)) || (b.invest && b.invest.manages(this.symbol)))) return 'the plan or an investment goal holds this symbol';
+    return null;
+  }
+
 
   /** The checks before a plan purchase. The plan's own percentages replace the per-position size and stop rules. */
   planCheck({ own = false } = {}) {
@@ -2012,9 +2023,10 @@ class TradingAgent extends EventEmitter {
   }
 
   executeEntry(p, decision, { skipFreshness = false, pendingOrder = null } = {}) {
-    if (this.planned()) { // one decision-maker per symbol
-      if (pendingOrder) { this.orders.cancelPending(pendingOrder.id, 'the plan manages this symbol'); this.updateOrderStatus(pendingOrder.id, { status: 'CANCELLED', rejectReason: 'the plan manages this symbol' }); this.persist(); return null; }
-      return this.finishDecision(decision, 'NO_ACTION', { note: 'the plan manages this symbol' });
+    const blocked = this.aiBlocked(true);
+    if (blocked) { // one buyer per symbol
+      if (pendingOrder) { this.orders.cancelPending(pendingOrder.id, blocked); this.updateOrderStatus(pendingOrder.id, { status: 'CANCELLED', rejectReason: blocked }); this.persist(); return null; }
+      return this.finishDecision(decision, 'NO_ACTION', { note: blocked });
     }
     if (this.book.shuttingDown) return this.finishDecision(decision, 'SHUTDOWN');
     if (!this.storageReady()) {
@@ -2113,7 +2125,8 @@ class TradingAgent extends EventEmitter {
   }
 
   executeExitFromProposal(p, decision) {
-    if (this.planned()) return this.finishDecision(decision, 'NO_ACTION', { note: 'the plan manages this symbol' });
+    const blocked = this.aiBlocked(false);
+    if (blocked) return this.finishDecision(decision, 'NO_ACTION', { note: blocked });
     const fraction = p.action === 'REDUCE_POSITION' ? p.reduceFraction : (p.action === 'SELL' && p.reduceFraction ? p.reduceFraction : 1);
     const r = this.executeExit({ fraction, kind: 'AI', reason: p.rationale || `AI ${p.action}`, decision, proposal: p });
     if (!r || !r.ok) return this.finishDecision(decision, r && r.deferred ? 'EXIT_BLOCKED' : 'EXECUTION_FAILED', { execution: r });
@@ -2187,9 +2200,48 @@ class TradingAgent extends EventEmitter {
     return { ok: true, fill: { ...fill, fillId: f.id }, partial: fill.status === 'PARTIAL', realized: applied.realized, risk: chk };
   }
 
+  /** Checks a new stop and target against the live price: the stop below the bid, the target above the ask. */
+  protectionChecks(stopLoss, takeProfit) {
+    const q = this.market && this.market.quote();
+    const bad = [];
+    if (stopLoss != null && !(Number.isFinite(stopLoss) && stopLoss > 0 && q && stopLoss < q.bid)) bad.push('STOP');
+    if (takeProfit != null && !(Number.isFinite(takeProfit) && q && takeProfit > q.ask)) bad.push('TARGET');
+    return bad;
+  }
+
+  /** Protection for a position that has none yet (bought by the person or by the plan). */
+  addProtection({ stopLoss = null, takeProfit = null }, source) {
+    const pos = this.portfolio && this.portfolio.position(this.symbol);
+    this.orders.setProtection(this.symbol, { stopLoss, takeProfit, highWater: this.market.mark() || pos.avgPrice, entryPrice: pos.avgPrice });
+    this.activity.ok('EXECUTION', `Protective orders set (${source}): stop ${fmt(stopLoss, 4)}, take-profit ${fmt(takeProfit, 4)}`, { source: 'paper engine' });
+    this.persist();
+  }
+
+  /** The person's own stop and target. A new one may be set freely; an existing stop may only rise, like the AI's. */
+  setOwnProtection({ stopLoss = null, takeProfit = null }) {
+    const pos = this.portfolio && this.portfolio.position(this.symbol);
+    if (!pos) throw Object.assign(new Error('No open position'), { code: 'NO_POSITION' });
+    if (stopLoss == null && takeProfit == null) throw Object.assign(new Error('Enter a stop or a target'), { code: 'EMPTY' });
+    const bad = this.protectionChecks(stopLoss, takeProfit);
+    if (bad.length) throw Object.assign(new Error(bad.includes('STOP') ? 'The stop must be below the current price' : 'The target must be above the current price'), { code: bad[0] });
+    const prot = this.orders.getProtection(this.symbol);
+    if (!prot) return this.addProtection({ stopLoss, takeProfit }, 'your order');
+    const cur = this.orders.effectiveStop(this.symbol);
+    if (stopLoss != null && cur != null && stopLoss < cur) throw Object.assign(new Error('The stop can only move up'), { code: 'STOP_DOWN' });
+    if (stopLoss != null && prot.stopLoss == null) prot.stopLoss = prot.initialStop = stopLoss;
+    this.orders.adjustProtection(this.symbol, { stopLoss, takeProfit });
+    this.activity.ok('EXECUTION', `Protective orders updated (your order): stop ${fmt(this.orders.effectiveStop(this.symbol), 4)}, take-profit ${fmt(prot.takeProfit, 4)}`, { source: 'paper engine' });
+    this.persist();
+  }
+
   applyAdjust(p, decision) {
     const prot = this.orders.getProtection(this.symbol);
-    if (!prot) return this.finishDecision(decision, 'NO_ACTION', { note: 'no protective orders to adjust' });
+    if (!prot) {
+      // a position bought without protection takes the AI's stop and target once both are valid
+      if (p.stopLoss == null || p.takeProfit == null || this.protectionChecks(p.stopLoss, p.takeProfit).length) return this.finishDecision(decision, 'NO_ACTION', { note: 'no valid stop and target to set' });
+      this.addProtection({ stopLoss: p.stopLoss, takeProfit: p.takeProfit }, 'AI');
+      return this.finishDecision(decision, 'ORDERS_ADJUSTED');
+    }
     const res = this.risk.evaluateAdjust({ current: { stopLoss: this.orders.effectiveStop(this.symbol), takeProfit: prot.takeProfit }, proposed: { stopLoss: p.stopLoss, takeProfit: p.takeProfit, trailingStopPct: p.trailingStopPct }, quote: this.market.quote() });
     for (const c of res.checks) if (!c.pass) this.activity.warn(`Adjustment rejected: ${c.detail}`, { source: 'risk engine' });
     if (!res.approved) return this.finishDecision(decision, 'NO_ACTION', { risk: res });

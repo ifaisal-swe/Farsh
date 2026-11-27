@@ -39,6 +39,9 @@ class CommandService {
   }
   position(symbol) { return this.desk.book.portfolio ? this.desk.book.portfolio.position(symbol) : null; }
   /** Automation leaves a symbol alone while a purchase waits for it or the person's purchase is held. */
+  /** The person's own order in this symbol is still working (the AI waits until it ends). */
+  busy(symbol) { return this.mine() && this.state.orders.some((x) => x.symbol === symbol && this.live(x)); }
+
   manages(symbol) { return this.mine() && (this.state.owned.includes(symbol) || this.state.orders.some((x) => x.symbol === symbol && x.side === 'BUY' && this.live(x))); }
   reserved(except = null) { return this.mine() ? this.state.orders.filter((x) => x.side === 'BUY' && this.live(x) && x !== except).reduce((a, x) => a + (x.hold || 0), 0) : 0; }
   close(x, status, end) { x.status = status; x.end = end; x.closedAt = this.now(); x.wait = null; x.hold = 0; }

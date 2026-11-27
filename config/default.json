@@ -66,6 +66,8 @@
     "maxOutputTokens": 12000,
     "requestTimeoutSec": 180,
     "autonomy": "FULL",
+    "pickMarkets": false,
+    "pickMarketsCount": 5,
     "_comment": "usageMode = ECONOMY | BALANCED | DETAILED (how often the AI may be asked; risk protections are identical). mode = DEEPSEEK | GEMINI | AUTO | DUAL (which provider analyses; see server/ai/providerManager.js). provider is the pre-mode setting, kept only to migrate older configurations.",
     "usageMode": "BALANCED",
     "mode": "AUTO",

@@ -114,6 +114,7 @@ class TerminalService extends EventEmitter {
         symbol: s, qty: pos.qty, avgPrice: pos.avgPrice, mark, markTs: lt ? lt.ts : null, markKind: lt ? 'TRADE' : (mark ? 'QUOTE' : null), markStale: !mark || !fresh,
         marketValue: mv, unrealizedPnl: unreal, unrealizedPct: unreal != null && pos.avgPrice > 0 ? (unreal / (pos.qty * pos.avgPrice)) * 100 : null,
         stop: this.book.orders.effectiveStop(s), takeProfit: prot ? prot.takeProfit : null,
+        ai: this.desk.constructor.decisionOf(a),
       };
     });
   }
@@ -297,7 +298,7 @@ class TerminalService extends EventEmitter {
   watchlist() {
     return this.desk.watchlist().map((w) => ({
       symbol: w.symbol, status: w.status, price: w.price, changePct: w.changePct, trend: trendCode(w.trend), aiAction: w.aiAction, positionQty: w.positionQty,
-      unrealizedPnl: w.unrealizedPnl, dataTs: w.priceTs, priceKind: w.priceKind, provider: w.provider, fresh: w.fresh, dataLabel: w.dataLabel, primary: w.primary, name: w.name,
+      unrealizedPnl: w.unrealizedPnl, dataTs: w.priceTs, priceKind: w.priceKind, provider: w.provider, fresh: w.fresh, dataLabel: w.dataLabel, primary: w.primary, name: w.name, picked: !!w.picked,
     }));
   }
 

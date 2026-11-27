@@ -52,7 +52,7 @@
     { p: 'market.feed', t: 'select', o: ['iex', 'sip', 'delayed_sip'] }, { p: 'market.adjustment', t: 'select', o: ['split', 'raw', 'all'] }, { p: 'market.quoteSizeUnit', t: 'select', o: ['shares', 'round_lots'] },
     { p: 'market.maxQuoteAgeMs', t: 'number' }, { p: 'market.maxExchangeLagMs', t: 'number' }, { p: 'market.historyBars', t: 'number' }, { p: 'news.breakingCooldownSec', t: 'number' },
     { p: 'retention.activityDays', t: 'number' }, { p: 'retention.snapshotsDays', t: 'number' },
-    { p: 'market.maxSymbols', t: 'number' }, { p: 'market.overnight.enabled', t: 'bool' }, { p: 'market.overnight.provider', t: 'select', o: ['auto', 'alpaca', 'tiingo', 'none'] },
+    { p: 'market.overnight.enabled', t: 'bool' }, { p: 'market.overnight.provider', t: 'select', o: ['auto', 'alpaca', 'tiingo', 'none'] },
     { p: 'market.overnight.alpacaFeed', t: 'select', o: ['overnight', 'boats'] }, { p: 'market.overnight.pollSec', t: 'number' }, { p: 'tiingo.enabled', t: 'bool' }, { p: 'tiingo.pollSec', t: 'number' },
   ];
   const AM = 'adaptiveMonitoring';

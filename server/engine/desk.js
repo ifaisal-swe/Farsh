@@ -80,7 +80,8 @@ class Desk extends EventEmitter {
   }
 
   get dataMode() { return this.primary.dataMode || 'LIVE'; }
-  maxSymbols() { return Math.max(1, Number(this.config.get().market.maxSymbols) || 10); }
+  /** The watchlist has no cap: the person follows as many symbols as they want. */
+  maxSymbols() { return null; }
 
   syncPrimary() {
     // a follower that became the main symbol (or a duplicate) is retired
@@ -195,7 +196,6 @@ class Desk extends EventEmitter {
       await this.primary.loadMarket(symbol, this.dataMode);
       this.syncPrimary();
     } else {
-      if (this.all().length >= this.maxSymbols()) throw new Error(`Watchlist limit reached (${this.maxSymbols()} symbols; change market.maxSymbols in Settings)`);
       const v = await this.primary.verifySymbol(symbol, { demo: this.dataMode === 'DEMO' });
       if (!v.ok) throw new Error(v.error);
       try { this.store.upsertWatch(symbol, this.dataMode, 'ACTIVE', this.now()); } catch { /* ignore */ }
@@ -330,7 +330,7 @@ class Desk extends EventEmitter {
         aiAction: pd ? pd.action : null, aiAt: a.lastDecision ? a.lastDecision.ts : null, aiStatus: a.lastDecision ? a.lastDecision.status : null,
         positionQty: pos ? pos.qty : 0, avgPrice: pos ? pos.avgPrice : null, unrealizedPnl: pos && mark ? pos.qty * (mark - pos.avgPrice) - (pos.buyFees || 0) : null,
         dataCode: ds ? ds.code : null, dataLabel: ds ? ds.label : null, tone: ds ? ds.tone : null, fresh: ds ? !!ds.tradable : false,
-        provider: md ? (md.feed.name || md.feed.label) : null, analyzing: !!a.aiProgress, monitorMode: this.monitor.enabled() ? this.monitor.symbolMode(a.symbol) : null,
+        provider: md ? (md.feed.name || md.feed.label) : null, analyzing: !!a.aiProgress, picked: !!(this.book.picker && this.book.picker.has(a.symbol)), monitorMode: this.monitor.enabled() ? this.monitor.symbolMode(a.symbol) : null,
       };
     });
   }
@@ -403,8 +403,16 @@ class Desk extends EventEmitter {
       const pos = p.position(s);
       const a = this.agent(s);
       const mark = a && a.market ? a.market.mark() : null;
-      return { symbol: s, qty: pos.qty, avgPrice: pos.avgPrice, mark, markStale: !mark || !(a.market && !a.market.freshness(this.now()).stale), stop: this.book.orders.effectiveStop(s), takeProfit: (this.book.orders.getProtection(s) || {}).takeProfit || null, unrealizedPnl: mark ? pos.qty * (mark - pos.avgPrice) - (pos.buyFees || 0) : null };
+      return { symbol: s, qty: pos.qty, avgPrice: pos.avgPrice, mark, markStale: !mark || !(a.market && !a.market.freshness(this.now()).stale), stop: this.book.orders.effectiveStop(s), takeProfit: (this.book.orders.getProtection(s) || {}).takeProfit || null, unrealizedPnl: mark ? pos.qty * (mark - pos.avgPrice) - (pos.buyFees || 0) : null, ai: Desk.decisionOf(a), managed: !!(a && a.aiBlocked(true)) };
     });
+  }
+
+  /** The AI's latest decision on a symbol, with its prices and reason. */
+  static decisionOf(a) {
+    const ld = a && a.lastDecision;
+    const pd = ld && ld.proposal;
+    if (!pd) return null;
+    return { action: pd.action, at: ld.ts, status: ld.status || null, rationale: pd.rationale || null, confidence: pd.confidence ?? null, stopLoss: pd.stopLoss ?? null, takeProfit: pd.takeProfit ?? null };
   }
 }
 

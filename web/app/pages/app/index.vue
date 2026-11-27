@@ -57,6 +57,24 @@ async function analyzeAll() {
 const start = () => run('session/start', { symbol: s.value.primarySymbol, initialCapital: s.value.tradingSession.initialCapital, targetCapital: s.value.tradingSession.targetCapital, demo: s.value.tradingSession.dataMode === 'DEMO' })
 async function close() { const x = confirming.value; confirming.value = ''; await run('position/close', { symbol: x }) }
 function trade(x: string, how: string) { symbol.value = x; side.value = how; nextTick(() => document.getElementById('trade')?.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })) }
+// the stop and target of one holding: the AI's latest prices are offered when none is set
+const protecting = ref('')
+const prot = reactive({ stop: '', target: '' })
+function openProtect(p: any) {
+  protecting.value = protecting.value === p.symbol ? '' : p.symbol
+  prot.stop = String(p.stop ?? p.ai?.stopLoss ?? '')
+  prot.target = String(p.takeProfit ?? p.ai?.takeProfit ?? '')
+}
+async function saveProtect(p: any) {
+  const n = (v: string) => (v.trim() ? Number(v) : null)
+  const stop = n(prot.stop); const target = n(prot.target)
+  if (stop === null && target === null) { error.value = L('اكتب سعر الوقف أو الهدف', 'Write a stop or a target price'); return }
+  if ((stop !== null && !(stop > 0)) || (target !== null && !(target > 0))) { error.value = L('أدخل سعرًا صحيحًا', 'Enter a valid price'); return }
+  if (p.mark && ((stop !== null && stop >= p.mark) || (target !== null && target <= p.mark))) { error.value = L('يجب أن يكون الوقف أقل من السعر الحالي والهدف أعلى منه', 'The stop must be below the current price and the target above it'); return }
+  if (await run('position/protect', { symbol: p.symbol, stopLoss: stop, takeProfit: target })) protecting.value = ''
+}
+const EXIT = ['SELL', 'EXIT_POSITION', 'REDUCE_POSITION']
+const aiTone = (a: string) => (a === 'BUY' ? 'up' : EXIT.includes(a) ? 'down' : '')
 const timers: any[] = []
 onMounted(() => { loadSharia(); loadCurve(); loadCalls(); timers.push(setInterval(loadCalls, 30000), setInterval(loadSharia, 30000), setInterval(loadCurve, 30000), setInterval(loadLines, 60000)) })
 onBeforeUnmount(() => timers.forEach(clearInterval))
@@ -122,15 +140,23 @@ const time = (ts: number) => new Date(ts).toLocaleTimeString('en-GB')
   <div class="cols">
     <div>
       <UiCard>
-        <div class="row"><h2>{{ L('ما في محفظتك', 'In your wallet') }}</h2><span class="grow" /><span v-if="limit" class="small muted">{{ L('حد المراكز للتداول الآلي', 'Position limit for automation') }} <span class="num">{{ limit }}</span> · {{ L('المفتوح', 'open') }} <span class="num">{{ held.length }}</span> <NuxtLink to="/app/settings" class="underline">{{ L('غيّر الحد', 'Change limit') }}</NuxtLink></span></div>
+        <div class="row"><h2>{{ L('ما في محفظتك', 'In your wallet') }}</h2><span class="grow" /><span v-if="limit" class="small muted">{{ L('حد المراكز للتداول الآلي', 'Position limit for automation') }} <span class="num">{{ limit }}</span> · {{ L('المفتوح', 'open') }} <span class="num">{{ held.length }}</span> <NuxtLink to="/app/settings#positions" class="underline">{{ L('غيّر الحد', 'Change limit') }}</NuxtLink></span></div>
         <div class="mb-5 flex h-4 gap-0.5 overflow-hidden rounded-full bg-secondary" aria-hidden="true"><span v-for="p in held" :key="p.symbol" class="transition-[width] duration-500" :style="{ width: pc(p.share), background: p.color }" /></div>
         <ul class="!list-none !p-0">
           <li v-for="p in held" :key="p.symbol" class="flex flex-wrap items-center gap-x-4 gap-y-2 border-b py-4">
             <button type="button" class="flex min-w-44 flex-1 items-center gap-3 rounded-xl text-start" @click="symbol = p.symbol"><SymbolIcon :symbol="p.symbol" class="!size-11" /><span><b class="flex items-center gap-2 text-base"><i class="size-2.5 rounded-full" :style="{ background: p.color }" /><bdi>{{ p.symbol }}</bdi></b><span class="small muted num">{{ p.qty }} × {{ money(p.avgPrice) }}</span></span></button>
             <span class="min-w-28"><b class="block"><span class="num">{{ money(p.value) }}</span></b><span class="small muted block"><span class="num">{{ pc(p.share) }}</span></span></span>
             <span class="min-w-24"><b class="block"><span class="num" :class="tone(p.unrealizedPnl)">{{ signed(p.unrealizedPnl) }}</span></b><span class="small num" :class="tone(p.pct)">{{ p.pct === null ? '—' : `${num(p.pct)}%` }}</span></span>
-            <span class="small min-w-28 max-sm:hidden"><span class="muted">{{ t('stopLoss') }}</span> <span class="num">{{ num(p.stop) }}</span><br><span class="muted">{{ t('target') }}</span> <span class="num">{{ num(p.takeProfit) }}</span></span>
+            <span class="small min-w-28"><span class="muted">{{ t('stopLoss') }}</span> <span class="num">{{ p.stop ? num(p.stop) : L('لم يُحدد', 'Not set') }}</span><br><span class="muted">{{ t('target') }}</span> <span class="num">{{ p.takeProfit ? num(p.takeProfit) : L('لم يُحدد', 'Not set') }}</span><br><button type="button" class="underline" @click="openProtect(p)">{{ p.stop || p.takeProfit ? L('عدّل', 'Change') : L('حدّد الوقف والهدف', 'Set stop and target') }}</button></span>
             <span class="flex gap-2"><UiButton size="sm" @click="trade(p.symbol, 'BUY')">{{ L('زِد', 'Buy more') }}</UiButton><UiButton size="sm" variant="destructive" :disabled="busy" @click="confirming = p.symbol">{{ t('close') }}</UiButton></span>
+            <p class="small !m-0 w-full rounded-2xl bg-secondary px-4 py-2.5"><span class="muted">{{ L('قرار الذكاء الاصطناعي', 'AI decision') }}:</span> <template v-if="p.ai"><b :class="aiTone(p.ai.action)">{{ plain.action(p.ai.action, ar) }}</b> <span class="muted">· {{ L('قبل', '') }} {{ age(p.ai.at) }} {{ L('', 'ago') }}<template v-if="p.ai.confidence != null"> · {{ L('الثقة', 'confidence') }} <span class="num">{{ Math.round(p.ai.confidence <= 1 ? p.ai.confidence * 100 : p.ai.confidence) }}%</span></template></span><bdi v-if="p.ai.rationale" dir="auto" class="mt-1 block">{{ p.ai.rationale }}</bdi></template><span v-else class="muted">{{ L('لم يحلل هذا السهم بعد.', 'It has not analyzed this stock yet.') }}</span><span v-if="p.managed" class="muted mt-1 block">{{ L('خطتك أو أمرك يملك هذا السهم: قد يبيعه الذكاء الاصطناعي أو يحدد وقفه وهدفه، لكنه لا يشتري منه المزيد.', 'Your plan or order holds this stock: the AI may sell it or set its stop and target, but will not buy more.') }}</span></p>
+            <form v-if="protecting === p.symbol" class="flex w-full flex-wrap items-end gap-3" @submit.prevent="saveProtect(p)">
+              <label class="grid gap-1.5 text-sm font-medium">{{ t('stopLoss') }}<UiInput v-model="prot.stop" type="number" step="any" min="0" dir="ltr" class="w-32" :placeholder="L('أقل من', 'below') + ' ' + num(p.mark)" /></label>
+              <label class="grid gap-1.5 text-sm font-medium">{{ t('target') }}<UiInput v-model="prot.target" type="number" step="any" min="0" dir="ltr" class="w-32" :placeholder="L('أعلى من', 'above') + ' ' + num(p.mark)" /></label>
+              <UiButton type="submit" variant="default" :disabled="busy">{{ t('save') }}</UiButton><UiButton type="button" variant="ghost" @click="protecting = ''">{{ t('cancel') }}</UiButton>
+              <span v-if="p.ai && (p.ai.stopLoss || p.ai.takeProfit)" class="small muted w-full">{{ L('القيم المقترحة من آخر تحليل للذكاء الاصطناعي.', 'The values suggested by the AI\'s latest analysis.') }}</span>
+              <span v-if="p.stop" class="small muted w-full">{{ L('يمكن رفع الوقف فقط، لا خفضه.', 'The stop can only move up, not down.') }}</span>
+            </form>
           </li>
           <li class="flex items-center gap-4 pt-4"><span class="inline-flex size-11 items-center justify-center rounded-full bg-secondary font-display font-semibold text-secondary-foreground" aria-hidden="true">$</span><b class="flex-1 text-base">{{ t('cash') }}</b><span class="text-end"><b class="block"><span class="num">{{ money(s.portfolio?.cash) }}</span></b><span class="small muted num">{{ pc(cashShare) }}</span></span></li>
         </ul>
@@ -141,7 +167,7 @@ const time = (ts: number) => new Date(ts).toLocaleTimeString('en-GB')
   </div>
 
   <section class="mt-4 mb-4" aria-labelledby="markets">
-    <div class="mb-4 flex flex-wrap items-center gap-3"><h2 id="markets" class="!m-0 !text-2xl">{{ L('أسواقك', 'Your markets') }} <span class="num muted text-base">{{ (s.watchlist || []).length }} / {{ s.maxSymbols }}</span></h2><UiBadge v-if="demo" tone="warn">{{ L('أسعار تجريبية', 'Demo prices') }}</UiBadge><span class="grow" />
+    <div class="mb-4 flex flex-wrap items-center gap-3"><h2 id="markets" class="!m-0 !text-2xl">{{ L('أسواقك', 'Your markets') }} <span class="num muted text-base">{{ (s.watchlist || []).length }}</span></h2><UiBadge v-if="demo" tone="warn">{{ L('أسعار تجريبية', 'Demo prices') }}</UiBadge><span class="grow" />
       <form class="flex gap-2 max-sm:w-full" @submit.prevent="add"><UiInput v-model="newSym" dir="ltr" maxlength="60" class="max-sm:flex-1 sm:w-56" placeholder="AAPL, TSLA, BTC/USD" :aria-label="L('رموز تضاف، بينها فاصلة', 'Symbols to add, separated by commas')" /><UiButton type="submit" variant="default" :disabled="busy || !newSym.trim()"><Plus />{{ t('add') }}</UiButton></form></div>
     <ul class="grid !list-none gap-4 !p-0 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       <li v-for="w in s.watchlist || []" :key="w.symbol" class="flex min-w-0 flex-col rounded-3xl border bg-card p-5" :class="w.symbol === symbol && 'border-primary ring-2 ring-primary'">
@@ -149,7 +175,7 @@ const time = (ts: number) => new Date(ts).toLocaleTimeString('en-GB')
           <span class="flex items-center gap-3"><SymbolIcon :symbol="w.symbol" class="!size-11" /><span class="min-w-0 flex-1"><b class="block text-lg leading-tight"><bdi>{{ w.symbol }}</bdi></b><span class="small" :class="w.fresh ? 'muted' : 'down'">{{ t('updated') }} {{ age(w.priceTs) }}</span></span><span class="text-end"><b class="block rounded-md font-display text-lg leading-tight"><span class="num" :class="flash[w.symbol]">{{ money(w.price) }}</span></b><span class="num small" :class="tone(w.changePct)">{{ num(w.changePct) }}%</span></span></span>
           <SparkLine :points="lines[w.symbol] ? [...lines[w.symbol]!, w.price] : []" area class="my-4 h-16 w-full" :class="tone(w.changePct) || 'muted'" />
         </button>
-        <p class="!mb-4 flex flex-wrap items-center gap-2"><UiBadge :tone="sharia[w.symbol]?.status || 'UNKNOWN'">{{ t(sharia[w.symbol]?.status || 'UNKNOWN') }}</UiBadge><UiBadge v-if="w.symbol.includes('/')"><bdi>24/7</bdi></UiBadge><UiBadge v-else-if="market">{{ market.open ? L('يغلق بعد', 'Closes in') : L('يفتح بعد', 'Opens in') }}&nbsp;<bdi>{{ short(market.left) }}</bdi></UiBadge><UiBadge v-if="w.status === 'PAUSED'">{{ L('المراقبة متوقفة', 'Monitoring paused') }}</UiBadge><UiBadge v-else>{{ w.analyzing ? L('يحلل الآن', 'Analyzing') : w.aiAction ? `${t('decision')}: ${plain.action(w.aiAction, ar)}` : L('لا قرار بعد', 'No decision yet') }}</UiBadge><UiBadge v-if="w.positionQty">{{ L('تملك', 'Held') }}&nbsp;<bdi>{{ w.positionQty }}</bdi></UiBadge></p>
+        <p class="!mb-4 flex flex-wrap items-center gap-2"><UiBadge :tone="sharia[w.symbol]?.status || 'UNKNOWN'">{{ t(sharia[w.symbol]?.status || 'UNKNOWN') }}</UiBadge><UiBadge v-if="w.picked"><Sparkles class="size-3.5" aria-hidden="true" />&nbsp;{{ L('اختاره الذكاء الاصطناعي', 'Picked by the AI') }}</UiBadge><UiBadge v-if="w.symbol.includes('/')"><bdi>24/7</bdi></UiBadge><UiBadge v-else-if="market">{{ market.open ? L('يغلق بعد', 'Closes in') : L('يفتح بعد', 'Opens in') }}&nbsp;<bdi>{{ short(market.left) }}</bdi></UiBadge><UiBadge v-if="w.status === 'PAUSED'">{{ L('المراقبة متوقفة', 'Monitoring paused') }}</UiBadge><UiBadge v-else>{{ w.analyzing ? L('يحلل الآن', 'Analyzing') : w.aiAction ? `${t('decision')}: ${plain.action(w.aiAction, ar)}` : L('لا قرار بعد', 'No decision yet') }}</UiBadge><UiBadge v-if="w.positionQty">{{ L('تملك', 'Held') }}&nbsp;<bdi>{{ w.positionQty }}</bdi></UiBadge></p>
         <div class="mt-auto flex items-center gap-2"><UiButton variant="default" class="flex-1" @click="trade(w.symbol, 'BUY')">{{ L('شراء', 'Buy') }}</UiButton><UiButton class="flex-1" :disabled="!w.positionQty" @click="trade(w.symbol, 'SELL')">{{ L('بيع', 'Sell') }}</UiButton><UiButton size="icon" variant="ghost" :disabled="busy" :aria-label="`${w.status === 'PAUSED' ? L('استأنف مراقبة', 'Resume') : L('أوقف مراقبة', 'Pause')} ${w.symbol}`" @click="run(w.status === 'PAUSED' ? 'watchlist/resume' : 'watchlist/pause', { symbol: w.symbol })"><component :is="w.status === 'PAUSED' ? Play : Pause" /></UiButton><UiButton v-if="w.symbol !== s.primarySymbol && !w.positionQty" size="icon" variant="ghost" :aria-label="`${L('إزالة', 'Remove')} ${w.symbol}`" :disabled="busy" @click="removeSym(w.symbol)"><X /></UiButton></div>
       </li>
     </ul>

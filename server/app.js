@@ -29,6 +29,7 @@ const { OpportunityService, parseEarningsDate } = require('./opportunity/service
 const { HelperService } = require('./helper/service');
 const { CompanyResearch } = require('./helper/research');
 const { StrengthService } = require('./analysis/strength');
+const { MarketPicker } = require('./picker/service');
 const { TeamService } = require('./team/service');
 const { sendWebPage, webAssets, ASSETS } = require('./webpage');
 const { ShariaService } = require('./sharia/screener');
@@ -248,7 +249,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   app.post('/api/auth/logout-all', (req, res) => { const n = auth.enabled() ? auth.logoutAll() : 0; res.clearCookie(COOKIE, { path: '/' }); activity.warn(`All dashboard sessions signed out (${n})`, { source: 'login' }); res.json({ ok: true, sessions: n }); });
 
   // a demo can practise, and nothing else: no keys, no outside services, only invented prices
-  const DEMO_ACTIONS = /^\/api\/(watchlist\/(add|remove|pause|resume)|invest(\/(suggest|update|cancel|goal|goal\/remove))?|commands(\/(read|change|cancel))?|plan(\/(toggle|answer))?|symbol\/(verify|change)|session\/(start|reset)|ai\/(pause|resume|stop|analyze)|position\/(close|reduce)|risk\/profile|capital|proposals\/[\w-]+\/\w+|opportunities\/scan|helper(\/clear)?|settings)$/;
+  const DEMO_ACTIONS = /^\/api\/(watchlist\/(add|remove|pause|resume)|invest(\/(suggest|update|cancel|goal|goal\/remove))?|commands(\/(read|change|cancel))?|plan(\/(toggle|answer))?|symbol\/(verify|change)|session\/(start|reset)|ai\/(pause|resume|stop|analyze)|position\/(close|reduce|protect)|risk\/profile|capital|proposals\/[\w-]+\/\w+|opportunities\/scan|helper(\/clear)?|settings)$/;
   if (demoOnly) app.use((req, res, next) => {
     if (['GET', 'HEAD'].includes(req.method)) return next();
     const b = req.body || {};
@@ -333,6 +334,10 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   desk.book.riskFactor = (symbol) => { if (isCrypto(symbol)) return 1; const s = strength.of(symbol); return strength.market.factor * (s && s.above200 === false ? 0.5 : 1); };
   const strengthTimer = setInterval(() => { if (liveStock()) strength.refresh().catch(() => {}); }, 60000);
   strengthTimer.unref();
+  const picker = new MarketPicker({ desk, strength, sharia, store, getConfig: () => config.get(), activity, isCrypto });
+  desk.book.picker = picker;
+  const pickerTimer = setInterval(() => picker.tick().catch((e) => activity.warn(`AI market picks could not run: ${e.message}`, { source: 'picker' })), 300000);
+  pickerTimer.unref();
   opportunities = new OpportunityService({ strength, crowd, store, desk, lab, investors, sharia, getBars: techBars, technical, catalysts, earningsDate, isCrypto, activity });
   const research = new CompanyResearch({ isCrypto, gather: (s) => (publicData ? require('./lab/facts').gather(s, { fetchImpl }) : null), saved: (s) => store.listNews(s, 20), feed: (s) => { const p = (desk.stockAgent() || {}).provider; return p && p.fetchNews ? p.fetchNews(s, { limit: 15, start: new Date(Date.now() - 14 * 86400000).toISOString() }) : null; } });
   const team = new TeamService({
@@ -424,6 +429,12 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
     return { result: r, symbol: a.symbol };
   }));
   app.post('/api/position/close', wrap(async (req) => { const a = target(req); await a.closePosition(); return desk.publicState(a.symbol); }));
+  app.post('/api/position/protect', wrap((req) => {
+    const a = target(req);
+    const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
+    a.setOwnProtection({ stopLoss: num(req.body && req.body.stopLoss), takeProfit: num(req.body && req.body.takeProfit) });
+    return desk.publicState(a.symbol);
+  }));
   app.post('/api/position/reduce', wrap((req) => {
     if (!req.body || req.body.confirm !== true) throw new Error('Reducing a position requires explicit confirmation');
     const a = target(req);
@@ -459,7 +470,7 @@ function createTerminal({ dataDir, port, host, env = process.env, providerFactor
   const describeKeys = () => secrets.describe().map((c) => (gatewayToken && c.source === 'environment' ? { ...c, masked: '', source: 'platform' } : c));
   const platformKeys = !!gatewayToken && ['ALPACA_KEY_ID', 'OPENROUTER_API_KEY', 'DEEPSEEK_API_KEY', 'GEMINI_API_KEY', 'TIINGO_API_KEY'].some((n) => env[n]);
   // what the platform keys pay for (data, AI use and budgets) is not the customer's to change
-  const CUSTOMER_AI = ['autonomy'];
+  const CUSTOMER_AI = ['autonomy', 'pickMarkets', 'pickMarketsCount'];
   app.get('/api/connections', wrap(() => ({ prices: publicData || !!(secrets.get('ALPACA_KEY_ID') && secrets.get('ALPACA_SECRET_KEY')), assistant: !!(secrets.get('DEEPSEEK_API_KEY') || secrets.get('GEMINI_API_KEY')), rules: !!publicData, filings: !!secrets.get('SEC_USER_AGENT') })));
   app.get('/api/settings', wrap(() => ({ config: config.get(), schema: config.editableSchema(), credentials: describeKeys() })));
   app.post('/api/settings', wrap((req) => {
