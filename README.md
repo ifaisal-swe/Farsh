@@ -39,7 +39,20 @@
 | <img src="web/public/brand/icons/newspaper.svg" width="24" alt=""> **فريق تحليل** | وكلاء مبنيون على Mastra يقرؤون الأدلة، وتُحذف أي جملة فيها رقم غير موجود فيها |
 | <img src="web/public/brand/icons/target.svg" width="24" alt=""> **أهداف وخطة محفظة** | توزيع على أهداف تحددها، بتنفيذ آلي أو بموافقتك أو اقتراحات فقط |
 | <img src="web/public/brand/icons/bell.svg" width="24" alt=""> **رفيق تيليجرام** | تقارير وتنبيهات وأسئلة بالعربية. لا يضع أمرًا ولا يلغيه |
+| <img src="web/public/brand/icons/sparkles.svg" width="24" alt=""> **اربطها بمساعدك** | خادم MCP يربط فرصة بـ ChatGPT وClaude وGemini وGrok: اسأل عن محفظتك وقرارات الذكاء الاصطناعي بالعربية |
 | <img src="web/public/brand/icons/user-check.svg" width="24" alt=""> **منصة مستضافة بالدعوة** | لكل حساب محرك وقاعدة بيانات ومفتاح تشفير مستقل، ودخول بخطوتين |
+
+## اربطها بمساعدك (MCP)
+
+في المنصة المستضافة خادم MCP مبني على `@mastra/mcp` على العنوان <code dir="ltr">https://farsh.ifaisal.net/mcp</code>. يُقرأ النطاق من `APP_BASE_URL` في ملف `.env` (أو `DOMAIN` في <code dir="ltr">deploy/.env</code>)، ولا يُكتب في الشيفرة.
+
+| المساعد | طريقة الربط |
+|---|---|
+| **Claude** | الإعدادات ← Connectors ← Add custom connector، ثم ضع الرابط واضغط Connect. أو في Claude Code: <code dir="ltr">claude mcp add --transport http forsah https://farsh.ifaisal.net/mcp</code> |
+| **ChatGPT** | فعّل Developer mode في إعدادات Apps، ثم أنشئ تطبيقًا بالرابط واختر OAuth |
+| **Gemini** و**Grok** | أضف موصلًا مخصصًا بالرابط نفسه |
+
+بعد الضغط على Connect تفتح صفحة دخول فرصة، فتوافق على الربط. الخطوات ونص جاهز لكل مساعد في صفحة **الفريق** داخل المنصة، ومنها تلغي أي ربط. يستطيع المساعد أن يقرأ المحفظة ووقف الخسارة والهدف وأسواقك والفرص وقرارات الذكاء الاصطناعي وأسبابها والصفقات والأداء وساعات السوق، وأن يحفظ ملاحظات وتقارير الفريق. **لا توجد أداة تتداول أو تغيّر إعدادًا أو تقرأ مفتاحًا.** الربط متاح الآن لحساب المشغّل فقط.
 
 ## الضوابط
 
@@ -132,6 +145,7 @@ npm start
 - Saving goals and a portfolio plan that acts, asks first, or only suggests
 - Arabic Telegram companion that can never place, change or cancel an order
 - Invite-only hosted mode with a separate engine, database and key per account, and two-factor login
+- MCP server built with `@mastra/mcp` at `https://farsh.ifaisal.net/mcp`, so ChatGPT, Claude, Gemini and Grok can read your wallet, markets, opportunities and the AI's decisions (see [MCP server](#mcp-server-chatgpt-claude-gemini-grok))
 
 **Quick start:** Node.js 26+ and a PostgreSQL database (`DATABASE_URL`), then `npm install`, `npm run web:build`, `npm start`, and open `http://localhost:8787/app/`. Choose DEMO data to try it without keys. In hosted mode, `/demo` lets a visitor try it without an account: a separate temporary terminal with invented prices, no keys and no outside calls, erased within two hours (`SAAS_DEMO_MAX`, default 5 at once, `0` turns it off). Deploy on [any host](DEPLOYMENT.md) or [your own VPS](DEPLOYMENT-VPS.md). Run `npm test` for the tests.
 
@@ -305,7 +319,7 @@ The side panel's **مستوى المخاطرة / Risk level** selector sets ever
 | Loss streak -> cooldown | 2 -> 60 min | 3 -> 30 min | 4 -> 20 min | 5 -> 15 min |
 | Max entries per day | 4 | 8 | 12 | 20 |
 
-- The "max simultaneous positions" limit applies to all monitored symbols together, because they share one portfolio.
+- The "max simultaneous positions" limit applies to all monitored symbols together, because they share one portfolio It can also be set on its own from 1 to 30 in Settings (which makes the level Custom).
 - **Show advanced settings** reveals the individual values. Editing any of them marks the level **Custom (مخصص)**; editing them back to a preset's exact values selects that preset again.
 - **Per-trade risk is computed, not assumed:** entry (ask + slippage) minus stop, plus expected stop slippage, commissions, SEC fee and FINRA TAF, times the quantity. The engine records explicit `risk_per_trade` and `max_allocation` checks before any simulated order. Allocation (% of capital in the position) and risk (loss if the stop is hit) are separate limits.
 - **Switching levels while trading:** the new limits apply to new trades immediately; daily-loss and drawdown are re-checked at once. Existing positions are **never sold automatically**: an exposure review explains what exceeds the new limits (allocation, risk to stop, stop distance, daily loss, drawdown) and how many shares would have to be sold, and the user can confirm a reduction. Protective stops stay active and pending limit orders are re-validated before they can fill.
@@ -461,7 +475,7 @@ If the IPO has not opened yet, VERIFY reports that no trades exist yet.
 - **Alpaca quote sizes.** The stream docs say round lots; the REST docs say shares since 2025-11-03. The default is `shares`; switch to `round_lots` in Settings if fills look off.
 - **Halt channel.** Whether Alpaca's trading-status channel is available on the free IEX feed is undocumented. The terminal falls back to the Nasdaq halts RSS.
 - **Fee rates.** SEC and FINRA fee rates change over time; check the current values.
-- **Several symbols, one portfolio.** Up to `market.maxSymbols` symbols (default 10) are monitored at once over one shared WebSocket. They share one cash balance, and the risk level's "max simultaneous positions" applies to all of them together. AI analyses run one at a time, so two symbols can never spend the same cash.
+- **Several symbols, one portfolio.** There is no cap on how many symbols are monitored; they share one WebSocket. The free Alpaca IEX stream carries about 30 symbols, and every symbol adds AI analysis cost. They share one cash balance, and the risk level's "max simultaneous positions" applies to all of them together. AI analyses run one at a time, so two symbols can never spend the same cash.
 - **Language of stored text.** The server keeps its logs, exports and audit trail in English; the browser translates them through a message catalog (`public/js/i18n-messages.js`). A message the catalog does not know is shown in its original English, left to right. AI explanations are written in the language selected when the analysis ran, so older analyses keep their original language after you switch. News headlines are shown as published by the source; the AI's assessment of each item appears in the selected language.
 - **Doubling is not expected.** The +100% target is an objective, not a promise. Expect many WAIT / NO TRADE decisions, and losses are possible even in simulation.
 
@@ -715,6 +729,47 @@ Give the host at least 30 seconds between SIGTERM and SIGKILL.
 <summary><b>Hosted platform (closed registration)</b></summary>
 
 Run `npm run saas` (or set `SAAS_MODE=1`) with `SAAS_ADMIN_EMAIL`, `SAAS_ADMIN_PASSWORD` (12+ characters) and, in public, `APP_BASE_URL`. Optional: `SAAS_DATA_DIR`, `SAAS_MAX_TENANTS` (default 25). Landing page `/`, sign-in `/login`, operator page `/admin` (create invitation links and send them yourself; no e-mail is sent). Each account has its own engine, database, encryption key and API keys, in its own process that is restarted after a crash (`SAAS_TENANT_MEMORY_MB`, default 384, limits each one). Back up the whole data directory, including every `master.key`. Operators issue one-hour password-reset links; customers can change their password and turn on two-factor login (TOTP) in Settings. Not included: billing and automatic e-mail.
+
+</details>
+
+<details>
+<summary><b>MCP server (ChatGPT, Claude, Gemini, Grok)</b></summary>
+
+#### MCP server (ChatGPT, Claude, Gemini, Grok)
+
+In hosted mode (`npm run saas`) Forsah serves an MCP server built with `@mastra/mcp` ([`server/saas/mcp.js`](server/saas/mcp.js)) at `APP_BASE_URL/mcp`. The domain comes from the environment, never from the code:
+
+| Where | Variable |
+|---|---|
+| `.env` (any host) | `APP_BASE_URL=https://farsh.ifaisal.net` |
+| `deploy/.env` (VPS, Docker Compose) | `DOMAIN=farsh.ifaisal.net`, which becomes `APP_BASE_URL=https://${DOMAIN}` |
+
+**Connect an assistant** to `https://farsh.ifaisal.net/mcp`:
+
+| Assistant | How |
+|---|---|
+| Claude | Settings → Connectors → *Add custom connector*, paste the address, press *Connect*. Claude Code: `claude mcp add --transport http forsah https://farsh.ifaisal.net/mcp` |
+| ChatGPT | Turn on *Developer mode* in the advanced Apps settings (depends on your plan), create an app with the address and choose OAuth |
+| Gemini CLI | `gemini mcp add --transport http forsah https://farsh.ifaisal.net/mcp`, then `/mcp auth forsah` |
+| Grok | grok.com/connectors → *New Connector* → *Custom* |
+
+The assistant opens the Forsah sign-in page and you approve it (OAuth 2.1 with PKCE, dynamic client registration and rotating refresh tokens, [`server/saas/oauth.js`](server/saas/oauth.js); only hashes of codes and tokens are stored; an access token lasts one hour). The **Team** page shows the steps and a ready prompt for each assistant, creates an access code for tools that cannot sign in, and lists and removes connections. Connecting is open to the operator account only for now.
+
+**Tools**
+
+| Tool | What it returns |
+|---|---|
+| `get_wallet` | Cash, value, P&L and every holding with its stop loss, target and the AI's latest decision and reason |
+| `get_markets` | Every followed market: price, change, trend, AI decision, shares held, freshness, AI-picked or not |
+| `get_opportunities` | The current call for every followed stock, with entry, stop, target, reasons and the track record |
+| `get_ai_decisions` | Recent trading-AI decisions (optionally one symbol): action, confidence, reason, levels, outcome |
+| `get_trades` | Executed paper buys and sells |
+| `get_performance` | Return, win rate, profit factor, drawdown and fees for today, week, month or all time |
+| `get_market_hours` | Whether the US market is open, the next open or close, holidays |
+| `get_team_guide`, `get_overview`, `get_stock_file`, `get_reports` | The research team's guide, what needs a look, one stock's file, earlier reports |
+| `save_note`, `save_report` | Save a specialist note or the final research report (the only tools that write) |
+
+There is no tool that trades, changes a setting or reads a key. A token opens `/mcp` and nothing else, requests from a browser origin are refused, and text returned by tools is marked as data, never instructions. Covered by `test/mcp.test.js`.
 
 </details>
 

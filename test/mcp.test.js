@@ -68,16 +68,19 @@ test('mcp: sign-in is discoverable, needs the owner, PKCE and the exact address;
   assert.equal((await raw('/account/connect/approve', { body: a.q, cookie: u })).status, 404); assert.equal((await raw('/account/connections', { cookie: u })).status, 404);
 }));
 
-test('mcp: the assistant lists only team tools, reads, saves a report, and loses access when disconnected', { timeout: 90000 }, () => setup(async (x) => {
+test('mcp: the assistant lists only read and report tools, reads, saves a report, and loses access when disconnected', { timeout: 90000 }, () => setup(async (x) => {
   const { raw, later } = x; const a = await connect(x, 'http://localhost:4000/cb'); const access = (await raw('/oauth/token', { form: a.form })).data.access_token;
   const init = payload(await rpc(raw, access, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 't', version: '1' } })); assert.ok(init.result && init.result.serverInfo, JSON.stringify(init));
   const list = payload(await rpc(raw, access, 'tools/list', {}, { 'mcp-protocol-version': '2025-06-18' })).result.tools;
-  assert.deepEqual(list.map((t) => t.name).sort(), ['get_overview', 'get_reports', 'get_stock_file', 'get_team_guide', 'save_note', 'save_report']);
+  assert.deepEqual(list.map((t) => t.name).sort(), ['get_ai_decisions', 'get_market_hours', 'get_markets', 'get_opportunities', 'get_overview', 'get_performance', 'get_reports', 'get_stock_file', 'get_team_guide', 'get_trades', 'get_wallet', 'save_note', 'save_report']);
+  for (const t of list) assert.equal(t.annotations.readOnlyHint, t.name.startsWith('get_'), `${t.name}: only the two save tools write`);
   assert.equal(list.find((t) => t.name === 'get_overview').annotations.readOnlyHint, true); assert.equal(list.find((t) => t.name === 'save_report').annotations.readOnlyHint, false);
   const now = payload(await rpc(raw, access, 'tools/list', { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': {}, 'io.modelcontextprotocol/clientInfo': { name: 't', version: '1' } } }, { 'mcp-protocol-version': '2026-07-28', 'mcp-method': 'tools/list' }));
-  assert.equal(now.result && now.result.tools.length, 6, 'the newest protocol too: ' + JSON.stringify(now));
+  assert.equal(now.result && now.result.tools.length, 13, 'the newest protocol too: ' + JSON.stringify(now));
   const call = async (name, args = {}) => payload(await rpc(raw, access, 'tools/call', { name, arguments: args }, { 'mcp-protocol-version': '2025-06-18' })).result;
   assert.match(JSON.stringify(await call('get_team_guide')), /never trade/);
+  assert.ok(!(await call('get_wallet')).isError, 'the wallet reads');
+  assert.ok(!(await call('get_ai_decisions', { limit: 5 })).isError, 'the decisions read');
   const report = { symbol: 'NVDA', view: 'POSITIVE', confidence: 60, horizonDays: 20, summaryAr: 'رأي', drivers: ['a'], risks: ['b'], sources: [{ title: 'x', url: 'https://a.example/' }], by: 'Claude' };
   assert.ok(!(await call('save_report', report)).isError);
   assert.equal((await call('save_report', { ...report, sources: [] })).isError, true);
